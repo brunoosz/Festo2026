@@ -1,0 +1,63 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "dark coders",
+      "intents": [
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        { "name": "AMAZON.NavigateHomeIntent", "samples": [] },
+        { "name": "AMAZON.FallbackIntent", "samples": [] },
+        {
+          "name": "LigarMaquinaIntent",
+          "slots": [],
+          "samples": [
+            "ligar",
+            "liga",
+            "ligue",
+            "iniciar",
+            "ligar a máquina",
+            "ligue a máquina",
+            "liga a máquina",
+            "iniciar a máquina",
+            "ligar a esteira"
+          ]
+        },
+        {
+          "name": "PredefinicaoIntent",
+          "slots": [
+            { "name": "gramas", "type": "AMAZON.NUMBER" }
+          ],
+          "samples": [
+            "{gramas} gramas",
+            "de {gramas} gramas",
+            "com {gramas} gramas",
+            "{gramas} g",
+            "pré definição de {gramas} gramas",
+            "predefinição de {gramas} gramas",
+            "receita de {gramas} gramas",
+            "opção de {gramas} gramas",
+            "ligar com {gramas} gramas",
+            "ligar a máquina com {gramas} gramas",
+            "ligue a máquina com {gramas} gramas"
+          ]
+        },
+        {
+          "name": "EmergenciaIntent",
+          "slots": [],
+          "samples": [
+            "emergência",
+            "parada de emergência",
+            "acionar emergência",
+            "acionar a parada de emergência",
+            "parar tudo",
+            "pare tudo",
+            "pare a máquina",
+            "parar a máquina"
+          ]
+        }
+      ],
+      "types": []
+    }
+  }
+}
