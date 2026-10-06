@@ -1,64 +1,100 @@
+<div align="center">
+
+<img src="public/logo.png" alt="Dark Coders" width="110">
+
+# Flow Pack: Sistema de Controle
+
+Aplicação web para operar e monitorar uma máquina de embalagem Flow Pack em tempo real.
+
+![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A5%2020.6-339933?logo=nodedotjs&logoColor=white)
+![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-3B%2B-C51A4A?logo=raspberrypi&logoColor=white)
+![MQTT](https://img.shields.io/badge/MQTT-Mosquitto-660066?logo=mqtt&logoColor=white)
+![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)
+
+</div>
+
 <p align="center">
-  <img src="public/logo.png" alt="Dark Coders" width="120">
+  <img src="docs/img/dashboard.png" alt="Tela de operação do sistema" width="900">
 </p>
 
-# Festo 2026 - Flow Pack
+## Visão geral
 
-Site que controla a nossa máquina de embalagem Flow Pack. A gente fez esse projeto na FIAP, em parceria com a Festo, e ele roda num Raspberry Pi 3B+ ligado às placas ESP32 da máquina por MQTT.
+Projeto da equipe **Dark Coders** (Engenharia da Computação, FIAP) para a **Festo 2026**. O sistema roda em um Raspberry Pi, que se comunica por MQTT com os ESP32 de cada módulo da máquina e entrega uma interface web para operação, acompanhamento da produção e manutenção.
 
-A máquina embala em sequência: esteira, bobina de plástico, dispenser, braço formador, selagem horizontal, selagem final e separador de itens. Pelo navegador dá pra ligar a esteira, ajustar temperatura das selagens, dosar, ver gráficos de produção e até mandar comando por voz pela Alexa.
+A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço formador, selagem horizontal, selagem final e separador de itens. Cada módulo tem controle individual, indicador de conexão e registro de eventos.
 
-![Dashboard](docs/img/dashboard.png)
+## Funcionalidades
 
-## O que tem no site
+| Módulo | Descrição |
+|---|---|
+| Operação | Velocidade da esteira, temperatura das selagens, estado dos módulos e modelo 3D da máquina. |
+| Painel de Controle | Motores e aquecimento de cada selagem, sentido da esteira, reinício e reset de cada placa. |
+| Dispenser | Seleção do grão e da quantidade (1/4, 1/2, 3/4 ou 1 volta do rotor) e acionamento da dosagem. |
+| Separador | Contagem e reconhecimento de produtos por câmera, com servo que desvia cada item. Inclui treinamento por classe e calibração de fundo. |
+| Visão Computacional | Zona de detecção, produtos de referência e confirmação por IA. |
+| Receitas | Níveis de 50, 100, 150 e 200 g com velocidade e temperatura predefinidas. |
+| Produção e Relatórios | Gráficos por hora e por dia e exportação de relatórios em PDF. |
+| Dark Coders AI | Assistente com base de conhecimento local e IA online opcional. Aceita comandos por texto e por voz. |
+| Alexa | Skill própria para comandos (velocidade, temperatura, emergência) e perguntas. |
+| Logs ao Vivo | Registro em tempo real de tudo o que acontece, com usuário e origem (site, assistente ou Alexa). |
+| Status do Sistema | Internet, Raspberry (temperatura, memória, alimentação) e conexão de cada dispositivo. |
+| Usuários | Três níveis de acesso e permissão de telas por usuário. |
+| Manuais | Manuais em PDF de cada módulo e da máquina completa. |
 
-- **Operação:** velocidade da esteira, temperatura das duas selagens, status de cada placa e o modelo 3D da máquina.
-- **Painel de Controle:** motores e aquecimento de cada selagem (só Dono e Administrador).
-- **Dispenser:** escolhe o grão e a quantidade (1/4, 1/2, 3/4 ou 1 volta) e doza.
-- **Separador:** câmera ESP32-CAM que conta e reconhece os produtos, e um servo que desvia cada um pro lado certo.
-- **Visão Computacional:** zona de detecção, produtos de referência e confirmação por IA.
-- **Receitas:** níveis de 50, 100, 150 e 200 g com velocidade e temperatura prontas.
-- **Produção e Relatórios:** gráficos por hora e por dia, com PDF.
-- **Dark Coders AI:** chat com base de conhecimento local e, se tiver chave, IA online (NVIDIA). Aceita comando por texto e por voz.
-- **Alexa:** skill própria que manda comando (velocidade, temperatura, emergência) e responde perguntas.
-- **Logs ao Vivo, Status do Sistema, Usuários, Manuais em PDF** e o botão de **Parada de Emergência** em todas as telas.
+A **Parada de Emergência** fica visível em todas as telas e também responde a comandos da Alexa.
 
-<table>
-  <tr>
-    <td><img src="docs/img/painel-controle.png" alt="Painel de Controle"></td>
-    <td><img src="docs/img/dispenser.png" alt="Dispenser"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/img/producao.png" alt="Produção"></td>
-    <td><img src="docs/img/relatorios.png" alt="Relatórios"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/img/chat.png" alt="Dark Coders AI"></td>
-    <td><img src="docs/img/status-sistema.png" alt="Status do Sistema"></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/img/painel-controle.png" alt="Painel de Controle" width="440">
+  <img src="docs/img/dispenser.png" alt="Dispenser" width="440">
+</p>
+<p align="center">
+  <img src="docs/img/producao.png" alt="Produção" width="440">
+  <img src="docs/img/relatorios.png" alt="Relatórios" width="440">
+</p>
+<p align="center">
+  <img src="docs/img/chat.png" alt="Dark Coders AI" width="440">
+  <img src="docs/img/status-sistema.png" alt="Status do Sistema" width="440">
+</p>
 
 ### Modelo 3D
 
-O modelo da máquina é um arquivo `.glb` em `public/modelo/`. Dá pra girar, aproximar e ver em modo estrutura. Se trocar o arquivo, o site já usa o novo.
+A máquina pode ser visualizada em 3D no próprio site (Dashboard e tela Modelo 3D), com rotação, zoom e modo estrutura. O visualizador usa Three.js com os arquivos servidos localmente, então funciona sem internet. O modelo fica em [`public/modelo/maquina.glb`](public/modelo); para trocá-lo, basta substituir o arquivo.
 
-![Modelo 3D](docs/img/modelo-3d.png)
+<p align="center">
+  <img src="docs/img/modelo-3d.gif" alt="Modelo 3D da máquina girando" width="720">
+</p>
 
-## Como funciona
+## Arquitetura
 
-```
-Navegador  <-- HTTP / WebSocket -->  Raspberry Pi (Node.js)  <-- MQTT -->  ESP32 de cada módulo
-Alexa      <--     HTTPS      -->   /alexa                   <-- HTTP -->  ESP32-CAM
-```
+<p align="center">
+  <img src="docs/img/arquitetura.svg" alt="Diagrama de arquitetura" width="900">
+</p>
 
-- Back-end em Node.js com Express 5, Socket.IO e Nunjucks.
-- Front-end em HTML e JavaScript puro, com Tailwind, Chart.js, jsPDF e Three.js (tudo local, funciona sem internet).
-- O broker MQTT (Mosquitto) roda no próprio Raspberry.
-- Não tem banco de dados: usuários, receitas, configurações e histórico ficam em arquivos JSON e na pasta `logs/`.
+- **Back-end:** Node.js, Express 5, Socket.IO e Nunjucks.
+- **Front-end:** HTML e JavaScript, Tailwind CSS, Chart.js, jsPDF e Three.js, todos servidos localmente.
+- **Mensageria:** MQTT, com o broker Mosquitto no próprio Raspberry.
+- **Persistência:** arquivos JSON e a pasta `logs/`. Não há banco de dados, o que mantém o consumo baixo para o Raspberry Pi 3B+.
+- **IA:** busca por similaridade na base local (`knowledge/`) e, opcionalmente, modelos da NVIDIA para o chat e a visão.
 
-## Rodando
+### Tópicos MQTT
 
-Precisa de Node 20.6 ou mais novo e de um broker MQTT. Pra só ver a interface, nem as placas são necessárias.
+| Módulo | Tópicos |
+|---|---|
+| Esteira | `esteira/velocidade/set`, `esteira/velocidade/atual`, `esteira/sentido/set`, `esteira/sentido/atual`, `esteira/status`, `esteira/emergencia` |
+| Selagem 1 | `selagem/set_temperatura`, `selagem/ativar`, `selagem/dados`, `selagem/status_conexao`, `selagem/emergencia`, `selagem/motores/status` |
+| Selagem 2 | `selagem2/set_temperatura`, `selagem2/ativar`, `selagem2/dados`, `selagem2/status_conexao`, `selagem2/emergencia`, `selagem2/motor/status` |
+| Dispenser | `dispenser/dosar`, `dispenser/estado`, `dispenser/concluido`, `dispenser/status`, `dispenser/reiniciar`, `dispenser/emergencia` |
+| Separador | `separador/desviar`, `separador/config`, `separador/estado`, `separador/status`, `separador/teste`, `separador/emergencia` |
+
+## Instalação
+
+### Requisitos
+
+- Node.js 20.6 ou superior
+- Broker MQTT acessível (por exemplo, Mosquitto)
+- ESP32 dos módulos (opcional para apenas visualizar a interface)
+
+### Passos
 
 ```bash
 git clone https://github.com/brunoosz/Festo2026.git
@@ -68,80 +104,100 @@ cp .env.example .env
 npm start
 ```
 
-O site abre em `http://localhost:5000`. O endereço do broker (`mqtt://192.168.4.1`) e a porta estão no começo do `server.js`.
+A aplicação fica disponível em `http://localhost:5000`. O endereço do broker (`mqtt://192.168.4.1`) e a porta estão definidos no início do [`server.js`](server.js).
 
-Na primeira vez, se não existir `usuarios.json`, o sistema cria o usuário `admin` com senha `admin`. Troque essa senha logo em **Configuração**.
+Na primeira execução, caso não exista `usuarios.json`, é criado o usuário `admin` com senha `admin`. **Altere a senha em Configuração antes de qualquer uso real.**
 
-Variáveis do `.env` (todas opcionais):
+### Variáveis de ambiente
 
-| Variável | Pra que serve |
-|---|---|
-| `NVIDIA_API_KEY` | IA online do chat e da visão. Sem ela, o chat responde só com a base local. |
-| `SESSION_SECRET` | Segredo das sessões. Sem ele, o servidor gera um e guarda em `.session_secret`. |
+| Variável | Descrição | Obrigatória |
+|---|---|---|
+| `NVIDIA_API_KEY` | Chave da API NVIDIA para o chat e a visão por IA. Sem ela, o chat responde apenas com a base local. | Não |
+| `SESSION_SECRET` | Segredo das sessões e dos cookies. Se ausente, é gerado e salvo em `.session_secret`. | Não |
 
-Use `npm run start:env` se quiser que o Node leia o `.env` sozinho.
+Para que o Node leia o `.env` automaticamente, use `npm run start:env`.
 
-## No Raspberry
+## Implantação no Raspberry Pi
 
-### Atualizar
+### Atualização
 
-O `atualizar.sh` baixa a versão nova do GitHub e mantém o que é da máquina: `usuarios.json`, receitas, fotos de referência, configurações, `.env` e logs. Depois instala as dependências e reinicia o site (pm2 ou systemd).
+O script [`atualizar.sh`](atualizar.sh) baixa a versão mais recente do GitHub preservando os dados da máquina: `usuarios.json`, receitas, fotos de referência, configurações, `.env` e logs. Em seguida instala as dependências e reinicia o serviço (pm2 ou systemd).
 
 ```bash
 cd ~/site_esteira && git fetch origin main && git checkout origin/main -- atualizar.sh && bash atualizar.sh
 ```
 
-Antes de mexer em qualquer coisa ele guarda uma cópia dos dados em `../festo2026_backup/`. Pra atualizar de outra branch: `bash atualizar.sh nome-da-branch`.
+Antes de qualquer alteração, uma cópia dos dados é salva em `../festo2026_backup/`. Para atualizar a partir de outra branch, informe o nome: `bash atualizar.sh nome-da-branch`.
 
-### Acesso de fora (Tailscale Funnel)
+### Acesso externo com Tailscale Funnel
 
-O site não precisa ficar só na rede local. A gente usa o Tailscale Funnel pra abrir ele por um endereço HTTPS público:
+O sistema pode ser acessado fora da rede local por meio do [Tailscale Funnel](https://tailscale.com/kb/1223/funnel), que publica a porta do servidor em um endereço HTTPS:
 
 ```bash
 sudo tailscale funnel --bg 5000
 ```
 
-Como qualquer pessoa que achar o endereço vê a tela de login, o servidor já se protege:
+Como a tela de login passa a ficar pública, o servidor aplica as seguintes proteções:
 
-- o cookie de "lembrar de mim" é assinado, então não dá pra forjar;
-- o segredo da sessão não fica no código;
-- depois de 8 senhas erradas, o IP fica bloqueado por 15 minutos.
+- cookie de "lembrar de mim" assinado, que não pode ser forjado;
+- segredo de sessão fora do código-fonte;
+- bloqueio por 15 minutos após 8 tentativas de login incorretas a partir do mesmo IP.
 
-Mesmo assim, troque a senha `admin` antes de abrir pra internet.
+Recomendações adicionais estão em [SECURITY.md](SECURITY.md).
 
-## Usuários
+## Usuários e permissões
 
-| Nível | Pode |
+| Nível | Permissões |
 |---|---|
-| Dono | Tudo, inclusive promover e apagar usuários. |
-| Administrador | Controlar a máquina, criar usuários e trocar senhas dos níveis abaixo. |
-| Operário | Só as telas que o Dono ou o Administrador liberarem. |
+| Dono | Acesso total, incluindo promover e apagar usuários. |
+| Administrador | Controla a máquina, cria usuários e altera senhas dos níveis abaixo do seu. |
+| Operário | Acessa apenas as telas liberadas pelo Dono ou pelo Administrador. |
 
-Em **Usuários** dá pra escolher, pra cada Operário, quais telas ele vê. Por padrão ele vê tudo, menos Receitas. O Dashboard e a Configuração ficam sempre liberados. O bloqueio vale no menu e também no servidor, então digitar a URL direto não adianta.
+Em **Usuários**, o Dono ou o Administrador define, para cada Operário, quais telas ficam disponíveis: Dispenser, Separador, Receitas, Produção, Relatórios, Visão Computacional, Dark Coders AI e Logs. Por padrão, o Operário acessa todas, exceto Receitas. Dashboard e Configuração estão sempre liberados. A restrição é aplicada no menu e no servidor, portanto o acesso direto pela URL também é bloqueado.
 
-![Usuários](docs/img/usuarios.png)
+<p align="center">
+  <img src="docs/img/login.png" alt="Tela de login" width="440">
+  <img src="docs/img/usuarios.png" alt="Gerenciamento de usuários" width="440">
+</p>
 
-## Alexa
+## Integração com a Alexa
 
-A skill manda os pedidos pra `POST /alexa`. O servidor confere a assinatura e o certificado da Amazon e o ID da skill antes de executar qualquer coisa. Pra funcionar, o endereço precisa ser HTTPS público (o Funnel serve).
+A skill **Dark Coders** envia os pedidos para `POST /alexa`. Antes de executar qualquer comando, o servidor valida a assinatura e o certificado da Amazon e confere o ID da skill. O endereço precisa ser público e usar HTTPS, o que o Tailscale Funnel atende.
 
-## Pastas
+## Estrutura do repositório
 
 ```
-server.js              servidor: rotas, MQTT, Socket.IO, Alexa, IA
-separador_engine.js    contagem e desvio de produtos do separador
-views/                 telas (Nunjucks)
-public/                JS, imagens e o modelo 3D
-knowledge/             base de conhecimento do chat
-manuais/               manuais em PDF de cada módulo
-docs/img/              prints usados aqui no README
-atualizar.sh           script de atualização do Raspberry
+.
+├── server.js              Servidor: rotas, MQTT, Socket.IO, Alexa e IA
+├── separador_engine.js    Contagem e desvio de produtos do separador
+├── atualizar.sh           Atualização do Raspberry Pi
+├── views/                 Telas (templates Nunjucks)
+├── public/                Arquivos estáticos, bibliotecas e modelo 3D
+├── knowledge/             Base de conhecimento do assistente
+├── manuais/               Manuais em PDF
+├── docs/img/              Imagens usadas neste README
+├── dispenser_config.json  Configuração do dispenser
+├── config_visao.json      Configuração da câmera e da visão
+└── .env.example           Modelo de variáveis de ambiente
 ```
 
-## Mais
+## Manuais
 
-- Manuais de cada módulo em [`manuais/`](manuais).
-- Dicas de segurança pra uso real em [SECURITY.md](SECURITY.md).
-- Quer ajudar? Veja [CONTRIBUTING.md](CONTRIBUTING.md).
+Os manuais em PDF ficam em [`manuais/`](manuais) e também podem ser baixados pelo botão **Manuais** do próprio sistema.
 
-Feito pela equipe Dark Coders. Licença MIT, está no arquivo [LICENSE](LICENSE).
+| Documento | Arquivo |
+|---|---|
+| Máquina completa | [`Manual_Maquina_FlowPack.pdf`](manuais/Manual_Maquina_FlowPack.pdf) |
+| Esteira | [`Manual_Esteira_FlowPack.pdf`](manuais/Manual_Esteira_FlowPack.pdf) |
+| Dispenser | [`Manual_Dispenser_FlowPack.pdf`](manuais/Manual_Dispenser_FlowPack.pdf) |
+| Braço formador | [`Manual_BracoFormador_FlowPack.pdf`](manuais/Manual_BracoFormador_FlowPack.pdf) |
+| Selagem 1 | [`Manual_Selagem1_FlowPack.pdf`](manuais/Manual_Selagem1_FlowPack.pdf) |
+| Selagem 2 | [`Manual_Selagem2_FlowPack.pdf`](manuais/Manual_Selagem2_FlowPack.pdf) |
+
+## Contribuição
+
+Consulte [CONTRIBUTING.md](CONTRIBUTING.md) antes de abrir um pull request.
+
+## Licença
+
+Distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE).
