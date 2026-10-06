@@ -18,7 +18,7 @@
                 </p>
             </div>
             <div class="flex flex-col sm:flex-row gap-2 shrink-0">
-                <!-- NOVO: filtro por cargo -->
+                <!-- filtro por cargo -->
                 <select id="filtro-nivel" class="text-xs font-bold border-2 border-slate-200 rounded-lg px-3 py-2.5 bg-white text-slate-700 cursor-pointer focus:outline-none focus:border-blue-500">
                     <option value="todos">Todos os cargos</option>
                     <option value="1">Somente Donos</option>
@@ -209,8 +209,7 @@
         return tr;
     }
 
-    // NOVO: aplica o filtro selecionado e reordena por nível (Dono
-    // primeiro, depois Admin, depois Operário) dentro do resultado
+    // aplica o filtro selecionado e reordena por nível
     function renderizarComFiltro() {
         const filtroAtual = filtroNivel.value;
         let lista = [...listaCompletaUsuarios];

@@ -15,7 +15,7 @@
         </button>
     </div>
 
-    <!-- NOVO: card de acessibilidade -->
+    <!-- card de acessibilidade -->
     <div class="card-painel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-2 border-blue-100">
         <div>
             <h3 class="font-bold text-gray-800 text-base sm:text-lg">Leitor de Tela (Acessibilidade)</h3>
@@ -101,7 +101,7 @@
         }
     });
 
-    // NOVO: toggle de acessibilidade (leitor de tela)
+    // toggle de acessibilidade (leitor de tela)
     const btnAcessibilidade = document.getElementById('btn-acessibilidade');
 
     function atualizarVisualBotaoAcessibilidade(ativo) {
@@ -133,7 +133,7 @@
                     window.definirAcessibilidade(novoEstado);
                 }
                 if (novoEstado) {
-                    // Confirma em voz que a leitura de tela foi ativada
+                    // confirma em voz que a leitura de tela foi ativada
                     try {
                         const fala = new SpeechSynthesisUtterance('Leitor de tela ativado.');
                         fala.lang = 'pt-BR';

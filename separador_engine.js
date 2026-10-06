@@ -1,20 +1,11 @@
 'use strict';
-// =============================================================================
-// MOTOR LOCAL DO SEPARADOR (Flow Pack - Dark Coders)
-//
-// Conta e reconhece os produtos que passam pela camera SEM depender de internet:
-//   1) fundo adaptativo: aprende como a esteira vazia parece e acha o que e diferente
-//   2) rastreio: acompanha cada objeto e conta uma unica vez quando cruza a linha
-//   3) reconhecimento: compara cor e textura com as amostras treinadas (vizinho mais proximo)
-//
-// Funciona com sacos transparentes: o que importa e a diferenca para a esteira vazia.
-// =============================================================================
+// motor local do separador
 const fs = require('fs');
 const path = require('path');
 
 const PADRAO = {
     motorLocal: true,        // false = volta ao metodo antigo (brilho medio + IA da nuvem)
-    eixo: 'x',               // sentido da esteira na imagem: 'x' (esquerda/direita) ou 'y' (cima/baixo)
+    eixo: 'x',               // sentido da esteira na imagem
     sentido: 0,              // 0 = qualquer, 1 = crescente (esq->dir ou cima->baixo), -1 = contrario
     linha: 0.5,              // onde contar (0 a 1, ao longo do sentido da esteira)
     limiarFundo: 28,         // quanto uma cor precisa diferir da esteira vazia (0 a 255)
@@ -28,7 +19,7 @@ const PADRAO = {
     k: 3,                    // vizinhos usados no reconhecimento
     limDesconhecido: 0.45,   // distancia maxima para aceitar um produto conhecido
     larguraTipica: 0,        // largura media de 1 saco (aprendida sozinha)
-    // --- servo separador
+    // servo separador
     servoAtivo: false,
     atrasoBaseMs: 1200,      // tempo entre a linha de contagem e o servo (na velocidade de referencia)
     velRefEsteira: 0,        // velocidade da esteira (0 a 1) em que o atraso foi medido
@@ -38,7 +29,7 @@ const PADRAO = {
     anguloCentro: 90,
     anguloDir: 135,
     velocidadeServo: 60,
-    ladoPorClasse: {},       // { "Arroz": "E", "Feijao": "D" }
+    ladoPorClasse: {},       // { "Arroz"
     ladoDesconhecido: 'C'    // 'E', 'D' ou 'C' (centro = nao desvia)
 };
 
@@ -61,7 +52,7 @@ function criarMotorSeparador(opcoes) {
     const arquivoConfig = path.join(pastaDados, 'config_separador.json');
     const arquivoTreino = path.join(pastaDados, 'visao_treino.json');
 
-    // ------------------------------------------------------------------ config
+    // config
     let config = Object.assign({}, PADRAO);
     try { Object.assign(config, JSON.parse(fs.readFileSync(arquivoConfig, 'utf-8'))); } catch (e) {}
     config.ladoPorClasse = Object.assign({}, config.ladoPorClasse);
@@ -106,7 +97,7 @@ function criarMotorSeparador(opcoes) {
         return config;
     }
 
-    // ------------------------------------------------------------------ treino
+    // treino
     let treino = { classes: {} };
     try { treino = JSON.parse(fs.readFileSync(arquivoTreino, 'utf-8')); } catch (e) {}
     if (!treino.classes) treino.classes = {};
@@ -154,7 +145,7 @@ function criarMotorSeparador(opcoes) {
 
     function nomesDasClasses() { return Object.keys(treino.classes); }
 
-    // ------------------------------------------------------- reconhecimento
+    // reconhecimento
     function classificar(f) {
         const todas = [];
         Object.keys(treino.classes).forEach(nome => {
@@ -189,7 +180,7 @@ function criarMotorSeparador(opcoes) {
         return { h, s: mx === 0 ? 0 : d / mx, v: mx };
     }
 
-    // ------------------------------------------------------------------ estado
+    // estado
     let bg = null;              // fundo (Float32Array, 3 valores por celula)
     let dims = '';              // para detectar mudanca de tamanho
     let aprender = FRAMES_APRENDER_FUNDO;
@@ -222,7 +213,7 @@ function criarMotorSeparador(opcoes) {
         };
     }
 
-    // --------------------------------------------------------- miniatura
+    // miniatura
     async function miniatura(img, x, y, w, h) {
         try {
             x = Math.max(0, Math.floor(x)); y = Math.max(0, Math.floor(y));
@@ -230,10 +221,10 @@ function criarMotorSeparador(opcoes) {
             h = Math.max(8, Math.min(Math.floor(h), img.bitmap.height - y));
             let c = img.clone();
             let url;
-            if (typeof c.getBase64Async === 'function') {                   // Jimp 0.x
+            if (typeof c.getBase64Async === 'function') {                   // jimp 0.x
                 c = c.crop(x, y, w, h).resize(96, J.AUTO).quality(60);
                 url = await c.getBase64Async(J.MIME_JPEG);
-            } else {                                                        // Jimp 1.x
+            } else {                                                        // jimp 1.x
                 c = c.crop({ x, y, w, h }).resize({ w: 96 });
                 url = await c.getBase64('image/jpeg', { quality: 60 });
             }
@@ -241,7 +232,7 @@ function criarMotorSeparador(opcoes) {
         } catch (e) { return null; }
     }
 
-    // ---------------------------------------------------- processar quadro
+    // processar quadro
     async function processarFrame(buffer, agoraMs) {
         agoraMs = agoraMs || Date.now();
         const img = await J.read(buffer);
@@ -274,7 +265,7 @@ function criarMotorSeparador(opcoes) {
 
         const sobreposicao = { w, h, eixo: config.eixo, linha: config.linha, banda: [zi, zf], segmentos: [], aprendendo: false, sinal: 0 };
 
-        // ---- aprendendo como a esteira vazia parece
+        // aprendendo como a esteira vazia parece
         if (aprender > 0) {
             if (!acumulador) { acumulador = new Float32Array(N * 3); acumulados = 0; }
             for (let i = 0; i < N * 3; i++) acumulador[i] += cur[i];
@@ -288,7 +279,7 @@ function criarMotorSeparador(opcoes) {
             return { sobreposicao, eventos: [] };
         }
 
-        // ---- o que e diferente do fundo
+        // o que e diferente do fundo
         const limiar = config.limiarFundo;
         const contaFg = new Uint16Array(L);
         const fgCel = new Uint8Array(N);
@@ -301,7 +292,7 @@ function criarMotorSeparador(opcoes) {
             }
             contaFg[a] = c;
         }
-        // fracao de cada coluna que difere do fundo, suavizada com as vizinhas (evita "piscar")
+        // fracao de cada coluna que difere do fundo, suavizada com as vizinhas
         const frac = new Float32Array(L);
         for (let a = 0; a < L; a++) {
             const e = contaFg[Math.max(0, a - 1)], c = contaFg[a], d = contaFg[Math.min(L - 1, a + 1)];
@@ -310,7 +301,7 @@ function criarMotorSeparador(opcoes) {
         let sinalMax = 0;
         for (let a = 0; a < L; a++) if (frac[a] > sinalMax) sinalMax = frac[a];
 
-        // histerese: o objeto comeca onde passa do limite e se estende pelas colunas vizinhas que passam da metade dele
+        // histerese
         const fgCol = new Uint8Array(L);
         const alto = config.fracColuna, baixo = config.fracColuna * 0.5;
         for (let a = 0; a < L; a++) if (frac[a] >= alto) fgCol[a] = 1;
@@ -342,7 +333,7 @@ function criarMotorSeparador(opcoes) {
             }
         }
 
-        // ---- objetos (trechos seguidos de colunas diferentes)
+        // objetos (trechos seguidos de colunas diferentes)
         let lacuna = Math.max(1, Math.round(config.lacunaFrac * L));
         if (config.larguraTipica > 0) lacuna = Math.max(lacuna, Math.round(0.3 * config.larguraTipica * L));
         const minimo = Math.max(2, Math.round(config.larguraMinFrac * L));
@@ -358,7 +349,7 @@ function criarMotorSeparador(opcoes) {
         if (ini >= 0) segmentos.push([ini, ultimo]);
         segmentos = segmentos.filter(s => (s[1] - s[0] + 1) >= minimo);
 
-        // ---- rastreio: liga cada objeto ao que ja estava sendo seguido
+        // rastreio
         const usados = new Set();
         const saltoMax = config.saltoMaxFrac;
         const objetos = segmentos.map(s => ({ ini: s[0], fim: s[1], cx: ((s[0] + s[1] + 1) / 2) / L, larg: (s[1] - s[0] + 1) / L }));
@@ -382,8 +373,8 @@ function criarMotorSeparador(opcoes) {
                     const f = fantasmas[k];
                     const previsto = f.cx + f.v * (agoraMs - f.visto);
                     if (Math.abs(previsto - o.cx) <= f.larg * 0.8 + 0.08) {
-                        if (f.contado) novo.contado = true;      // ja tinha sido contado: nao conta de novo
-                        else novo.anterior = f.cx;               // sumiu antes de cruzar a linha: continua de onde parou
+                        if (f.contado) novo.contado = true;      // ja tinha sido contado
+                        else novo.anterior = f.cx;               // sumiu antes de cruzar a linha
                         fantasmas.splice(k, 1); break;
                     }
                 }
@@ -399,7 +390,7 @@ function criarMotorSeparador(opcoes) {
 
         sobreposicao.segmentos = objetos.map(o => ({ id: o.track.id, ini: o.ini / L, fim: (o.fim + 1) / L, contado: o.track.contado }));
 
-        // ---- cruzou a linha? conta uma vez
+        // cruzou a linha? conta uma vez
         const eventos = [];
         const linha = config.linha;
         for (const o of objetos) {

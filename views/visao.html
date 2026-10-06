@@ -54,7 +54,7 @@
             <div id="faixa-contagem" class="hidden absolute left-0 right-0 border-y-2 border-blue-400 bg-blue-400/10 pointer-events-none"></div>
 
             {% if isAdmin %}
-            <!-- NOVO: alças arrastáveis pra ajustar a faixa direto na imagem -->
+            <!-- alças arrastáveis pra ajustar a faixa direto na imagem -->
             <div id="alca-topo-faixa" class="hidden absolute left-0 right-0 h-4 bg-blue-500 cursor-ns-resize flex items-center justify-center z-10" style="touch-action: none;">
                 <div class="w-10 h-1 bg-white rounded-full pointer-events-none"></div>
             </div>
@@ -353,7 +353,7 @@
         faixaContagem.style.height = alturaPct + '%';
     }
 
-    // === PRODUTOS DE REFERÊNCIA ===
+    // produtos de referência
 
     function criarCardProduto(produto, souAdmin) {
         const div = document.createElement('div');
@@ -411,7 +411,7 @@
     }
 
     {% if isAdmin %}
-    // === ALÇAS ARRASTÁVEIS DA FAIXA ===
+    // alças arrastáveis da faixa
     const alcaTopo = document.getElementById('alca-topo-faixa');
     const alcaBase = document.getElementById('alca-base-faixa');
     let configAtual = null;
@@ -479,7 +479,7 @@
         } catch (e) {}
     }
 
-    // Configurar câmera (modal)
+    // configurar câmera (modal)
     const btnAbrirConfig = document.getElementById('btn-abrir-config-visao');
     const modalConfig = document.getElementById('modal-config-visao');
     const btnCancelarConfig = document.getElementById('btn-cancelar-config-visao');
@@ -558,7 +558,7 @@
     }
     formConfig.addEventListener('submit', handlerSalvarConfig);
 
-    // Adicionar produto de referência
+    // adicionar produto de referência
     const btnAbrirAddProduto = document.getElementById('btn-abrir-add-produto');
     const modalAddProduto = document.getElementById('modal-add-produto');
     const btnCancelarAddProduto = document.getElementById('btn-cancelar-add-produto');

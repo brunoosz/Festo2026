@@ -6,8 +6,8 @@
 <style>
     .m3-btn { border: 2px solid #1e293b; background: #fff; color: #1e293b; border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
     .m3-btn.on { background: #1e293b; color: #fff; }
-    .m3-area { position: relative; width: 100%; height: 62vh; min-height: 320px; border-radius: 10px; overflow: hidden; background: linear-gradient(#cbd5e1, #f8fafc); touch-action: none; }
-    .m3-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; font-size: 14px; font-weight: 700; color: #475569; }
+    .m3-area { position: relative; width: 100%; height: 62vh; min-height: 320px; border-radius: 10px; overflow: hidden; background: linear-gradient(#0b1220, #1e293b); touch-action: none; }
+    .m3-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; font-size: 14px; font-weight: 700; color: #94a3b8; }
     .m3-area canvas { display: block; width: 100%; height: 100%; }
 </style>
 
@@ -36,7 +36,7 @@
 (function () {
     const el = (id) => document.getElementById(id);
     const area = el('m3-area'), msg = el('m3-msg');
-    let THREE, renderer, scene, camera, controls, modelo = null, raf = 0, estrutura = false, girar = true, pronto = false, vistaInicial = null;
+    let chao = null, grade = null, THREE, renderer, scene, camera, controls, modelo = null, raf = 0, estrutura = false, girar = true, pronto = false, vistaInicial = null;
     const onResize = () => { if (!renderer) return; const w = area.clientWidth, h = area.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
 
     function mensagem(t) { msg.style.display = 'flex'; msg.innerHTML = t; }
@@ -55,8 +55,10 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         area.appendChild(renderer.domElement);
         scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f172a);
         camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.1));
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.2));
+        const topo = new THREE.DirectionalLight(0xffffff, 0.8); topo.position.set(0, 10, 0.5); scene.add(topo);
         const sol = new THREE.DirectionalLight(0xffffff, 1.4); sol.position.set(3, 6, 4); scene.add(sol);
         const sol2 = new THREE.DirectionalLight(0xffffff, 0.6); sol2.position.set(-4, 3, -3); scene.add(sol2);
         controls = new window.__m3.OrbitControls(camera, renderer.domElement);
@@ -71,9 +73,14 @@
         const caixa = new THREE.Box3().setFromObject(modelo);
         const tamanho = caixa.getSize(new THREE.Vector3()), centro = caixa.getCenter(new THREE.Vector3());
         modelo.position.sub(centro);
+        // chao e grade pra dar contraste com a maquina
+        if (chao) { scene.remove(chao); scene.remove(grade); }
+        const rb = Math.max(tamanho.x, tamanho.y, tamanho.z) || 1, base = -tamanho.y / 2;
+        chao = new THREE.Mesh(new THREE.CircleGeometry(rb * 0.6, 64), new THREE.MeshBasicMaterial({ color: 0x1e293b })); chao.rotation.x = -Math.PI / 2; chao.position.y = base - rb * 0.002; scene.add(chao);
+        grade = new THREE.GridHelper(rb * 1.1, 22, 0x475569, 0x334155); grade.position.y = base - rb * 0.001; scene.add(grade);
         const raio = Math.max(tamanho.x, tamanho.y, tamanho.z) || 1;
         camera.near = raio / 100; camera.far = raio * 100; camera.updateProjectionMatrix();
-        camera.position.set(raio * 1.2, raio * 0.8, raio * 1.4);
+        camera.position.set(raio * 0.85, raio * 0.6, raio * 1.0);
         controls.target.set(0, 0, 0); controls.update();
         vistaInicial = { pos: camera.position.clone(), alvo: controls.target.clone() };
     }

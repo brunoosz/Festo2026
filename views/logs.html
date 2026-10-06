@@ -51,12 +51,6 @@
         return div;
     }
 
-    // ALTERADO: sem sessionStorage — a tela sempre começa vazia e só mostra
-    // o que chega DAQUI EM DIANTE, ao vivo. Nada fica "salvo" entre visitas.
-    // ALTERADO: novo log entra no FINAL (embaixo), como um terminal de
-    // verdade — como o container fica ancorado na parte de baixo da tela,
-    // o mais recente sempre aparece visível, e o mais antigo "sobe e some"
-    // quando passa do limite.
     function handlerLogServidor(log) {
         logContainer.appendChild(construirLinha(log));
         while (logContainer.children.length > LIMITE_LINHAS) {

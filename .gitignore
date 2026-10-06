@@ -20,3 +20,6 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+.session_secret
+receitas.json
+produtos_referencia/
