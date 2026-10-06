@@ -1,0 +1,717 @@
+{% extends 'base.html' %}
+
+{% block title %}Visão Computacional{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-emerald-500">
+            <div class="min-w-0">
+                <p class="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Produtos Contados (Visão) — Hoje</p>
+                <h3 id="kpi-contagem-visao" class="text-2xl sm:text-3xl font-black text-emerald-600 transition-transform">0</h3>
+                <p id="badge-ultima-verificacao" class="hidden text-[10px] font-bold mt-1 inline-block px-2 py-0.5 rounded-full"></p>
+            </div>
+            <div class="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+        </div>
+
+        <div class="bg-white border-2 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 transition-all" id="card-status-camera">
+            <div class="min-w-0">
+                <p class="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Status da Câmera</p>
+                <h3 id="texto-status-camera" class="text-sm sm:text-base font-black mt-1 text-slate-500 truncate">Aguardando conexão...</h3>
+            </div>
+            <div class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 transition-all shrink-0" id="icone-status-camera">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-painel flex-1 flex flex-col shadow-sm border-t-4 border-t-slate-800 bg-white">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+            <div>
+                <h3 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Câmera ao Vivo (ESP32-CAM)</h3>
+                <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+                    {% if isAdmin %}Arraste as alças azuis pra ajustar onde a IA analisa — a mudança já salva sozinha.{% else %}A faixa marcada em azul é onde os produtos são detectados.{% endif %}
+                </p>
+            </div>
+            {% if isAdmin %}
+            <button id="btn-abrir-config-visao" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition cursor-pointer shrink-0">
+                Configurar Câmera
+            </button>
+            {% endif %}
+        </div>
+
+        <div id="container-camera" class="flex items-center justify-center bg-slate-900 rounded-lg overflow-hidden relative w-full mx-auto"
+             style="aspect-ratio: 4 / 3; max-height: 55vh;">
+            <img id="imagem-camera" class="w-full h-full object-cover hidden" alt="Imagem da câmera">
+            <div id="msg-sem-imagem" class="text-slate-400 text-sm text-center p-6">
+                <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.5 10.677V10.5a1.5 1.5 0 011.5-1.5h.5m3.5 3.5v-.5a1.5 1.5 0 00-1.5-1.5h-.5m-8 3.5H5a2 2 0 01-2-2V8a2 2 0 012-2h.5m14 0H19a2 2 0 012 2v3.5"></path></svg>
+                Aguardando conexão com o ESP32-CAM...<br>
+                <span class="text-xs">Verifique se a câmera já está ligada e configurada.</span>
+            </div>
+            <div id="faixa-contagem" class="hidden absolute left-0 right-0 border-y-2 border-blue-400 bg-blue-400/10 pointer-events-none"></div>
+
+            {% if isAdmin %}
+            <!-- NOVO: alças arrastáveis pra ajustar a faixa direto na imagem -->
+            <div id="alca-topo-faixa" class="hidden absolute left-0 right-0 h-4 bg-blue-500 cursor-ns-resize flex items-center justify-center z-10" style="touch-action: none;">
+                <div class="w-10 h-1 bg-white rounded-full pointer-events-none"></div>
+            </div>
+            <div id="alca-base-faixa" class="hidden absolute left-0 right-0 h-4 bg-blue-500 cursor-ns-resize flex items-center justify-center z-10" style="touch-action: none;">
+                <div class="w-10 h-1 bg-white rounded-full pointer-events-none"></div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-100">
+            <h4 class="text-xs font-black text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Últimas verificações da IA
+            </h4>
+            <p class="text-[11px] text-slate-400 mb-3">Cada card mostra o recorte exato analisado pela IA (só a faixa marcada, com uma margem) e a resposta literal dela.</p>
+            <div id="lista-verificacoes-ia" class="flex gap-3 overflow-x-auto pb-2">
+                <p id="msg-sem-verificacoes" class="text-xs text-slate-400 py-4">Nenhuma verificação ainda. Passe um objeto pela faixa marcada pra ver aqui.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-painel shadow-sm border-t-4 border-t-blue-500 bg-white">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+            <div>
+                <h3 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Produtos Cadastrados</h3>
+                <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">A IA compara a câmera com estas fotos pra saber qual produto está passando. Sem nenhum cadastrado, ela só detecta "produto genérico".</p>
+            </div>
+            {% if isAdmin %}
+            <button id="btn-abrir-add-produto" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition cursor-pointer shrink-0 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                Adicionar Produto
+            </button>
+            {% endif %}
+        </div>
+
+        <div id="grade-produtos" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            <p id="msg-sem-produtos" class="col-span-full text-xs text-slate-400 py-4 text-center">Nenhum produto cadastrado ainda.</p>
+        </div>
+    </div>
+
+</div>
+
+{% if isAdmin %}
+<div id="modal-config-visao" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <h3 class="font-bold text-gray-800 text-lg mb-1">Configurar Câmera</h3>
+        <p class="text-sm text-slate-500 mb-4">Preencha o IP do ESP32-CAM (aparece no Monitor Serial ao ligar). A faixa de contagem também pode ser ajustada arrastando direto na imagem ao vivo.</p>
+
+        <form id="form-config-visao" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">IP do ESP32-CAM</label>
+                <input type="text" id="input-ip-camera" placeholder="ex: 192.168.4.15" required
+                    class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Porta</label>
+                    <input type="number" id="input-porta-camera" value="80"
+                        class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Caminho</label>
+                    <input type="text" id="input-caminho-camera" value="/cam-lo.jpg"
+                        class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Faixa - Início (0 a 1)</label>
+                    <input type="number" step="0.05" id="input-zona-inicio" value="0.4"
+                        class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Faixa - Fim (0 a 1)</label>
+                    <input type="number" step="0.05" id="input-zona-fim" value="0.6"
+                        class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-400 -mt-2">Alternativa aos números acima: feche esta janela e arraste as alças azuis direto sobre a câmera.</p>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">Sensibilidade do gatilho local</label>
+                <input type="number" id="input-limiar" value="25"
+                    class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                <p class="text-[11px] text-slate-400 mt-1">Menor = mais sensível. Esse gatilho decide QUANDO checar a foto — a contagem final é confirmada pela IA (se ativada abaixo).</p>
+            </div>
+
+            <div class="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                <input type="checkbox" id="input-usar-ia-visao" class="rounded border-gray-300 text-blue-500 focus:ring-blue-500 w-5 h-5 shrink-0">
+                <label for="input-usar-ia-visao" class="text-sm font-bold text-blue-800 cursor-pointer">
+                    Confirmar cada contagem com IA (recomendado)
+                </label>
+            </div>
+            <p class="text-[11px] text-slate-400 -mt-2">Se desativado, a contagem passa a usar só o gatilho local, sem chamar a IA (nem os produtos cadastrados são usados nesse modo).</p>
+
+            <div id="msg-config-visao" class="hidden p-3 rounded text-sm font-bold"></div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="btn-cancelar-config-visao" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="w-full bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-2.5 rounded-lg transition shadow-md cursor-pointer">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-add-produto" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 sm:p-6">
+        <h3 class="font-bold text-gray-800 text-lg mb-1">Adicionar Produto de Referência</h3>
+        <p class="text-sm text-slate-500 mb-4">Escolha como quer fornecer a foto do produto.</p>
+
+        <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 mb-4">
+            <button type="button" id="btn-aba-camera" class="flex-1 px-3 py-2 text-xs font-bold rounded-md transition-all bg-white text-blue-600 shadow-sm cursor-pointer">
+                📷 Câmera da Esteira
+            </button>
+            <button type="button" id="btn-aba-arquivo" class="flex-1 px-3 py-2 text-xs font-bold rounded-md transition-all text-slate-500 cursor-pointer">
+                📁 Enviar Arquivo
+            </button>
+        </div>
+
+        <form id="form-add-produto" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">Nome do Produto</label>
+                <input type="text" id="input-nome-produto" placeholder="ex: Bala, Ovo, Caixa de Fósforo" required
+                    class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+            </div>
+
+            <div id="painel-aba-camera">
+                <label class="block text-sm font-bold text-gray-600 mb-1">Foto Capturada</label>
+                <div class="w-full h-40 bg-slate-900 rounded-md overflow-hidden relative flex items-center justify-center">
+                    <img id="preview-captura-camera" class="hidden w-full h-full object-cover" alt="Foto capturada da câmera">
+                    <p id="msg-sem-captura" class="text-slate-400 text-xs text-center px-4">Nenhuma foto capturada ainda. Clique no botão abaixo.</p>
+                </div>
+                <button type="button" id="btn-capturar-foto" class="w-full mt-2 bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white font-bold py-2.5 rounded-lg transition cursor-pointer text-sm flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Capturar Foto Agora
+                </button>
+                <p id="msg-camera-offline" class="hidden text-[11px] text-red-500 mt-1 text-center">A câmera precisa estar conectada pra capturar uma foto.</p>
+            </div>
+
+            <div id="painel-aba-arquivo" class="hidden">
+                <label class="block text-sm font-bold text-gray-600 mb-1">Foto do Produto</label>
+                <input type="file" id="input-foto-produto" accept="image/*" capture="environment"
+                    class="w-full border-2 border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-700 text-sm">
+                <img id="preview-foto-produto" class="hidden w-full h-32 object-cover rounded-md mt-2 border border-gray-200">
+            </div>
+
+            <div id="msg-add-produto" class="hidden p-3 rounded text-sm font-bold"></div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="btn-cancelar-add-produto" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" id="btn-salvar-produto" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-md cursor-pointer">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+(function() {
+    const containerCamera = document.getElementById('container-camera');
+    const imagemCamera = document.getElementById('imagem-camera');
+    const msgSemImagem = document.getElementById('msg-sem-imagem');
+    const faixaContagem = document.getElementById('faixa-contagem');
+    const kpiContagem = document.getElementById('kpi-contagem-visao');
+    const badgeUltimaVerificacao = document.getElementById('badge-ultima-verificacao');
+    const cardStatusCamera = document.getElementById('card-status-camera');
+    const textoStatusCamera = document.getElementById('texto-status-camera');
+    const iconeStatusCamera = document.getElementById('icone-status-camera');
+    const listaVerificacoesIA = document.getElementById('lista-verificacoes-ia');
+    const msgSemVerificacoes = document.getElementById('msg-sem-verificacoes');
+    const gradeProdutos = document.getElementById('grade-produtos');
+    const msgSemProdutos = document.getElementById('msg-sem-produtos');
+
+    let ultimoFrameCameraBase64 = null;
+    let cameraEstaOnline = false;
+
+    function atualizarStatusCamera(online, motivo) {
+        cameraEstaOnline = online;
+
+        if (online) {
+            cardStatusCamera.className = "bg-white border-2 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-emerald-500 transition-all";
+            textoStatusCamera.className = "text-sm sm:text-base font-black mt-1 text-emerald-600 truncate";
+            textoStatusCamera.innerText = "Conectada";
+            iconeStatusCamera.className = "w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-500 transition-all shrink-0";
+        } else {
+            cardStatusCamera.className = "bg-white border-2 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-slate-400 transition-all";
+            textoStatusCamera.className = "text-sm sm:text-base font-black mt-1 text-slate-500 truncate";
+            textoStatusCamera.innerText = motivo || "Desconectada";
+            iconeStatusCamera.className = "w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 transition-all shrink-0";
+
+            imagemCamera.classList.add('hidden');
+            msgSemImagem.classList.remove('hidden');
+            faixaContagem.classList.add('hidden');
+        }
+    }
+
+    function handlerVisaoStatus(data) {
+        atualizarStatusCamera(data.online, data.motivo);
+    }
+    globalSocket.on('visao_status', handlerVisaoStatus);
+
+    function handlerVisaoFrame(data) {
+        imagemCamera.src = 'data:image/jpeg;base64,' + data.imagem;
+        imagemCamera.classList.remove('hidden');
+        msgSemImagem.classList.add('hidden');
+        faixaContagem.classList.remove('hidden');
+
+        ultimoFrameCameraBase64 = data.imagem;
+
+        if (typeof data.contagemHoje === 'number') {
+            kpiContagem.innerText = data.contagemHoje;
+        }
+    }
+    globalSocket.on('visao_frame', handlerVisaoFrame);
+
+    function handlerProdutoContado(data) {
+        kpiContagem.innerText = data.total;
+        kpiContagem.classList.add('scale-125');
+        setTimeout(() => kpiContagem.classList.remove('scale-125'), 250);
+
+        if (data.viaIA) {
+            const nomeExibido = data.produtoIdentificado ? data.produtoIdentificado : 'Produto genérico';
+            badgeUltimaVerificacao.innerText = `✓ ${nomeExibido} (IA)`;
+            badgeUltimaVerificacao.className = "text-[10px] font-bold mt-1 inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700";
+        } else {
+            badgeUltimaVerificacao.innerText = '✓ Contado (local)';
+            badgeUltimaVerificacao.className = "text-[10px] font-bold mt-1 inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-500";
+        }
+        badgeUltimaVerificacao.classList.remove('hidden');
+    }
+    globalSocket.on('visao_produto_contado', handlerProdutoContado);
+
+    function criarCardVerificacao(registro) {
+        const div = document.createElement('div');
+        div.className = "shrink-0 w-32 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm";
+
+        const contadoClasse = registro.contado ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500";
+
+        div.innerHTML = `
+            <img src="data:image/jpeg;base64,${registro.imagem}" class="w-32 h-24 object-cover" alt="Foto verificada">
+            <div class="p-1.5">
+                <p class="text-[9px] text-slate-400 font-mono">${registro.hora}</p>
+                <p class="text-[10px] font-bold text-slate-700 truncate" title="${registro.resposta}">${registro.resposta}</p>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded inline-block mt-1 ${contadoClasse}">
+                    ${registro.contado ? 'Contou' : 'Não contou'}
+                </span>
+            </div>
+        `;
+        return div;
+    }
+
+    function handlerVerificacaoIA(registro) {
+        msgSemVerificacoes.classList.add('hidden');
+        listaVerificacoesIA.prepend(criarCardVerificacao(registro));
+
+        while (listaVerificacoesIA.children.length > 12) {
+            listaVerificacoesIA.removeChild(listaVerificacoesIA.lastChild);
+        }
+    }
+    globalSocket.on('visao_verificacao_ia', handlerVerificacaoIA);
+
+    fetch('/api/visao/verificacoes')
+        .then(r => r.json())
+        .then(lista => {
+            if (lista.length > 0) {
+                msgSemVerificacoes.classList.add('hidden');
+                lista.forEach(registro => listaVerificacoesIA.appendChild(criarCardVerificacao(registro)));
+            }
+        })
+        .catch(() => {});
+
+    fetch('/api/visao/status')
+        .then(r => r.json())
+        .then(data => {
+            atualizarStatusCamera(data.online);
+            kpiContagem.innerText = data.contagemHoje;
+            posicionarFaixa(data.config);
+        })
+        .catch(() => {});
+
+    function posicionarFaixa(config) {
+        if (!config) return;
+        const topoPct = config.zonaInicio * 100;
+        const alturaPct = (config.zonaFim - config.zonaInicio) * 100;
+        faixaContagem.style.top = topoPct + '%';
+        faixaContagem.style.height = alturaPct + '%';
+    }
+
+    // === PRODUTOS DE REFERÊNCIA ===
+
+    function criarCardProduto(produto, souAdmin) {
+        const div = document.createElement('div');
+        div.className = "border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm relative group";
+
+        div.innerHTML = `
+            <img src="data:image/jpeg;base64,${produto.imagem}" class="w-full h-24 object-cover" alt="${produto.nome}">
+            <div class="p-2">
+                <p class="text-xs font-bold text-slate-700 truncate" title="${produto.nome}">${produto.nome}</p>
+            </div>
+            ${souAdmin ? `
+            <button data-id="${produto.id}" class="btn-remover-produto absolute top-1 right-1 w-6 h-6 bg-white/90 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-full flex items-center justify-center shadow-sm cursor-pointer transition opacity-0 group-hover:opacity-100" title="Remover">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            ` : ''}
+        `;
+        return div;
+    }
+
+    async function carregarProdutos() {
+        try {
+            const resposta = await fetch('/api/visao/produtos');
+            const lista = await resposta.json();
+
+            gradeProdutos.innerHTML = '';
+
+            if (lista.length === 0) {
+                gradeProdutos.appendChild(msgSemProdutos);
+                msgSemProdutos.classList.remove('hidden');
+                return;
+            }
+
+            lista.forEach(produto => {
+                gradeProdutos.appendChild(criarCardProduto(produto, {{ 'true' if isAdmin else 'false' }}));
+            });
+
+            document.querySelectorAll('.btn-remover-produto').forEach(botao => {
+                botao.addEventListener('click', () => removerProduto(botao.dataset.id));
+            });
+
+        } catch (erro) {
+            console.error('Erro ao carregar produtos de referência:', erro);
+        }
+    }
+    carregarProdutos();
+
+    async function removerProduto(id) {
+        if (!confirm('Remover este produto de referência? A foto também será apagada, e a IA vai parar de reconhecê-lo.')) return;
+        try {
+            await fetch('/api/visao/produtos/' + encodeURIComponent(id), { method: 'DELETE' });
+            carregarProdutos();
+        } catch (erro) {
+            alert('Não foi possível remover o produto agora.');
+        }
+    }
+
+    {% if isAdmin %}
+    // === ALÇAS ARRASTÁVEIS DA FAIXA ===
+    const alcaTopo = document.getElementById('alca-topo-faixa');
+    const alcaBase = document.getElementById('alca-base-faixa');
+    let configAtual = null;
+
+    async function carregarConfigParaDrag() {
+        try {
+            const r = await fetch('/api/visao/config');
+            configAtual = await r.json();
+            posicionarAlcas();
+            alcaTopo.classList.remove('hidden');
+            alcaBase.classList.remove('hidden');
+        } catch (e) {}
+    }
+    carregarConfigParaDrag();
+
+    function posicionarAlcas() {
+        if (!configAtual) return;
+        const alturaContainer = containerCamera.clientHeight;
+        alcaTopo.style.top = Math.max(0, configAtual.zonaInicio * alturaContainer - 8) + 'px';
+        alcaBase.style.top = Math.max(0, configAtual.zonaFim * alturaContainer - 8) + 'px';
+    }
+
+    window.addEventListener('resize', posicionarAlcas);
+
+    function iniciarArraste(alca, tipo) {
+        alca.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            alca.setPointerCapture(e.pointerId);
+
+            function mover(ev) {
+                const rect = containerCamera.getBoundingClientRect();
+                let fracao = (ev.clientY - rect.top) / rect.height;
+                fracao = Math.min(Math.max(fracao, 0), 1);
+
+                if (tipo === 'topo') {
+                    configAtual.zonaInicio = Math.min(fracao, configAtual.zonaFim - 0.05);
+                } else {
+                    configAtual.zonaFim = Math.max(fracao, configAtual.zonaInicio + 0.05);
+                }
+
+                posicionarAlcas();
+                posicionarFaixa(configAtual);
+            }
+
+            function soltar() {
+                alca.removeEventListener('pointermove', mover);
+                alca.removeEventListener('pointerup', soltar);
+                salvarZonaAjustada();
+            }
+
+            alca.addEventListener('pointermove', mover);
+            alca.addEventListener('pointerup', soltar);
+        });
+    }
+    iniciarArraste(alcaTopo, 'topo');
+    iniciarArraste(alcaBase, 'base');
+
+    async function salvarZonaAjustada() {
+        try {
+            await fetch('/api/visao/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(configAtual)
+            });
+        } catch (e) {}
+    }
+
+    // Configurar câmera (modal)
+    const btnAbrirConfig = document.getElementById('btn-abrir-config-visao');
+    const modalConfig = document.getElementById('modal-config-visao');
+    const btnCancelarConfig = document.getElementById('btn-cancelar-config-visao');
+    const formConfig = document.getElementById('form-config-visao');
+    const msgConfig = document.getElementById('msg-config-visao');
+
+    const inputIp = document.getElementById('input-ip-camera');
+    const inputPorta = document.getElementById('input-porta-camera');
+    const inputCaminho = document.getElementById('input-caminho-camera');
+    const inputZonaInicio = document.getElementById('input-zona-inicio');
+    const inputZonaFim = document.getElementById('input-zona-fim');
+    const inputLimiar = document.getElementById('input-limiar');
+    const inputUsarIaVisao = document.getElementById('input-usar-ia-visao');
+
+    async function abrirModalConfig() {
+        try {
+            const resposta = await fetch('/api/visao/config');
+            const config = await resposta.json();
+            inputIp.value = config.ip || '';
+            inputPorta.value = config.porta || 80;
+            inputCaminho.value = config.caminho || '/cam-lo.jpg';
+            inputZonaInicio.value = config.zonaInicio;
+            inputZonaFim.value = config.zonaFim;
+            inputLimiar.value = config.limiar;
+            inputUsarIaVisao.checked = config.usarIaVisao !== false;
+        } catch (e) {}
+        modalConfig.classList.remove('hidden');
+    }
+
+    function fecharModalConfig() {
+        modalConfig.classList.add('hidden');
+    }
+
+    btnAbrirConfig.addEventListener('click', abrirModalConfig);
+    btnCancelarConfig.addEventListener('click', fecharModalConfig);
+    modalConfig.addEventListener('click', (e) => { if (e.target === modalConfig) fecharModalConfig(); });
+
+    async function handlerSalvarConfig(e) {
+        e.preventDefault();
+
+        try {
+            const resposta = await fetch('/api/visao/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ip: inputIp.value,
+                    porta: inputPorta.value,
+                    caminho: inputCaminho.value,
+                    zonaInicio: inputZonaInicio.value,
+                    zonaFim: inputZonaFim.value,
+                    limiar: inputLimiar.value,
+                    usarIaVisao: inputUsarIaVisao.checked
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (resposta.ok) {
+                msgConfig.classList.remove('hidden', 'bg-red-100', 'text-red-700');
+                msgConfig.classList.add('bg-green-100', 'text-green-700');
+                msgConfig.innerText = 'Configuração salva!';
+                configAtual = dados.config;
+                posicionarFaixa(dados.config);
+                posicionarAlcas();
+                setTimeout(() => { fecharModalConfig(); msgConfig.classList.add('hidden'); }, 1200);
+            } else {
+                msgConfig.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+                msgConfig.classList.add('bg-red-100', 'text-red-700');
+                msgConfig.innerText = dados.erro || 'Não foi possível salvar.';
+            }
+        } catch (erro) {
+            msgConfig.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+            msgConfig.classList.add('bg-red-100', 'text-red-700');
+            msgConfig.innerText = 'Erro de conexão com o servidor.';
+        }
+    }
+    formConfig.addEventListener('submit', handlerSalvarConfig);
+
+    // Adicionar produto de referência
+    const btnAbrirAddProduto = document.getElementById('btn-abrir-add-produto');
+    const modalAddProduto = document.getElementById('modal-add-produto');
+    const btnCancelarAddProduto = document.getElementById('btn-cancelar-add-produto');
+    const formAddProduto = document.getElementById('form-add-produto');
+    const msgAddProduto = document.getElementById('msg-add-produto');
+    const inputNomeProduto = document.getElementById('input-nome-produto');
+    const btnSalvarProduto = document.getElementById('btn-salvar-produto');
+
+    const btnAbaCamera = document.getElementById('btn-aba-camera');
+    const btnAbaArquivo = document.getElementById('btn-aba-arquivo');
+    const painelAbaCamera = document.getElementById('painel-aba-camera');
+    const painelAbaArquivo = document.getElementById('painel-aba-arquivo');
+    let modoAtivo = 'camera';
+
+    function ativarAbaCamera() {
+        modoAtivo = 'camera';
+        btnAbaCamera.className = "flex-1 px-3 py-2 text-xs font-bold rounded-md transition-all bg-white text-blue-600 shadow-sm cursor-pointer";
+        btnAbaArquivo.className = "flex-1 px-3 py-2 text-xs font-bold rounded-md transition-all text-slate-500 cursor-pointer";
+        painelAbaCamera.classList.remove('hidden');
+        painelAbaArquivo.classList.add('hidden');
+    }
+
+    function ativarAbaArquivo() {
+        modoAtivo = 'arquivo';
+        btnAbaArquivo.className = "flex-1 px-3 py-2 text-xs font-bold rounded-md transition-all bg-white text-blue-600 shadow-sm cursor-pointer";
+        btnAbaCamera.className = "flex-1 px-3 py-2 text-xs font-bold rounded-md transition-all text-slate-500 cursor-pointer";
+        painelAbaArquivo.classList.remove('hidden');
+        painelAbaCamera.classList.add('hidden');
+    }
+
+    btnAbaCamera.addEventListener('click', ativarAbaCamera);
+    btnAbaArquivo.addEventListener('click', ativarAbaArquivo);
+
+    const btnCapturarFoto = document.getElementById('btn-capturar-foto');
+    const previewCapturaCamera = document.getElementById('preview-captura-camera');
+    const msgSemCaptura = document.getElementById('msg-sem-captura');
+    const msgCameraOffline = document.getElementById('msg-camera-offline');
+    let fotoCapturadaBase64 = null;
+
+    btnCapturarFoto.addEventListener('click', () => {
+        if (!cameraEstaOnline || !ultimoFrameCameraBase64) {
+            msgCameraOffline.classList.remove('hidden');
+            return;
+        }
+        msgCameraOffline.classList.add('hidden');
+
+        fotoCapturadaBase64 = ultimoFrameCameraBase64;
+        previewCapturaCamera.src = 'data:image/jpeg;base64,' + fotoCapturadaBase64;
+        previewCapturaCamera.classList.remove('hidden');
+        msgSemCaptura.classList.add('hidden');
+    });
+
+    const inputFotoProduto = document.getElementById('input-foto-produto');
+    const previewFotoProduto = document.getElementById('preview-foto-produto');
+
+    inputFotoProduto.addEventListener('change', () => {
+        const arquivo = inputFotoProduto.files[0];
+        if (!arquivo) { previewFotoProduto.classList.add('hidden'); return; }
+        const leitor = new FileReader();
+        leitor.onload = (e) => {
+            previewFotoProduto.src = e.target.result;
+            previewFotoProduto.classList.remove('hidden');
+        };
+        leitor.readAsDataURL(arquivo);
+    });
+
+    function abrirModalAddProduto() {
+        formAddProduto.reset();
+        previewFotoProduto.classList.add('hidden');
+        previewCapturaCamera.classList.add('hidden');
+        msgSemCaptura.classList.remove('hidden');
+        msgCameraOffline.classList.add('hidden');
+        msgAddProduto.classList.add('hidden');
+        fotoCapturadaBase64 = null;
+        ativarAbaCamera();
+        modalAddProduto.classList.remove('hidden');
+    }
+
+    function fecharModalAddProduto() {
+        modalAddProduto.classList.add('hidden');
+    }
+
+    btnAbrirAddProduto.addEventListener('click', abrirModalAddProduto);
+    btnCancelarAddProduto.addEventListener('click', fecharModalAddProduto);
+    modalAddProduto.addEventListener('click', (e) => { if (e.target === modalAddProduto) fecharModalAddProduto(); });
+
+    async function handlerSalvarProduto(e) {
+        e.preventDefault();
+
+        const nome = inputNomeProduto.value.trim();
+        if (!nome) return;
+
+        if (modoAtivo === 'camera' && !fotoCapturadaBase64) {
+            msgAddProduto.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+            msgAddProduto.classList.add('bg-red-100', 'text-red-700');
+            msgAddProduto.innerText = 'Capture uma foto da câmera antes de salvar.';
+            return;
+        }
+        if (modoAtivo === 'arquivo' && !inputFotoProduto.files[0]) {
+            msgAddProduto.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+            msgAddProduto.classList.add('bg-red-100', 'text-red-700');
+            msgAddProduto.innerText = 'Selecione um arquivo de foto antes de salvar.';
+            return;
+        }
+
+        btnSalvarProduto.disabled = true;
+        btnSalvarProduto.innerText = 'Salvando...';
+
+        try {
+            let resposta;
+
+            if (modoAtivo === 'camera') {
+                resposta = await fetch('/api/visao/produtos/capturar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, imagemBase64: fotoCapturadaBase64 })
+                });
+            } else {
+                const formData = new FormData();
+                formData.append('nome', nome);
+                formData.append('foto', inputFotoProduto.files[0]);
+                resposta = await fetch('/api/visao/produtos', { method: 'POST', body: formData });
+            }
+
+            const dados = await resposta.json();
+
+            if (resposta.ok) {
+                fecharModalAddProduto();
+                carregarProdutos();
+            } else {
+                msgAddProduto.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+                msgAddProduto.classList.add('bg-red-100', 'text-red-700');
+                msgAddProduto.innerText = dados.erro || 'Não foi possível salvar o produto.';
+            }
+        } catch (erro) {
+            msgAddProduto.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+            msgAddProduto.classList.add('bg-red-100', 'text-red-700');
+            msgAddProduto.innerText = 'Erro de conexão com o servidor.';
+        } finally {
+            btnSalvarProduto.disabled = false;
+            btnSalvarProduto.innerText = 'Salvar';
+        }
+    }
+    formAddProduto.addEventListener('submit', handlerSalvarProduto);
+    {% endif %}
+
+    window.__cleanupPagina = function() {
+        globalSocket.off('visao_status', handlerVisaoStatus);
+        globalSocket.off('visao_frame', handlerVisaoFrame);
+        globalSocket.off('visao_produto_contado', handlerProdutoContado);
+        globalSocket.off('visao_verificacao_ia', handlerVerificacaoIA);
+        {% if isAdmin %}window.removeEventListener('resize', posicionarAlcas);{% endif %}
+    };
+})();
+</script>
+{% endblock %}

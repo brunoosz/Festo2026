@@ -1,0 +1,503 @@
+{% extends 'base.html' %}
+
+{% block title %}Operação{% endblock %}
+
+{% block content %}
+<!-- dash3d-card: modelo 3D leve no Dashboard -->
+<div id="dash3d-card" class="card-painel" style="margin-bottom:14px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+    <h3 style="font-size:12px;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.1em;margin:0">Máquina em 3D</h3>
+    <div style="display:flex;gap:6px">
+      <button id="d3-girar" type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Girar</button>
+      <button id="d3-reset" type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Vista</button>
+      <button id="d3-tela" type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Tela cheia</button>
+    </div>
+  </div>
+  <div id="d3-area" style="position:relative;width:100%;height:42vh;min-height:240px;border-radius:10px;overflow:hidden;background:linear-gradient(#cbd5e1,#f8fafc);touch-action:none">
+    <div id="d3-msg" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:13px;font-weight:700;color:#475569">Carregando o modelo 3D...</div>
+  </div>
+</div>
+<script>
+(function () {
+  const el = (id) => document.getElementById(id), area = el('d3-area'), msg = el('d3-msg');
+  let T, renderer, scene, camera, controls, modelo = null, visivel = true, sujo = true, girar = false, raf = 0, vista = null, parado = false;
+  const pedir = () => { sujo = true; };
+  const onResize = () => { if (!renderer) return; const w = area.clientWidth, h = area.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); pedir(); };
+  const falha = (t) => { msg.style.display = 'flex'; msg.innerHTML = t; };
+  async function iniciar() {
+    let url = null;
+    try { const l = await (await fetch('/api/modelo3d')).json(); if (l.length) url = l[0].url; } catch (e) {}
+    if (!url) { try { const h = await fetch('/modelo/maquina.glb', { method: 'HEAD' }); if (h.ok) url = '/modelo/maquina.glb'; } catch (e) {} }
+    if (!url) return falha('Modelo 3D ainda não instalado.<br><small>Coloque maquina.glb em public/modelo.</small>');
+    let GL, OC;
+    try { T = await import('/vendor3d/three.module.min.js'); OC = (await import('/vendor3d/addons/controls/OrbitControls.js')).OrbitControls; GL = (await import('/vendor3d/addons/loaders/GLTFLoader.js')).GLTFLoader; }
+    catch (e) { return falha('Visualizador 3D não instalado (public/vendor3d).'); }
+    try { renderer = new T.WebGLRenderer({ antialias: (window.devicePixelRatio || 1) <= 1, powerPreference: 'low-power' }); }
+    catch (e) { return falha('Este aparelho não abriu o 3D (WebGL indisponível).'); }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5)); area.appendChild(renderer.domElement);
+    scene = new T.Scene(); camera = new T.PerspectiveCamera(40, 1, 0.01, 50);
+    scene.add(new T.HemisphereLight(0xffffff, 0x8899aa, 1.3)); const sol = new T.DirectionalLight(0xffffff, 1.2); sol.position.set(2, 4, 3); scene.add(sol);
+    controls = new OC(camera, renderer.domElement); controls.enableDamping = false; controls.addEventListener('change', pedir);
+    window.addEventListener('resize', onResize); onResize();
+    new GL().load(url, (g) => {
+      modelo = g.scene; modelo.traverse(o => { if (o.isMesh && o.material) { o.material.flatShading = true; o.material.needsUpdate = true; } }); scene.add(modelo);
+      const caixa = new T.Box3().setFromObject(modelo), tam = caixa.getSize(new T.Vector3()), r = Math.max(tam.x, tam.y, tam.z) || 1;
+      camera.position.set(r * 0.9, r * 0.55, r * 1.0); controls.target.set(0, tam.y * 0.35, 0); controls.update(); vista = { p: camera.position.clone(), t: controls.target.clone() };
+      msg.style.display = 'none'; pedir();
+    }, null, () => falha('Não consegui abrir o modelo (.glb).'));
+    // so desenha quando algo mudou e a caixa esta visivel (economiza bateria e CPU)
+    const laco = () => { raf = requestAnimationFrame(laco); if (parado || !visivel || document.hidden) return; if (girar && modelo) { modelo.rotation.y += 0.004; sujo = true; } if (sujo) { sujo = false; renderer.render(scene, camera); } };
+    laco();
+  }
+  if ('IntersectionObserver' in window) new IntersectionObserver((e) => { visivel = e[0].isIntersecting; if (visivel) pedir(); }).observe(area);
+  el('d3-girar').addEventListener('click', () => { girar = !girar; el('d3-girar').style.background = girar ? '#1e293b' : '#fff'; el('d3-girar').style.color = girar ? '#fff' : '#000'; });
+  el('d3-reset').addEventListener('click', () => { if (vista) { camera.position.copy(vista.p); controls.target.copy(vista.t); if (modelo) modelo.rotation.y = 0; controls.update(); pedir(); } });
+  el('d3-tela').addEventListener('click', () => { if (area.requestFullscreen) area.requestFullscreen(); });
+  iniciar();
+  window.__cleanupPaginaDash3d = window.__cleanupPagina;
+  window.__cleanupPagina = function () { parado = true; cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); if (renderer) renderer.dispose(); if (typeof window.__cleanupPaginaDash3d === 'function') window.__cleanupPaginaDash3d(); };
+})();
+</script>
+
+
+<div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6">
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1">
+
+        <div class="flex flex-col gap-3 sm:gap-4">
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-esteira" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">ESTEIRA</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-emerg" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">EMERG.</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-selagem" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">SELAGEM 1</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-selagem2" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">SELAGEM 2</span>
+                </div>
+
+                <!-- NOVO: botão de recarregar status — força reconsultar os
+                     endpoints e refletir a realidade, útil quando algo
+                     ficou "preso" como online sem estar de verdade -->
+                <button id="btn-recarregar-status" title="Recarregar status recebido" class="ml-auto w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm shrink-0">
+                    <svg id="icone-recarregar-status" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="card-painel flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 bg-slate-50">
+                <svg class="w-14 h-14 text-slate-300 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"></path></svg>
+                <p class="text-base font-bold text-slate-400">Modelo 3D da Máquina</p>
+                <p class="text-xs text-slate-300 mt-1">Em breve nesta área</p>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-4 sm:gap-6 h-full">
+            <div id="card-controle-esteira" class="card-painel flex-1 flex flex-col justify-center border-2 border-blue-200 shadow-md">
+                <h3 class="titulo-painel text-blue-800 font-bold border-b-blue-100">Controle da Esteira</h3>
+                <div class="text-center my-3 sm:my-4">
+                    <span id="visor-rpm" class="text-5xl sm:text-6xl font-black text-slate-800">0%</span>
+                    <p class="text-[10px] text-blue-500 uppercase font-bold mt-2">Potência do Motor</p>
+                </div>
+                <input type="range" id="slider-velocidade" min="0" max="1" step="0.1" value="0" class="range-slider w-full mb-4 cursor-pointer">
+                <p id="aviso-esteira" class="hidden text-[11px] text-red-600 font-bold mb-3"></p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="btn-iniciar" class="w-full bg-[#10b981] hover:bg-[#059669] active:bg-[#047857] text-white font-bold py-3 rounded-lg shadow transition cursor-pointer tracking-wider text-sm">INICIAR</button>
+                    <button id="btn-parar" class="w-full bg-slate-500 hover:bg-slate-600 active:bg-slate-700 text-white font-bold py-3 rounded-lg shadow transition cursor-pointer tracking-wider text-sm">PARAR</button>
+                </div>
+            </div>
+
+            <div id="card-selagem1" class="card-painel flex-1 flex flex-col justify-center">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                    <h3 class="text-sm uppercase text-slate-800">Temperatura da Selagem 1</h3>
+                    <label id="label-ignorar-1" class="hidden items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer select-none">
+                        <input type="checkbox" id="check-ignorar-seguranca-1" class="rounded border-slate-300 w-3.5 h-3.5">
+                        Ignorar aviso
+                    </label>
+                </div>
+                <div class="text-center my-3">
+                    <span class="text-3xl sm:text-4xl font-black text-slate-800" id="visor-temp">--°C</span>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1">Leitura em Tempo Real</p>
+                </div>
+                <div class="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                    <span>Alvo:</span>
+                    <span id="alvo-temp-txt" class="text-slate-400 font-bold">0°C (Travado)</span>
+                </div>
+                <input type="range" id="slider-temp" min="0" max="250" step="5" value="0" class="range-slider w-full opacity-50 cursor-not-allowed" disabled>
+                <p id="aviso-selagem" class="hidden text-[11px] text-red-600 font-bold mt-2"></p>
+                <button id="btn-resetar-1" class="hidden mt-2 w-full bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold py-2 rounded-lg transition cursor-pointer">
+                    RESETAR TRAVA DE SEGURANÇA
+                </button>
+                <button id="btn-reiniciar-1" class="hidden mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white text-[11px] font-bold py-2 rounded-lg transition cursor-pointer">
+                    REINICIAR ESP32
+                </button>
+            </div>
+
+            <div id="card-selagem2" class="card-painel flex-1 flex flex-col justify-center">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                    <h3 class="text-sm uppercase text-slate-800">Temperatura da Selagem 2</h3>
+                    <label id="label-ignorar-2" class="hidden items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer select-none">
+                        <input type="checkbox" id="check-ignorar-seguranca-2" class="rounded border-slate-300 w-3.5 h-3.5">
+                        Ignorar aviso
+                    </label>
+                </div>
+                <div class="text-center my-3">
+                    <span class="text-3xl sm:text-4xl font-black text-slate-800" id="visor-temp2">--°C</span>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mt-1">Leitura em Tempo Real</p>
+                </div>
+                <div class="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                    <span>Alvo:</span>
+                    <span id="alvo-temp-txt2" class="text-slate-400 font-bold">0°C (Travado)</span>
+                </div>
+                <input type="range" id="slider-temp2" min="0" max="250" step="5" value="0" class="range-slider w-full opacity-50 cursor-not-allowed" disabled>
+                <p id="aviso-selagem2" class="hidden text-[11px] text-red-600 font-bold mt-2"></p>
+                <button id="btn-resetar-2" class="hidden mt-2 w-full bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold py-2 rounded-lg transition cursor-pointer">
+                    RESETAR TRAVA DE SEGURANÇA
+                </button>
+                <button id="btn-reiniciar-2" class="hidden mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white text-[11px] font-bold py-2 rounded-lg transition cursor-pointer">
+                    REINICIAR ESP32
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function() {
+    const sliderVelocidade = document.getElementById('slider-velocidade');
+    const visorRpm = document.getElementById('visor-rpm');
+    const btnIniciar = document.getElementById('btn-iniciar');
+    const btnParar = document.getElementById('btn-parar');
+    const avisoEsteira = document.getElementById('aviso-esteira');
+    const ledEsteira = document.getElementById('led-esteira');
+    const ledEmerg = document.getElementById('led-emerg');
+    const btnEmergenciaGlobal = document.getElementById('btn-emergencia-global');
+    const btnRecarregarStatus = document.getElementById('btn-recarregar-status');
+    const iconeRecarregarStatus = document.getElementById('icone-recarregar-status');
+
+    const permissaoTotal = (window.__nivelUsuarioInicial || 3) <= 2;
+    let esp32EsteiraOnline = false;
+
+    // ALTERADO: durante o tutorial, NENHUM log é emitido — não fica
+    // registrado nem no relatório nem na tela de Logs ao Vivo, conforme
+    // pedido, pra não misturar teste com dados reais
+    function adicionarLog(mensagem, tipo = 'sistema') {
+        if (window.__tutorialAtivo) return;
+        const agora = new Date();
+        const hora = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        globalSocket.emit('novo_log', { hora: hora, texto: mensagem, tipo: tipo });
+    }
+
+    let emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
+
+    function motorEstaRodando() { return parseFloat(sliderVelocidade.value) > 0; }
+
+    function podeControlarEsteira() {
+        if (window.__tutorialAtivo) return true;
+        if (emEmergencia) return false;
+        if (permissaoTotal) return true;
+        return esp32EsteiraOnline;
+    }
+
+    function atualizarVisualEsteira() {
+        const pode = podeControlarEsteira();
+        sliderVelocidade.disabled = !pode || emEmergencia;
+        if (!pode && !emEmergencia) {
+            sliderVelocidade.classList.add('opacity-50', 'cursor-not-allowed');
+            avisoEsteira.innerText = 'Esteira desconectada da rede — aguarde a conexão.';
+            avisoEsteira.classList.remove('hidden');
+        } else if (!emEmergencia) {
+            sliderVelocidade.classList.remove('opacity-50', 'cursor-not-allowed');
+            avisoEsteira.classList.add('hidden');
+        }
+    }
+
+    function criarControladorSelagem(sufixo, nomeEventoComando, nomeEventoStatus, nomeEventoTemp, numeroExibicao, apiStatusUrl) {
+        const sliderTemp = document.getElementById('slider-temp' + sufixo);
+        const alvoTempTxt = document.getElementById('alvo-temp-txt' + sufixo);
+        const visorTemp = document.getElementById('visor-temp' + sufixo);
+        const avisoSelagem = document.getElementById('aviso-selagem' + sufixo);
+        const ledSelagem = document.getElementById('led-selagem' + sufixo);
+        const labelIgnorar = document.getElementById('label-ignorar-' + numeroExibicao);
+        const checkIgnorar = document.getElementById('check-ignorar-seguranca-' + numeroExibicao);
+        const btnResetar = document.getElementById('btn-resetar-' + numeroExibicao);
+        const btnReiniciar = document.getElementById('btn-reiniciar-' + numeroExibicao);
+
+        let online = false;
+        let seguranca = 'ok';
+        let habilitadaAtual = false;
+        let sliderSendoArrastado = false;
+        let ignorarAviso = false;
+
+        if (permissaoTotal) {
+            labelIgnorar.classList.remove('hidden');
+            labelIgnorar.classList.add('flex');
+            btnResetar.classList.remove('hidden');
+            btnReiniciar.classList.remove('hidden');
+        }
+
+        checkIgnorar.addEventListener('change', (e) => { ignorarAviso = e.target.checked; atualizarVisual(); });
+
+        btnResetar.addEventListener('click', () => {
+            globalSocket.emit(nomeEventoComando, { acao: 'resetar_seguranca' });
+            adicionarLog(`Solicitado reset da trava de segurança da Selagem ${numeroExibicao}.`, 'temperatura');
+        });
+
+        btnReiniciar.addEventListener('click', () => {
+            if (!confirm(`Reiniciar o ESP32 da Selagem ${numeroExibicao}? Ele vai ficar fora do ar por alguns segundos.`)) return;
+            globalSocket.emit(nomeEventoComando, { acao: 'reiniciar' });
+            adicionarLog(`Solicitado reinício remoto do ESP32 da Selagem ${numeroExibicao}.`, 'temperatura');
+        });
+
+        function podeSerControlada() {
+            if (window.__tutorialAtivo) return true;
+            if (emEmergencia) return false;
+            if (permissaoTotal) return true;
+            return motorEstaRodando() && esp32EsteiraOnline && online && seguranca === 'ok';
+        }
+
+        function atualizarVisual() {
+            if (podeSerControlada()) { sliderTemp.disabled = false; sliderTemp.classList.remove('opacity-50', 'cursor-not-allowed'); }
+            else { sliderTemp.disabled = true; sliderTemp.classList.add('opacity-50', 'cursor-not-allowed'); }
+
+            if (window.__tutorialAtivo || (ignorarAviso && seguranca !== 'temperatura_alta')) { avisoSelagem.classList.add('hidden'); return; }
+
+            if (!online) { avisoSelagem.innerText = 'Selagem desconectada da rede.'; avisoSelagem.classList.remove('hidden'); }
+            else if (seguranca === 'erro_sensor') { avisoSelagem.innerText = 'Erro no sensor de temperatura da selagem.'; avisoSelagem.classList.remove('hidden'); }
+            else if (seguranca === 'temperatura_alta') { avisoSelagem.innerText = 'Temperatura crítica! Selagem travada por segurança.'; avisoSelagem.classList.remove('hidden'); }
+            else { avisoSelagem.classList.add('hidden'); }
+        }
+
+        function sincronizarHabilitacao() {
+            const deveHabilitar = motorEstaRodando() && online && seguranca === 'ok' && !emEmergencia;
+            if (deveHabilitar !== habilitadaAtual) { habilitadaAtual = deveHabilitar; globalSocket.emit(nomeEventoComando, { acao: 'ativar', valor: deveHabilitar }); }
+            atualizarVisual();
+        }
+
+        function handlerTempInput(e) { sliderSendoArrastado = true; alvoTempTxt.innerText = e.target.value + "°C"; }
+        function handlerTempChange(e) {
+            sliderSendoArrastado = false;
+            if (!podeSerControlada()) return;
+            globalSocket.emit(nomeEventoComando, { acao: 'setpoint', valor: e.target.value });
+            adicionarLog(`Temperatura alvo da Selagem ${numeroExibicao} ajustada para ${e.target.value}°C`, 'temperatura');
+        }
+        sliderTemp.addEventListener('input', handlerTempInput);
+        sliderTemp.addEventListener('change', handlerTempChange);
+
+        function handlerStatus(data) {
+            online = !!data.online;
+            ledSelagem.className = online ? "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] shrink-0" : "w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0";
+            sincronizarHabilitacao();
+        }
+        globalSocket.on(nomeEventoStatus, handlerStatus);
+
+        function aplicarEstadoRecebido(data) {
+            if (typeof data.temperatura === 'number') visorTemp.innerText = data.temperatura.toFixed(1) + '°C';
+            const segurancaAnterior = seguranca;
+            seguranca = data.seguranca || 'ok';
+
+            if (!sliderSendoArrastado && typeof data.setpoint === 'number') {
+                sliderTemp.value = data.setpoint;
+                alvoTempTxt.innerText = data.setpoint.toFixed(0) + '°C' + (data.habilitado ? '' : ' (Travado)');
+            }
+
+            atualizarVisual();
+            if (segurancaAnterior !== seguranca) sincronizarHabilitacao();
+        }
+        globalSocket.on(nomeEventoTemp, aplicarEstadoRecebido);
+
+        // NOVO: função reaproveitável — busca o estado atual do servidor,
+        // usada tanto no carregamento da página quanto pelo botão de
+        // recarregar status
+        function buscarStatusAgora() {
+            return fetch(apiStatusUrl)
+                .then(r => r.json())
+                .then(dados => {
+                    online = !!dados.online;
+                    ledSelagem.className = online ? "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] shrink-0" : "w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0";
+                    if (dados.estado) aplicarEstadoRecebido(dados.estado);
+                    sincronizarHabilitacao();
+                })
+                .catch(() => {});
+        }
+        buscarStatusAgora();
+
+        return {
+            sincronizarHabilitacao, atualizarVisual, buscarStatusAgora,
+            cleanup() {
+                sliderTemp.removeEventListener('input', handlerTempInput);
+                sliderTemp.removeEventListener('change', handlerTempChange);
+                globalSocket.off(nomeEventoStatus, handlerStatus);
+                globalSocket.off(nomeEventoTemp, aplicarEstadoRecebido);
+            }
+        };
+    }
+
+    const controladorSelagem1 = criarControladorSelagem('', 'comando_selagem', 'status_selagem', 'atualizar_temperatura', '1', '/api/selagem/status');
+    const controladorSelagem2 = criarControladorSelagem('2', 'comando_selagem2', 'status_selagem2', 'atualizar_temperatura2', '2', '/api/selagem2/status');
+
+    function sincronizarTodasSelagens() {
+        controladorSelagem1.sincronizarHabilitacao();
+        controladorSelagem2.sincronizarHabilitacao();
+        atualizarVisualEsteira();
+    }
+
+    // NOVO: recarrega tudo — esteira e as duas selagens — de uma vez,
+    // com o ícone girando enquanto busca
+    function buscarStatusEsteiraAgora() {
+        return fetch('/api/esteira/status')
+            .then(r => r.json())
+            .then(dados => {
+                esp32EsteiraOnline = !!dados.online;
+                ledEsteira.className = dados.online ? "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] shrink-0" : "w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0";
+                const vel = parseFloat(dados.velocidade);
+                if (!isNaN(vel) && !sliderVelocidadeSendoArrastado) {
+                    sliderVelocidade.value = vel;
+                    visorRpm.innerText = Math.round(vel * 100) + "%";
+                }
+                sincronizarTodasSelagens();
+            })
+            .catch(() => {});
+    }
+
+    btnRecarregarStatus.addEventListener('click', () => {
+        iconeRecarregarStatus.style.transform = 'rotate(360deg)';
+        Promise.all([
+            buscarStatusEsteiraAgora(),
+            controladorSelagem1.buscarStatusAgora(),
+            controladorSelagem2.buscarStatusAgora()
+        ]).finally(() => {
+            setTimeout(() => { iconeRecarregarStatus.style.transform = 'rotate(0deg)'; }, 500);
+        });
+    });
+
+    function aplicarTravaEmergencia() {
+        visorRpm.innerText = "ERR"; visorRpm.classList.add('text-red-600');
+        sliderVelocidade.disabled = true; sliderVelocidade.classList.add('opacity-50', 'cursor-not-allowed'); sliderVelocidade.value = 0;
+        ledEmerg.className = "w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)] shrink-0";
+        sincronizarTodasSelagens();
+    }
+    function removerTravaEmergencia() {
+        visorRpm.innerText = sliderVelocidade.value ? Math.round(sliderVelocidade.value * 100) + "%" : "0%";
+        visorRpm.classList.remove('text-red-600');
+        sliderVelocidade.classList.remove('opacity-50', 'cursor-not-allowed');
+        ledEmerg.className = "w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0";
+        sincronizarTodasSelagens();
+    }
+    if (emEmergencia) aplicarTravaEmergencia();
+
+    function handlerEmergenciaLocal() { emEmergencia = !emEmergencia; if (emEmergencia) aplicarTravaEmergencia(); else removerTravaEmergencia(); }
+    btnEmergenciaGlobal.addEventListener('click', handlerEmergenciaLocal);
+
+    function handlerIniciar() {
+        if (!podeControlarEsteira()) return;
+        const velocidadeInicial = 0.5;
+        globalSocket.emit('comando_esteira', { acao: 'velocidade', valor: velocidadeInicial });
+        sliderVelocidade.value = velocidadeInicial;
+        visorRpm.innerText = Math.round(velocidadeInicial * 100) + "%";
+        adicionarLog('Comando LIGAR enviado. Motor em acionamento.', 'velocidade');
+        sincronizarTodasSelagens();
+    }
+    btnIniciar.addEventListener('click', handlerIniciar);
+
+    function handlerParar() {
+        if (!podeControlarEsteira()) return;
+        globalSocket.emit('comando_esteira', { acao: 'velocidade', valor: 0.0 });
+        sliderVelocidade.value = 0; visorRpm.innerText = "0%";
+        adicionarLog('Comando DESLIGAR enviado. Freando sistema.', 'velocidade');
+        sincronizarTodasSelagens();
+    }
+    btnParar.addEventListener('click', handlerParar);
+
+    let sliderVelocidadeSendoArrastado = false;
+    function handlerSliderChange(e) {
+        sliderVelocidadeSendoArrastado = false;
+        if (!podeControlarEsteira()) return;
+        let pct = Math.round(e.target.value * 100);
+        globalSocket.emit('comando_esteira', { acao: 'velocidade', valor: e.target.value });
+        adicionarLog(`Velocidade da esteira alterada pelo operador para ${pct}%`, 'velocidade');
+        sincronizarTodasSelagens();
+    }
+    function handlerSliderInput(e) { sliderVelocidadeSendoArrastado = true; if (podeControlarEsteira()) visorRpm.innerText = Math.round(e.target.value * 100) + "%"; }
+    sliderVelocidade.addEventListener('change', handlerSliderChange);
+    sliderVelocidade.addEventListener('input', handlerSliderInput);
+
+    function handlerStatusEsp32(data) {
+        esp32EsteiraOnline = !!data.online;
+        ledEsteira.className = data.online ? "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] shrink-0" : "w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0";
+        sincronizarTodasSelagens();
+    }
+    globalSocket.on('status_esp32', handlerStatusEsp32);
+
+    function handlerAtualizarVelocidade(data) {
+        if (emEmergencia) return;
+        if (data.velocidade === "EMERGENCIA") { if (!emEmergencia) btnEmergenciaGlobal.click(); }
+        else if (!sliderVelocidadeSendoArrastado) {
+            let vel = parseFloat(data.velocidade);
+            let pct = Math.round(vel * 100);
+            visorRpm.innerText = pct + "%";
+            sliderVelocidade.value = vel;
+            sincronizarTodasSelagens();
+        }
+    }
+    globalSocket.on('atualizar_velocidade', handlerAtualizarVelocidade);
+
+    buscarStatusEsteiraAgora();
+    atualizarVisualEsteira();
+
+    // Sentido da esteira: todos veem, so o Dono pode inverter
+    const cardEsteira = document.getElementById('card-controle-esteira');
+    const ehDono = (window.__nivelUsuarioInicial || 3) === 1;
+    const areaSentido = document.createElement('div');
+    areaSentido.className = 'mt-3 flex items-center justify-between gap-2';
+    areaSentido.innerHTML = `<span class="text-[11px] font-bold text-slate-500 uppercase">Sentido: <span id="texto-sentido" class="text-blue-600">--</span></span>`
+        + (ehDono ? `<button id="btn-inverter-sentido" class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-[11px] font-bold px-3 py-2 rounded-lg transition cursor-pointer">INVERTER SENTIDO</button>` : '');
+    cardEsteira.appendChild(areaSentido);
+
+    const textoSentido = areaSentido.querySelector('#texto-sentido');
+    let sentidoAtual = 'normal';
+
+    function mostrarSentido(s) {
+        sentidoAtual = s;
+        textoSentido.innerText = s === 'invertido' ? 'INVERTIDO' : 'NORMAL';
+        textoSentido.className = s === 'invertido' ? 'text-amber-600' : 'text-blue-600';
+    }
+    function handlerSentidoEsteira(data) { if (data && data.sentido) mostrarSentido(data.sentido); }
+    globalSocket.on('sentido_esteira', handlerSentidoEsteira);
+
+    fetch('/api/esteira/status').then(r => r.json()).then(d => { if (d.sentido) mostrarSentido(d.sentido); }).catch(() => {});
+
+    if (ehDono) {
+        areaSentido.querySelector('#btn-inverter-sentido').addEventListener('click', () => {
+            if (emEmergencia) return;
+            const novo = sentidoAtual === 'invertido' ? 'normal' : 'invertido';
+            if (!confirm(`Inverter o sentido da esteira para ${novo.toUpperCase()}?`)) return;
+            globalSocket.emit('comando_sentido', { sentido: novo });
+            adicionarLog(`Sentido da esteira alterado para ${novo.toUpperCase()}`, 'velocidade');
+        });
+    }
+
+    window.__cleanupPagina = function() {
+        btnEmergenciaGlobal.removeEventListener('click', handlerEmergenciaLocal);
+        btnIniciar.removeEventListener('click', handlerIniciar);
+        btnParar.removeEventListener('click', handlerParar);
+        sliderVelocidade.removeEventListener('change', handlerSliderChange);
+        sliderVelocidade.removeEventListener('input', handlerSliderInput);
+        globalSocket.off('status_esp32', handlerStatusEsp32);
+        globalSocket.off('atualizar_velocidade', handlerAtualizarVelocidade);
+        controladorSelagem1.cleanup();
+        globalSocket.off('sentido_esteira', handlerSentidoEsteira);
+        controladorSelagem2.cleanup();
+    };
+})();
+</script>
+{% endblock %}

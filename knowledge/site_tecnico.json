@@ -1,0 +1,112 @@
+[
+  {
+    "id": 150,
+    "pergunta": "Qual linguagem de programação foi usada no site?",
+    "perguntas_alternativas": [
+      "em que linguagem o site foi feito",
+      "qual tecnologia vocês usaram",
+      "o site é feito em python?",
+      "o back-end é em que linguagem",
+      "qual linguagem roda no servidor"
+    ],
+    "resposta": "O back-end (servidor) foi feito em JavaScript, rodando sobre Node.js. O front-end (as telas que você vê) usa HTML, JavaScript e CSS, estilizado com o framework Tailwind CSS."
+  },
+  {
+    "id": 151,
+    "pergunta": "Qual framework web foi usado?",
+    "perguntas_alternativas": [
+      "vocês usaram express?",
+      "qual biblioteca de servidor",
+      "o site roda em cima de qual framework",
+      "usaram flask ou django?"
+    ],
+    "resposta": "O servidor usa o Express (versão 5), um framework web para Node.js. Ele é responsável por gerenciar as rotas do site, autenticação, e servir as páginas. Diferente de frameworks Python como Flask ou Django, o Express roda em JavaScript/Node.js."
+  },
+  {
+    "id": 152,
+    "pergunta": "Como as páginas HTML são geradas?",
+    "perguntas_alternativas": [
+      "qual motor de templates vocês usaram",
+      "as páginas são estáticas ou dinâmicas",
+      "o que é esse url_for que aparece no código",
+      "como o site monta o html"
+    ],
+    "resposta": "As páginas são geradas dinamicamente usando o Nunjucks, um motor de templates para JavaScript (parecido em conceito com o Jinja2 do Python). Ele permite reaproveitar um layout base (o menu lateral e cabeçalho) em todas as páginas, além de inserir dados dinâmicos como o nome do usuário logado."
+  },
+  {
+    "id": 153,
+    "pergunta": "Como funciona a comunicação em tempo real do site?",
+    "perguntas_alternativas": [
+      "o site atualiza sozinho a tela?",
+      "vocês usam websocket?",
+      "como a velocidade aparece na tela sem eu recarregar a página",
+      "o que é esse socket.io"
+    ],
+    "resposta": "O site usa Socket.IO, uma biblioteca que cria uma conexão persistente (via WebSocket) entre o navegador e o servidor. Isso permite que o servidor 'empurre' informações para a tela instantaneamente (velocidade da esteira, status do ESP32, logs), sem o usuário precisar atualizar a página manualmente."
+  },
+  {
+    "id": 154,
+    "pergunta": "Como funciona a comunicação com o ESP32?",
+    "perguntas_alternativas": [
+      "qual protocolo é usado entre o site e o esp32",
+      "o que é mqtt",
+      "por que usaram mqtt e não http",
+      "como o servidor fala com o hardware"
+    ],
+    "resposta": "A comunicação com o ESP32 usa o protocolo MQTT, muito comum em projetos de IoT por ser leve e rápido. O Raspberry Pi roda um 'broker' MQTT (o intermediário das mensagens), e tanto o site quanto o ESP32 se conectam nele: o site publica comandos de velocidade, e o ESP32 publica de volta a velocidade atual e seu status de conexão."
+  },
+  {
+    "id": 155,
+    "pergunta": "Como as senhas dos usuários são protegidas?",
+    "perguntas_alternativas": [
+      "as senhas ficam salvas em texto puro?",
+      "como funciona a segurança de login",
+      "vocês usam criptografia nas senhas",
+      "é seguro o sistema de senha"
+    ],
+    "resposta": "As senhas nunca são salvas como texto puro. O sistema usa a função scrypt (do próprio módulo de criptografia nativo do Node.js) para transformar cada senha num hash irreversível, combinado com um 'salt' único por usuário. Isso significa que, mesmo se alguém acessasse o arquivo de usuários, não conseguiria descobrir a senha original."
+  },
+  {
+    "id": 156,
+    "pergunta": "Onde os dados do sistema são armazenados?",
+    "perguntas_alternativas": [
+      "vocês usam banco de dados?",
+      "onde ficam salvos os logs",
+      "o sistema usa mysql ou mongodb?",
+      "como os dados persistem"
+    ],
+    "resposta": "O sistema não usa um banco de dados tradicional (como MySQL ou MongoDB). Todos os dados — logs diários, histórico de produção, usuários cadastrados e base de conhecimento da IA — são salvos em arquivos JSON no próprio disco do Raspberry Pi. Essa escolha simplifica a manutenção e evita dependências extras num hardware limitado como o Pi 3B+."
+  },
+  {
+    "id": 157,
+    "pergunta": "Como funciona o chat de inteligência artificial do site?",
+    "perguntas_alternativas": [
+      "essa ia usa chatgpt?",
+      "vocês pagam por essa ia?",
+      "como o chatbot entende minha pergunta",
+      "essa ia é conectada na internet?",
+      "qual modelo de ia vocês usaram"
+    ],
+    "resposta": "O chat 'Dark Coders AI' não usa nenhuma API paga (como ChatGPT) nem precisa de internet. Ele funciona com um algoritmo de similaridade de texto criado sob medida: sua pergunta é comparada com uma base de perguntas e respostas pré-cadastradas sobre o sistema e a máquina, e o servidor escolhe a resposta mais parecida com o que você perguntou. É uma solução leve, gratuita, e que roda direto no Raspberry Pi."
+  },
+  {
+    "id": 158,
+    "pergunta": "O código do site é aberto ou privado?",
+    "perguntas_alternativas": [
+      "o site é open source?",
+      "posso ver o código fonte?",
+      "vocês vão disponibilizar o repositório"
+    ],
+    "resposta": "Essa é uma decisão da equipe Dark Coders sobre como o projeto será entregue e licenciado — recomendo perguntar diretamente aos desenvolvedores do projeto para uma resposta oficial sobre isso."
+  },
+  {
+    "id": 159,
+    "pergunta": "Por que o sistema não usa um banco de dados de verdade?",
+    "perguntas_alternativas": [
+      "por que não usaram sql",
+      "arquivo json aguenta muito uso?",
+      "isso não vai ficar lento com o tempo?"
+    ],
+    "resposta": "Para o volume de dados de um projeto acadêmico rodando num Raspberry Pi 3B+, arquivos JSON são suficientes e mais simples de manter, sem exigir instalar e administrar um banco de dados separado. Se o projeto crescer bastante (muitos anos de histórico, muitos usuários simultâneos), migrar para um banco como SQLite ou PostgreSQL seria o próximo passo natural."
+  }
+]

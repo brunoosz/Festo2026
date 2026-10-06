@@ -1,0 +1,529 @@
+{% extends 'base.html' %}
+
+{% block title %}Relatórios{% endblock %}
+
+{% block content %}
+<script src="/jspdf.js"></script>
+<script src="/jspdf-autotable.js"></script>
+<script src="/chart.js"></script>
+
+<div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6">
+
+    <div class="card-painel flex flex-col gap-3 shadow-sm border-t-4 border-t-blue-500">
+        <div>
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Histórico de Eventos</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Consulte as ações e os alertas da máquina Flow Pack salvos no servidor</p>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 w-full">
+            <div class="flex flex-col flex-1 sm:flex-none">
+                <label for="filtro-data" class="text-[10px] font-bold text-slate-500 uppercase mb-1">Filtrar por Data:</label>
+                <input type="date" id="filtro-data" class="border border-slate-300 rounded bg-slate-50 text-slate-700 px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-blue-500 transition cursor-pointer">
+            </div>
+
+            <div class="flex flex-col flex-1 sm:flex-none">
+                <label for="filtro-usuario-busca" class="text-[10px] font-bold text-slate-500 uppercase mb-1">Buscar Usuário:</label>
+                <div class="relative">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path></svg>
+                    <input type="text" id="filtro-usuario-busca" placeholder="ex: bruno" class="border border-slate-300 rounded bg-slate-50 text-slate-700 pl-9 pr-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-blue-500 transition w-full">
+                </div>
+            </div>
+            
+            <button id="btn-baixar-pdf" class="bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white font-bold py-3 sm:py-2 px-4 rounded-lg transition shadow-md cursor-pointer flex items-center justify-center gap-2 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Baixar PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="card-painel flex-1 flex flex-col shadow-sm overflow-hidden p-0 bg-white" id="area-pdf">
+        
+        <div class="p-4 sm:p-6 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between sm:items-center gap-2 rounded-t-xl">
+            <div>
+                <h2 class="text-sm sm:text-lg font-black text-slate-800">RELATÓRIO DE OPERAÇÃO - FLOW PACK</h2>
+                <p class="text-xs text-slate-500 mt-1">Gerado pelo Sistema Dark Coders</p>
+            </div>
+            <div class="text-left sm:text-right">
+                <p class="text-xs font-bold text-slate-700">Data de Referência:</p>
+                <p class="text-sm text-blue-600 font-bold" id="data-referencia">--/--/----</p>
+            </div>
+        </div>
+
+        <div id="rolagem-tabela" class="flex-1 overflow-y-auto">
+
+            <table class="w-full text-left text-sm text-slate-600 hidden md:table" id="tabela-dados-pdf">
+                <thead class="text-xs text-slate-500 uppercase bg-slate-100 border-b border-slate-200 sticky top-0">
+                    <tr>
+                        <th class="px-6 py-3 font-bold">
+                            <button id="btn-ordenar-horario" class="flex items-center gap-1 cursor-pointer hover:text-slate-800 transition" title="Ordenar por horário">
+                                Horário
+                                <svg id="icone-ordenar" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </th>
+                        <th class="px-6 py-3 font-bold">Usuário</th>
+                        <th class="px-6 py-3 font-bold">Módulo / Origem</th>
+                        <th class="px-6 py-3 font-bold">Descrição do Evento</th>
+                        <th class="px-6 py-3 text-right font-bold">Classificação</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-logs" class="divide-y divide-slate-100">
+                    </tbody>
+            </table>
+
+            <div class="md:hidden">
+                <div class="flex items-center justify-between px-4 pt-3 pb-2">
+                    <button id="btn-ordenar-horario-mobile" class="flex items-center gap-1 text-xs font-bold text-slate-500 cursor-pointer">
+                        Ordenar por horário
+                        <svg id="icone-ordenar-mobile" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                </div>
+                <div id="cartoes-logs" class="px-3 pb-3 space-y-2"></div>
+            </div>
+
+            <div id="msg-vazio" class="hidden flex-col items-center justify-center p-10 text-slate-400">
+                <svg class="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <p class="font-bold text-center" id="msg-vazio-texto">Nenhum registro encontrado no servidor para esta data.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<canvas id="canvas-grafico-pdf" width="800" height="400" style="position:absolute; left:-9999px; top:-9999px;"></canvas>
+
+<script>
+(function() {
+    const inputData = document.getElementById('filtro-data');
+    const inputBuscaUsuario = document.getElementById('filtro-usuario-busca');
+    const btnOrdenarHorario = document.getElementById('btn-ordenar-horario');
+    const btnOrdenarHorarioMobile = document.getElementById('btn-ordenar-horario-mobile');
+    const iconeOrdenar = document.getElementById('icone-ordenar');
+    const iconeOrdenarMobile = document.getElementById('icone-ordenar-mobile');
+    const dataReferencia = document.getElementById('data-referencia');
+    const tabelaLogs = document.getElementById('tabela-logs');
+    const cartoesLogs = document.getElementById('cartoes-logs');
+    const msgVazio = document.getElementById('msg-vazio');
+    const msgVazioTexto = document.getElementById('msg-vazio-texto');
+    const btnBaixarPDF = document.getElementById('btn-baixar-pdf');
+
+    const hoje = new Date();
+    hoje.setMinutes(hoje.getMinutes() - hoje.getTimezoneOffset());
+    inputData.value = hoje.toISOString().split('T')[0];
+
+    const NOMES_MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const NOMES_MESES_COMPLETO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    let logsCompletos = [];
+    let ordemDecrescente = true;
+    let termoBusca = '';
+
+    function agruparPontosPorHora(pontos) {
+        if (!pontos || pontos.length === 0) return { labels: [], data: [] };
+        const buckets = {};
+        pontos.forEach(p => {
+            const horaNum = parseInt(String(p.hora).split(':')[0], 10);
+            if (isNaN(horaNum)) return;
+            buckets[horaNum] = (buckets[horaNum] || 0) + p.pacotes;
+        });
+        const horasComDados = Object.keys(buckets).map(Number).sort((a, b) => a - b);
+        if (horasComDados.length === 0) return { labels: [], data: [] };
+        const horaInicial = horasComDados[0];
+        const horaFinal = horasComDados[horasComDados.length - 1];
+        const labels = [];
+        const data = [];
+        for (let h = horaInicial; h <= horaFinal; h++) {
+            labels.push(String(h).padStart(2, '0') + ':00');
+            data.push(buckets[h] || 0);
+        }
+        return { labels, data };
+    }
+
+    function obterDadosSemana(dataBase, historico) {
+        const labels = [];
+        const data = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(dataBase);
+            d.setDate(d.getDate() - i);
+            const dia = String(d.getDate()).padStart(2, '0');
+            const mes = String(d.getMonth() + 1).padStart(2, '0');
+            const ano = d.getFullYear();
+            const dataStr = `${dia}/${mes}/${ano}`;
+            labels.push(`${dia}/${mes}`);
+            data.push(historico[dataStr] || 0);
+        }
+        return { labels, data };
+    }
+
+    function obterDadosMes(dataBase, historico) {
+        const ano = dataBase.getFullYear();
+        const mes = dataBase.getMonth();
+        const totalDiasNoMes = new Date(ano, mes + 1, 0).getDate();
+        const labels = [];
+        const data = [];
+        for (let dia = 1; dia <= totalDiasNoMes; dia++) {
+            const dataStr = `${String(dia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}/${ano}`;
+            labels.push(String(dia));
+            data.push(historico[dataStr] || 0);
+        }
+        return { labels, data, nomeMes: NOMES_MESES_COMPLETO[mes], ano };
+    }
+
+    function obterDadosAno(dataBase, historico) {
+        const anoAlvo = dataBase.getFullYear();
+        const dataMeses = new Array(12).fill(0);
+        Object.keys(historico).forEach(dataStr => {
+            const partes = dataStr.split('/');
+            if (partes.length === 3 && parseInt(partes[2]) === anoAlvo) {
+                const mesIdx = parseInt(partes[1]) - 1;
+                dataMeses[mesIdx] += historico[dataStr];
+            }
+        });
+        return { labels: NOMES_MESES_ABREV, data: dataMeses, ano: anoAlvo };
+    }
+
+    const TIPOS_LOG_RELATORIO = {
+        login:               { modulo: 'Sistema Geral',   classificacao: 'LOGIN',       corBadge: 'bg-blue-100 text-blue-700' },
+        velocidade:          { modulo: 'Motor / Esteira',  classificacao: 'VELOCIDADE',  corBadge: 'bg-sky-100 text-sky-700' },
+        temperatura:         { modulo: 'Mordaça / Selagem', classificacao: 'TEMPERATURA', corBadge: 'bg-orange-100 text-orange-700' },
+        temperatura_critica: { modulo: 'Mordaça / Selagem', classificacao: 'CRÍTICO',     corBadge: 'bg-red-100 text-red-700' },
+        emergencia:          { modulo: 'Segurança Física',  classificacao: 'EMERGÊNCIA',  corBadge: 'bg-red-200 text-red-800' },
+        sistema:             { modulo: 'Sistema Geral',    classificacao: 'SISTEMA',      corBadge: 'bg-slate-100 text-slate-600' }
+    };
+
+    function inferirTipoLog(log) {
+        if (log.tipo && TIPOS_LOG_RELATORIO[log.tipo]) return log.tipo;
+        const t = log.texto.toLowerCase();
+        if (t.includes('login') || t.includes('logout')) return 'login';
+        if (t.includes('emergência') || t.includes('emergencia')) return 'emergencia';
+        if (t.includes('crítico') || t.includes('critico') || (log.classe || '').includes('red')) return 'temperatura_critica';
+        if (t.includes('temperatura') || t.includes('selagem')) return 'temperatura';
+        if (t.includes('velocidade') || t.includes('esteira') || t.includes('motor')) return 'velocidade';
+        return 'sistema';
+    }
+
+    function classificarLog(log) {
+        const tipo = inferirTipoLog(log);
+        const info = TIPOS_LOG_RELATORIO[tipo];
+        const textoLimpo = log.texto.replace(/<[^>]*>?/gm, '').replace('🚨 ', '');
+        const nomeUsuario = log.usuario || 'Sistema';
+        return { modulo: info.modulo, classificacao: info.classificacao, corBadge: info.corBadge, textoLimpo, nomeUsuario };
+    }
+
+    function construirLinhaTabela(log) {
+        const { modulo, classificacao, corBadge, textoLimpo, nomeUsuario } = classificarLog(log);
+        const badge = `<span class="${corBadge} px-2 py-1 rounded text-[10px] font-bold tracking-wider">${classificacao}</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition border-b border-slate-100 bg-white";
+        tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap font-mono text-xs text-slate-400">${log.hora}</td>
+            <td class="px-6 py-4 whitespace-nowrap font-bold text-slate-700">${nomeUsuario}</td>
+            <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-700">${modulo}</td>
+            <td class="px-6 py-4 text-slate-600">${textoLimpo}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-right" data-pdf-text="${classificacao}">${badge}</td>
+        `;
+        return tr;
+    }
+
+    function construirCartaoMobile(log) {
+        const { modulo, classificacao, corBadge, textoLimpo, nomeUsuario } = classificarLog(log);
+
+        const div = document.createElement('div');
+        div.className = "border border-slate-200 rounded-lg p-3 bg-white shadow-sm";
+        div.innerHTML = `
+            <div class="flex justify-between items-start gap-2 mb-2">
+                <span class="font-mono text-xs text-slate-400">${log.hora}</span>
+                <span class="${corBadge} px-2 py-0.5 rounded text-[9px] font-bold tracking-wider shrink-0">${classificacao}</span>
+            </div>
+            <p class="text-sm text-slate-700 font-medium mb-2">${textoLimpo}</p>
+            <div class="flex justify-between items-center text-[11px] text-slate-500 border-t border-slate-100 pt-2">
+                <span class="font-bold text-slate-600">${nomeUsuario}</span>
+                <span>${modulo}</span>
+            </div>
+        `;
+        return div;
+    }
+
+    function aplicarFiltrosERenderizar() {
+        let lista = [...logsCompletos];
+
+        if (termoBusca.trim() !== '') {
+            const termo = termoBusca.trim().toLowerCase();
+            lista = lista.filter(log => (log.usuario || 'Sistema').toLowerCase().includes(termo));
+        }
+
+        lista.sort((a, b) => {
+            if (a.hora < b.hora) return ordemDecrescente ? 1 : -1;
+            if (a.hora > b.hora) return ordemDecrescente ? -1 : 1;
+            return 0;
+        });
+
+        tabelaLogs.innerHTML = '';
+        cartoesLogs.innerHTML = '';
+
+        if (lista.length === 0) {
+            msgVazio.classList.remove('hidden');
+            msgVazio.classList.add('flex');
+            msgVazioTexto.innerText = termoBusca.trim() !== ''
+                ? `Nenhum evento encontrado para o usuário "${termoBusca.trim()}" nesta data.`
+                : 'Nenhum registro encontrado no servidor para esta data.';
+        } else {
+            msgVazio.classList.add('hidden');
+            msgVazio.classList.remove('flex');
+            lista.forEach(log => {
+                tabelaLogs.appendChild(construirLinhaTabela(log));
+                cartoesLogs.appendChild(construirCartaoMobile(log));
+            });
+        }
+    }
+
+    async function carregarRelatorioDaData(dataFiltro) {
+        const partesData = dataFiltro.split('-');
+        const dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+        dataReferencia.innerText = dataFormatada;
+        
+        try {
+            const resposta = await fetch(`/api/logs/${dataFiltro}`);
+            logsCompletos = await resposta.json();
+            aplicarFiltrosERenderizar();
+        } catch (erro) {
+            console.error("Erro ao carregar do servidor:", erro);
+        }
+    }
+
+    carregarRelatorioDaData(inputData.value);
+
+    inputData.addEventListener('change', (e) => {
+        carregarRelatorioDaData(e.target.value);
+    });
+
+    inputBuscaUsuario.addEventListener('input', (e) => {
+        termoBusca = e.target.value;
+        aplicarFiltrosERenderizar();
+    });
+
+    function alternarOrdenacao() {
+        ordemDecrescente = !ordemDecrescente;
+        const rotacao = ordemDecrescente ? 'rotate(0deg)' : 'rotate(180deg)';
+        iconeOrdenar.style.transform = rotacao;
+        iconeOrdenarMobile.style.transform = rotacao;
+        aplicarFiltrosERenderizar();
+    }
+    btnOrdenarHorario.addEventListener('click', alternarOrdenacao);
+    btnOrdenarHorarioMobile.addEventListener('click', alternarOrdenacao);
+
+    function carregarImagem(url) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const dataUrl = canvas.toDataURL('image/png');
+                    resolve({ dataUrl, ratio: img.naturalWidth / img.naturalHeight });
+                } catch (e) {
+                    resolve(null);
+                }
+            };
+            img.onerror = () => resolve(null);
+            img.src = url;
+        });
+    }
+
+    async function gerarImagemGraficoBarras(labels, dados, corBarra = '#0284c7') {
+        const canvasPdf = document.getElementById('canvas-grafico-pdf');
+        const ctxPdf = canvasPdf.getContext('2d');
+        ctxPdf.clearRect(0, 0, canvasPdf.width, canvasPdf.height);
+
+        const chartTemporario = new Chart(ctxPdf, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'Pacotes', data: dados, backgroundColor: corBarra, borderRadius: 3 }]
+            },
+            options: {
+                responsive: false, animation: { duration: 0 },
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true }, x: { ticks: { maxTicksLimit: 31, font: { size: 9 } } } }
+            }
+        });
+
+        const imagem = canvasPdf.toDataURL('image/png');
+        chartTemporario.destroy();
+        return imagem;
+    }
+
+    async function gerarImagemGraficoLinha(labels, dados) {
+        const canvasPdf = document.getElementById('canvas-grafico-pdf');
+        const ctxPdf = canvasPdf.getContext('2d');
+        ctxPdf.clearRect(0, 0, canvasPdf.width, canvasPdf.height);
+
+        const chartTemporario = new Chart(ctxPdf, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{ label: 'Pacotes', data: dados, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.15)', borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 0 }]
+            },
+            options: {
+                responsive: false, animation: { duration: 0 },
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true }, x: { ticks: { maxTicksLimit: 24 } } }
+            }
+        });
+
+        const imagem = canvasPdf.toDataURL('image/png');
+        chartTemporario.destroy();
+        return imagem;
+    }
+
+    function adicionarPaginaGrafico(doc, titulo, subtitulo, imagemBase64) {
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59);
+        doc.text(titulo, 14, 20);
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139);
+        doc.text(subtitulo, 14, 26);
+        doc.addImage(imagemBase64, 'PNG', 14, 36, 180, 90);
+    }
+
+    btnBaixarPDF.addEventListener('click', async () => {
+        const dataFormatada = dataReferencia.innerText.replace(/\//g, '-');
+        const nomeArquivo = `Relatorio_FlowPack_${dataFormatada}.pdf`;
+
+        if (!window.jspdf) {
+            alert("Aguarde a ferramenta de PDF terminar de carregar, ou verifique se o arquivo /jspdf.js está na pasta public.");
+            return;
+        }
+        if (typeof Chart === 'undefined') {
+            alert("O componente de gráfico (Chart.js) não carregou. Verifique se o arquivo /chart.js está na pasta public.");
+            return;
+        }
+
+        const textoOriginal = btnBaixarPDF.innerHTML;
+        btnBaixarPDF.innerHTML = 'Gerando Arquivo...';
+        btnBaixarPDF.classList.add('opacity-75', 'cursor-wait');
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const logoDarkCoders = await carregarImagem('/logo.png');
+            if (logoDarkCoders) {
+                const alturaLogo = 14;
+                const largura = alturaLogo * logoDarkCoders.ratio;
+                const xLogo = 196 - largura;
+                doc.addImage(logoDarkCoders.dataUrl, 'PNG', xLogo, 8, largura, alturaLogo);
+            }
+
+            doc.setFontSize(16);
+            doc.setTextColor(30, 41, 59);
+            doc.text("RELATORIO DE OPERACAO - FLOW PACK", 14, 20);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 116, 139);
+            doc.text("Gerado pelo Sistema Dark Coders", 14, 26);
+            doc.text(`Data de Referencia: ${dataReferencia.innerText}`, 14, 32);
+            if (termoBusca.trim() !== '') {
+                doc.text(`Filtrado por usuario: ${termoBusca.trim()}`, 14, 37);
+            }
+
+            const linhasTr = tabelaLogs.querySelectorAll('tr');
+            const dadosTabela = [];
+
+            linhasTr.forEach(tr => {
+                const colunas = tr.querySelectorAll('td');
+                if (colunas.length === 5) {
+                    dadosTabela.push([
+                        colunas[0].innerText.trim(),
+                        colunas[1].innerText.trim(),
+                        colunas[2].innerText.trim(),
+                        colunas[3].innerText.trim(),
+                        colunas[4].getAttribute('data-pdf-text') || colunas[4].innerText.trim()
+                    ]);
+                }
+            });
+
+            if (dadosTabela.length === 0) {
+                alert("Nenhum dado para exportar com os filtros atuais.");
+                btnBaixarPDF.innerHTML = textoOriginal;
+                btnBaixarPDF.classList.remove('opacity-75', 'cursor-wait');
+                return;
+            }
+
+            doc.autoTable({
+                startY: termoBusca.trim() !== '' ? 44 : 40,
+                head: [['Horario', 'Usuario', 'Modulo / Origem', 'Descricao do Evento', 'Classificacao']],
+                body: dadosTabela,
+                theme: 'grid',
+                headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+                styles: { fontSize: 9, cellPadding: 3 },
+                columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 25 }, 2: { cellWidth: 32 }, 3: { cellWidth: 'auto' }, 4: { cellWidth: 25 } }
+            });
+
+            const dataISO = inputData.value;
+            const dataBase = new Date(dataISO + 'T00:00:00');
+
+            const [respostaPontos, respostaHistorico] = await Promise.all([
+                fetch(`/api/producao/pontos/${dataISO}`),
+                fetch('/api/producao/historico')
+            ]);
+
+            const pontosProducaoBrutos = await respostaPontos.json();
+            const historicoProducao = await respostaHistorico.json();
+            const totalPacotesDia = historicoProducao[dataReferencia.innerText] || 0;
+
+            const dadosAno = obterDadosAno(dataBase, historicoProducao);
+            const totalAno = dadosAno.data.reduce((soma, v) => soma + v, 0);
+            const imagemAno = await gerarImagemGraficoBarras(dadosAno.labels, dadosAno.data, '#0284c7');
+            adicionarPaginaGrafico(doc, "PRODUCAO ANUAL", `Ano de ${dadosAno.ano} | Total no ano: ${totalAno.toLocaleString('pt-BR')} pacotes`, imagemAno);
+
+            const dadosMes = obterDadosMes(dataBase, historicoProducao);
+            const totalMes = dadosMes.data.reduce((soma, v) => soma + v, 0);
+            const imagemMes = await gerarImagemGraficoBarras(dadosMes.labels, dadosMes.data, '#0ea5e9');
+            adicionarPaginaGrafico(doc, "PRODUCAO MENSAL", `${dadosMes.nomeMes} de ${dadosMes.ano} | Total no mes: ${totalMes.toLocaleString('pt-BR')} pacotes`, imagemMes);
+
+            const dadosSemana = obterDadosSemana(dataBase, historicoProducao);
+            const totalSemana = dadosSemana.data.reduce((soma, v) => soma + v, 0);
+            const imagemSemana = await gerarImagemGraficoBarras(dadosSemana.labels, dadosSemana.data, '#38bdf8');
+            adicionarPaginaGrafico(doc, "PRODUCAO SEMANAL", `Ultimos 7 dias ate ${dataReferencia.innerText} | Total no periodo: ${totalSemana.toLocaleString('pt-BR')} pacotes`, imagemSemana);
+
+            const pontosAgrupados = agruparPontosPorHora(pontosProducaoBrutos);
+            if (pontosAgrupados.labels.length > 0) {
+                const imagemDia = await gerarImagemGraficoLinha(pontosAgrupados.labels, pontosAgrupados.data);
+                adicionarPaginaGrafico(doc, "PRODUCAO DIARIA (POR HORA)", `Data de Referencia: ${dataReferencia.innerText} | Total no dia: ${totalPacotesDia.toLocaleString('pt-BR')} pacotes`, imagemDia);
+            } else {
+                doc.addPage();
+                doc.setFontSize(16);
+                doc.setTextColor(30, 41, 59);
+                doc.text("PRODUCAO DIARIA (POR HORA)", 14, 20);
+                doc.setFontSize(10);
+                doc.setTextColor(148, 163, 184);
+                doc.text("Nenhum dado de producao registrado para esta data.", 14, 30);
+            }
+
+            const totalPaginas = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPaginas; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(148, 163, 184);
+                doc.text(`Pagina ${i} de ${totalPaginas}`, 196, 290, { align: 'right' });
+            }
+
+            doc.save(nomeArquivo);
+
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao construir o PDF de texto.");
+        } finally {
+            btnBaixarPDF.innerHTML = textoOriginal;
+            btnBaixarPDF.classList.remove('opacity-75', 'cursor-wait');
+        }
+    });
+})();
+</script>
+{% endblock %}

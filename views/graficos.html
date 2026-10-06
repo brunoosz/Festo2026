@@ -1,0 +1,522 @@
+{% extends 'base.html' %}
+
+{% block title %}Produção e Eficiência{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6 w-full">
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-blue-500">
+            <div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Produção Estimada (Hoje)</p>
+                <h3 class="text-xl sm:text-2xl font-black text-slate-700" id="kpi-total">0 <span class="text-xs font-medium text-slate-500">pacotes</span></h3>
+            </div>
+            <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M21 8v13H3V8"></path>
+                    <path d="M1 3h22v5H1z"></path>
+                    <path d="M10 12h4"></path>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="bg-white border-2 border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-emerald-500">
+            <div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ritmo de Produção</p>
+                <h3 class="text-xl sm:text-2xl font-black text-emerald-600" id="kpi-ritmo">0 <span class="text-xs font-medium text-slate-500">pacotes/min</span></h3>
+            </div>
+            <div class="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+            </div>
+        </div>
+
+        <div class="bg-white border-2 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 transition-all" id="card-alerta">
+            <div>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Alerta de Velocidade</p>
+                <h3 class="text-sm font-black mt-1" id="kpi-alerta">Aguardando dados...</h3>
+            </div>
+            <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0" id="icone-alerta-container">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-painel flex-1 flex flex-col shadow-sm border-t-4 border-t-slate-800 bg-white relative">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 pb-4 mb-4 gap-4">
+            <div>
+                <h3 class="text-base font-black text-slate-800 uppercase tracking-wider">Histórico Real de Produção</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Visão macro de desempenho da Flow Pack</p>
+            </div>
+            
+            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-full">
+                <button onclick="mudarPeriodoGraficos('aovivo', this)" class="btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-blue-600 shadow-sm border border-slate-200 whitespace-nowrap">Ao Vivo</button>
+                <button onclick="mudarPeriodoGraficos('hoje', this)" class="btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-500 hover:text-slate-700 whitespace-nowrap">Hoje</button>
+                <button onclick="mudarPeriodoGraficos('7dias', this)" class="btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-500 hover:text-slate-700 whitespace-nowrap">7 Dias</button>
+                <button onclick="mudarPeriodoGraficos('1mes', this)" class="btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-500 hover:text-slate-700 whitespace-nowrap">1 Mês</button>
+                <button onclick="mudarPeriodoGraficos('1ano', this)" class="btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-500 hover:text-slate-700 whitespace-nowrap">1 Ano</button>
+            </div>
+        </div>
+        
+        <div class="flex-1 w-full min-h-[300px] sm:min-h-[350px] relative">
+            <canvas id="graficoProducaoGeral"></canvas>
+
+            <div id="aviso-grafico-indisponivel" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-lg">
+                <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <p class="font-bold text-sm">Não foi possível carregar o componente de gráfico.</p>
+                <p class="text-xs mt-1">Verifique se o arquivo /chart.js está na pasta public.</p>
+            </div>
+
+            <div id="calendario-mensal" class="hidden absolute inset-0 flex-col bg-white overflow-y-auto">
+                <div class="flex items-center justify-between mb-4 px-1">
+                    <button onclick="mudarMesCalendarioGraficos(-1)" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg transition cursor-pointer">
+                        &#8249;
+                    </button>
+                    <h4 id="titulo-mes-calendario" class="text-sm sm:text-base font-black text-slate-700 uppercase tracking-wider">-- --</h4>
+                    <button onclick="mudarMesCalendarioGraficos(1)" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg transition cursor-pointer">
+                        &#8250;
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 gap-1 sm:gap-1.5 text-center text-[9px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5">
+                    <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                </div>
+                <div id="grade-calendario" class="grid grid-cols-7 gap-1 sm:gap-1.5 flex-1">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="/chart.js" onerror="window.__chartJsFalhou = true;"></script>
+<script>
+(function() {
+    const CAPACIDADE_MAXIMA_PACOTES_POR_MINUTO = 120;
+    const INTERVALO_CICLO_SEGUNDOS = 5;
+
+    function obterDataFormatada(d = new Date()) {
+        return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    }
+
+    function obterDataISO(d = new Date()) {
+        const ano = d.getFullYear();
+        const mes = String(d.getMonth() + 1).padStart(2, '0');
+        const dia = String(d.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    function agruparPontosPorHora(pontos) {
+        if (!pontos || pontos.length === 0) return { labels: [], data: [] };
+
+        const buckets = {};
+        pontos.forEach(p => {
+            const horaNum = parseInt(String(p.hora).split(':')[0], 10);
+            if (isNaN(horaNum)) return;
+            buckets[horaNum] = (buckets[horaNum] || 0) + p.pacotes;
+        });
+
+        const horasComDados = Object.keys(buckets).map(Number).sort((a, b) => a - b);
+        if (horasComDados.length === 0) return { labels: [], data: [] };
+
+        const horaInicial = horasComDados[0];
+        const horaFinal = horasComDados[horasComDados.length - 1];
+
+        const labels = [];
+        const data = [];
+        for (let h = horaInicial; h <= horaFinal; h++) {
+            labels.push(String(h).padStart(2, '0') + ':00');
+            data.push(buckets[h] || 0);
+        }
+
+        return { labels, data };
+    }
+
+    let dataAtual = obterDataFormatada();
+    let historicoDiarioReal = {}; 
+    
+    let ultimaDataSalva = localStorage.getItem('fp_ultima_data') || dataAtual;
+    let totalPacotesHoje = parseInt(localStorage.getItem('fp_total_hoje')) || 0;
+    let labelsHoje = JSON.parse(localStorage.getItem('fp_labels_hoje')) || [];
+    let dadosHoje = JSON.parse(localStorage.getItem('fp_dados_hoje')) || [];
+
+    if (ultimaDataSalva !== dataAtual) {
+        totalPacotesHoje = 0;
+        labelsHoje = [];
+        dadosHoje = [];
+        localStorage.setItem('fp_ultima_data', dataAtual);
+        localStorage.setItem('fp_total_hoje', 0);
+        localStorage.setItem('fp_labels_hoje', JSON.stringify([]));
+        localStorage.setItem('fp_dados_hoje', JSON.stringify([]));
+    }
+
+    document.getElementById('kpi-total').innerHTML = `${totalPacotesHoje.toLocaleString('pt-BR')} <span class="text-xs font-medium text-slate-500">pacotes</span>`;
+
+    fetch('/api/producao/historico')
+        .then(response => response.json())
+        .then(data => {
+            historicoDiarioReal = data;
+            if(historicoDiarioReal[dataAtual]) {
+                totalPacotesHoje = Math.max(totalPacotesHoje, historicoDiarioReal[dataAtual]);
+                document.getElementById('kpi-total').innerHTML = `${totalPacotesHoje.toLocaleString('pt-BR')} <span class="text-xs font-medium text-slate-500">pacotes</span>`;
+            }
+        })
+        .catch(erro => console.error('[Gráficos] Erro ao buscar histórico:', erro));
+
+    const cardAlerta = document.getElementById('card-alerta');
+    const kpiAlerta = document.getElementById('kpi-alerta');
+    const iconeAlertaContainer = document.getElementById('icone-alerta-container');
+
+    function atualizarAlertaVelocidade(velNormalizada) {
+        const pct = Math.round(velNormalizada * 100);
+
+        if (velNormalizada === 0) {
+            cardAlerta.className = "bg-white border-2 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-slate-400 transition-all";
+            kpiAlerta.className = "text-sm font-black mt-1 text-slate-500";
+            kpiAlerta.innerText = "Esteira Parada";
+            iconeAlertaContainer.className = "w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 transition-all shrink-0";
+        } else if (velNormalizada <= 0.70) {
+            cardAlerta.className = "bg-white border-2 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-emerald-500 transition-all";
+            kpiAlerta.className = "text-sm font-black mt-1 text-emerald-600";
+            kpiAlerta.innerText = `Operação Normal (${pct}%)`;
+            iconeAlertaContainer.className = "w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-500 transition-all shrink-0";
+        } else if (velNormalizada <= 0.90) {
+            cardAlerta.className = "bg-white border-2 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-amber-500 transition-all";
+            kpiAlerta.className = "text-sm font-black mt-1 text-amber-600";
+            kpiAlerta.innerText = `Velocidade Elevada — Atenção (${pct}%)`;
+            iconeAlertaContainer.className = "w-10 h-10 rounded-full flex items-center justify-center bg-amber-50 text-amber-500 transition-all shrink-0";
+        } else {
+            cardAlerta.className = "bg-white border-2 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between border-l-4 border-l-red-500 transition-all animate-pulse";
+            kpiAlerta.className = "text-sm font-black mt-1 text-red-600";
+            kpiAlerta.innerText = `Velocidade Muito Alta! Risco de Travamento (${pct}%)`;
+            iconeAlertaContainer.className = "w-10 h-10 rounded-full flex items-center justify-center bg-red-50 text-red-500 transition-all shrink-0";
+        }
+    }
+
+    let velocidadeAtualESP32 = 0;
+    let ultimaAmostraTimestamp = Date.now();
+    let ultimoRegistroPorMudanca = 0;
+
+    // ALTERADO: reaproveita a conexão global já existente (globalSocket, do
+    // base.html) em vez de abrir uma conexão nova toda vez que essa página
+    // carrega — evita conexões acumuladas ao navegar de um lado pro outro.
+    const socketGraficos = globalSocket;
+
+    function handlerConnect() { console.log('[Gráficos] Conectado ao servidor via Socket.IO.'); }
+    function handlerConnectError(erro) { console.error('[Gráficos] Erro ao conectar:', erro.message); }
+    function handlerDisconnect() { console.warn('[Gráficos] Desconectado do servidor.'); }
+
+    socketGraficos.on('connect', handlerConnect);
+    socketGraficos.on('connect_error', handlerConnectError);
+    socketGraficos.on('disconnect', handlerDisconnect);
+
+    function handlerAtualizarVelocidade(data) {
+        if (data.velocidade === "EMERGENCIA") {
+            velocidadeAtualESP32 = 0;
+        } else {
+            velocidadeAtualESP32 = parseFloat(data.velocidade);
+        }
+
+        let velNormalizada = velocidadeAtualESP32 > 1 ? velocidadeAtualESP32 / 100 : velocidadeAtualESP32;
+        if (velNormalizada < 0 || isNaN(velNormalizada)) velNormalizada = 0;
+
+        atualizarAlertaVelocidade(velNormalizada);
+
+        const agora = Date.now();
+        if (agora - ultimoRegistroPorMudanca > 1000) {
+            ultimoRegistroPorMudanca = agora;
+            registrarProducao();
+        }
+    }
+    socketGraficos.on('atualizar_velocidade', handlerAtualizarVelocidade);
+
+    function calcularProducaoPeriodo(velocidadeNormalizada, segundos) {
+        const pacotesPorSegundo = (CAPACIDADE_MAXIMA_PACOTES_POR_MINUTO * velocidadeNormalizada) / 60;
+        return pacotesPorSegundo * segundos;
+    }
+
+    function registrarProducao() {
+        const agoraMs = Date.now();
+        const segundosDecorridos = Math.max(1, Math.round((agoraMs - ultimaAmostraTimestamp) / 1000));
+        ultimaAmostraTimestamp = agoraMs;
+
+        const agora = new Date();
+        const labelTempo = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        let velNormalizada = velocidadeAtualESP32 > 1 ? velocidadeAtualESP32 / 100 : velocidadeAtualESP32;
+        if (velNormalizada < 0 || isNaN(velNormalizada)) velNormalizada = 0;
+
+        const producaoCiclo = Math.round(calcularProducaoPeriodo(velNormalizada, segundosDecorridos));
+
+        const taxaAtualPorMinuto = Math.round(CAPACIDADE_MAXIMA_PACOTES_POR_MINUTO * velNormalizada);
+        document.getElementById('kpi-ritmo').innerHTML = `${taxaAtualPorMinuto} <span class="text-xs font-medium text-slate-500">pacotes/min</span>`;
+
+        totalPacotesHoje += producaoCiclo;
+        document.getElementById('kpi-total').innerHTML = `${totalPacotesHoje.toLocaleString('pt-BR')} <span class="text-xs font-medium text-slate-500">pacotes</span>`;
+
+        if (producaoCiclo > 0) {
+            socketGraficos.emit('registrar_producao', { dataPtBr: dataAtual, pacotes: producaoCiclo, hora: labelTempo });
+        }
+
+        labelsHoje.push(labelTempo);
+        dadosHoje.push(producaoCiclo);
+
+        localStorage.setItem('fp_total_hoje', totalPacotesHoje);
+        localStorage.setItem('fp_labels_hoje', JSON.stringify(labelsHoje));
+        localStorage.setItem('fp_dados_hoje', JSON.stringify(dadosHoje));
+        
+        if (periodoAtual === 'aovivo' && chartGeral) atualizarGraficoComSeguranca();
+    }
+
+    const intervaloProducao = setInterval(registrarProducao, INTERVALO_CICLO_SEGUNDOS * 1000); 
+
+    function verificarVirouODia() {
+        const novaData = obterDataFormatada();
+        if (novaData !== dataAtual) {
+            console.log(`[Gráficos] Meia-noite detectada (${dataAtual} → ${novaData}). Reiniciando produção do dia.`);
+
+            dataAtual = novaData;
+            totalPacotesHoje = 0;
+            labelsHoje = [];
+            dadosHoje = [];
+
+            localStorage.setItem('fp_ultima_data', dataAtual);
+            localStorage.setItem('fp_total_hoje', 0);
+            localStorage.setItem('fp_labels_hoje', JSON.stringify([]));
+            localStorage.setItem('fp_dados_hoje', JSON.stringify([]));
+
+            document.getElementById('kpi-total').innerHTML = `0 <span class="text-xs font-medium text-slate-500">pacotes</span>`;
+            document.getElementById('kpi-ritmo').innerHTML = `0 <span class="text-xs font-medium text-slate-500">pacotes/min</span>`;
+
+            if (chartGeral && (periodoAtual === 'aovivo' || periodoAtual === 'hoje')) {
+                chartGeral.data.labels = [];
+                chartGeral.data.datasets[0].data = [];
+                chartGeral.update();
+            }
+
+            fetch('/api/producao/historico')
+                .then(response => response.json())
+                .then(data => { historicoDiarioReal = data; })
+                .catch(() => {});
+        }
+    }
+    const intervaloVirouDia = setInterval(verificarVirouODia, 30000);
+
+    let chartGeral = null;
+    let periodoAtual = 'aovivo';
+    let mesCalendarioAtual = new Date().getMonth();
+    let anoCalendarioAtual = new Date().getFullYear();
+
+    function atualizarGraficoComSeguranca() {
+        try { chartGeral.update(); } catch (erro) { console.error('[Gráficos] Erro ao atualizar:', erro); }
+    }
+
+    function obterDadosHistoricosDias(qntDias) {
+        const labels = [];
+        const data = [];
+        for(let i = qntDias - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dataStr = obterDataFormatada(d);
+            labels.push(dataStr.substring(0, 5)); 
+            
+            if (i === 0) data.push(totalPacotesHoje);
+            else data.push(historicoDiarioReal[dataStr] || 0);
+        }
+        return { labels, data };
+    }
+
+    function obterDadosHistoricoMeses() {
+        const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const dataMeses = new Array(12).fill(0);
+        Object.keys(historicoDiarioReal).forEach(dataStr => {
+            const partes = dataStr.split('/');
+            if(partes.length === 3) {
+                const mesIdx = parseInt(partes[1]) - 1;
+                dataMeses[mesIdx] += historicoDiarioReal[dataStr];
+            }
+        });
+        const mesAtual = new Date().getMonth();
+        if(!historicoDiarioReal[dataAtual]) dataMeses[mesAtual] += totalPacotesHoje;
+        return { labels: meses, data: dataMeses };
+    }
+
+    const NOMES_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    function renderizarCalendarioMensal(mes, ano) {
+        const tituloEl = document.getElementById('titulo-mes-calendario');
+        const gradeEl = document.getElementById('grade-calendario');
+
+        tituloEl.innerText = `${NOMES_MESES[mes]} ${ano}`;
+        gradeEl.innerHTML = '';
+
+        const hoje = new Date();
+        const ehMesAtual = (mes === hoje.getMonth() && ano === hoje.getFullYear());
+
+        const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+        const totalDiasNoMes = new Date(ano, mes + 1, 0).getDate();
+
+        for (let i = 0; i < primeiroDiaSemana; i++) {
+            const vazio = document.createElement('div');
+            vazio.className = "border border-slate-100 rounded-lg bg-slate-50 min-h-[70px] sm:min-h-[85px]";
+            gradeEl.appendChild(vazio);
+        }
+
+        for (let dia = 1; dia <= totalDiasNoMes; dia++) {
+            const dataStr = `${String(dia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}/${ano}`;
+
+            let pacotesDoDia = historicoDiarioReal[dataStr] || 0;
+            if (ehMesAtual && dia === hoje.getDate()) {
+                pacotesDoDia = Math.max(pacotesDoDia, totalPacotesHoje);
+            }
+
+            const ehHoje = ehMesAtual && dia === hoje.getDate();
+
+            const celula = document.createElement('div');
+            celula.className = `border rounded-lg p-1.5 sm:p-2 min-h-[70px] sm:min-h-[85px] flex flex-col justify-between ${ehHoje ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'}`;
+
+            const badgePacotes = pacotesDoDia > 0
+                ? `<span class="inline-block bg-emerald-100 text-emerald-700 text-xs sm:text-sm font-black px-1.5 sm:px-2 py-1 rounded-md text-center">${pacotesDoDia.toLocaleString('pt-BR')}</span>`
+                : `<span class="inline-block text-slate-300 text-[10px] sm:text-xs font-medium">sem produção</span>`;
+
+            celula.innerHTML = `
+                <span class="text-sm sm:text-base font-black ${ehHoje ? 'text-blue-600' : 'text-slate-700'}">${dia}</span>
+                ${badgePacotes}
+            `;
+            gradeEl.appendChild(celula);
+        }
+    }
+
+    window.mudarMesCalendarioGraficos = function(direcao) {
+        mesCalendarioAtual += direcao;
+        if (mesCalendarioAtual > 11) { mesCalendarioAtual = 0; anoCalendarioAtual++; }
+        if (mesCalendarioAtual < 0) { mesCalendarioAtual = 11; anoCalendarioAtual--; }
+        renderizarCalendarioMensal(mesCalendarioAtual, anoCalendarioAtual);
+    };
+
+    function mostrarCanvas() {
+        document.getElementById('graficoProducaoGeral').classList.remove('hidden');
+        document.getElementById('calendario-mensal').classList.add('hidden');
+        document.getElementById('calendario-mensal').classList.remove('flex');
+    }
+
+    function mostrarCalendario() {
+        document.getElementById('graficoProducaoGeral').classList.add('hidden');
+        document.getElementById('calendario-mensal').classList.remove('hidden');
+        document.getElementById('calendario-mensal').classList.add('flex');
+    }
+
+    window.mudarPeriodoGraficos = async function(periodo, btnElement) {
+        periodoAtual = periodo;
+        document.querySelectorAll('.btn-filtro').forEach(btn => btn.className = "btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-500 hover:text-slate-700 cursor-pointer whitespace-nowrap");
+        btnElement.className = "btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-blue-600 shadow-sm border border-slate-200 cursor-default whitespace-nowrap";
+
+        if (periodo === '1mes') {
+            mostrarCalendario();
+            mesCalendarioAtual = new Date().getMonth();
+            anoCalendarioAtual = new Date().getFullYear();
+            renderizarCalendarioMensal(mesCalendarioAtual, anoCalendarioAtual);
+            return;
+        }
+
+        mostrarCanvas();
+        if (!chartGeral) return;
+
+        try {
+            if (periodo === 'aovivo') {
+                chartGeral.config.type = 'line';
+                chartGeral.data.datasets[0].borderWidth = 3;
+                chartGeral.data.datasets[0].pointRadius = 2;
+                chartGeral.data.datasets[0].fill = true;
+                chartGeral.data.datasets[0].tension = 0.4;
+                chartGeral.data.labels = labelsHoje;
+                chartGeral.data.datasets[0].data = dadosHoje;
+                chartGeral.data.datasets[0].backgroundColor = 'rgba(2, 132, 199, 0.1)';
+                chartGeral.options.scales.x.ticks.maxTicksLimit = 15;
+                chartGeral.update();
+
+            } else if (periodo === 'hoje') {
+                const resposta = await fetch(`/api/producao/pontos/${obterDataISO()}`);
+                const pontos = await resposta.json();
+                const agrupado = agruparPontosPorHora(pontos);
+
+                chartGeral.config.type = 'line';
+                chartGeral.data.datasets[0].borderWidth = 2.5;
+                chartGeral.data.datasets[0].pointRadius = 0;
+                chartGeral.data.datasets[0].fill = true;
+                chartGeral.data.datasets[0].tension = 0.4;
+                chartGeral.data.datasets[0].backgroundColor = 'rgba(2, 132, 199, 0.15)';
+                chartGeral.data.labels = agrupado.labels;
+                chartGeral.data.datasets[0].data = agrupado.data;
+                chartGeral.options.scales.x.ticks.maxTicksLimit = 24;
+                chartGeral.update();
+
+            } else {
+                chartGeral.config.type = 'bar';
+                chartGeral.data.datasets[0].backgroundColor = '#0284c7';
+                chartGeral.data.datasets[0].borderRadius = 4;
+                let histDados = periodo === '1ano' ? obterDadosHistoricoMeses() : obterDadosHistoricosDias(periodo === '7dias' ? 7 : 30);
+                chartGeral.data.labels = histDados.labels;
+                chartGeral.data.datasets[0].data = histDados.data;
+                chartGeral.options.scales.x.ticks.maxTicksLimit = 15;
+                chartGeral.update();
+            }
+        } catch (erro) {
+            console.error('[Gráficos] Erro ao trocar período:', erro);
+        }
+    };
+
+    if (typeof Chart !== 'undefined' && !window.__chartJsFalhou) {
+        try {
+            const ctx = document.getElementById('graficoProducaoGeral').getContext('2d');
+            chartGeral = new Chart(ctx, {
+                type: 'line', 
+                data: {
+                    labels: labelsHoje, 
+                    datasets: [{
+                        label: 'Pacotes',
+                        data: dadosHoje, 
+                        borderColor: '#0284c7', 
+                        backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                        borderWidth: 3, fill: true, tension: 0.4, 
+                        pointBackgroundColor: '#0284c7', pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 15 } }
+                    }
+                }
+            });
+        } catch (erro) {
+            console.error('[Gráficos] Erro ao criar o gráfico:', erro);
+            document.getElementById('aviso-grafico-indisponivel').classList.remove('hidden');
+            document.getElementById('aviso-grafico-indisponivel').classList.add('flex');
+        }
+    } else {
+        console.warn('[Gráficos] Chart.js não carregou.');
+        document.getElementById('aviso-grafico-indisponivel').classList.remove('hidden');
+        document.getElementById('aviso-grafico-indisponivel').classList.add('flex');
+    }
+
+    // NOVO: limpeza ao sair desta página — remove os escutadores do socket
+    // compartilhado e para os dois intervalos, evitando duplicação/vazamento
+    // ao visitar Produção várias vezes seguidas.
+    window.__cleanupPagina = function() {
+        clearInterval(intervaloProducao);
+        clearInterval(intervaloVirouDia);
+        socketGraficos.off('connect', handlerConnect);
+        socketGraficos.off('connect_error', handlerConnectError);
+        socketGraficos.off('disconnect', handlerDisconnect);
+        socketGraficos.off('atualizar_velocidade', handlerAtualizarVelocidade);
+        delete window.mudarPeriodoGraficos;
+        delete window.mudarMesCalendarioGraficos;
+    };
+})();
+</script>
+{% endblock %}

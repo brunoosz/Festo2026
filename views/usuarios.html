@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block title %}Usuários{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6">
+
+    <div class="card-painel shadow-sm border-t-4 border-t-slate-800 bg-white">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-3 mb-4">
+            <div>
+                <h3 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Gerenciamento de Usuários</h3>
+                <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+                    {% if isDono %}
+                        Você é o Dono do sistema — acesso total, pode criar, editar, promover/rebaixar e apagar qualquer usuário.
+                    {% else %}
+                        Você é Administrador — pode cadastrar novos Operários e trocar a senha deles. Apagar usuários é restrito ao Dono.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+                <!-- NOVO: filtro por cargo -->
+                <select id="filtro-nivel" class="text-xs font-bold border-2 border-slate-200 rounded-lg px-3 py-2.5 bg-white text-slate-700 cursor-pointer focus:outline-none focus:border-blue-500">
+                    <option value="todos">Todos os cargos</option>
+                    <option value="1">Somente Donos</option>
+                    <option value="2">Somente Administradores</option>
+                    <option value="3">Somente Operários</option>
+                </select>
+                <button id="btn-abrir-add-usuario" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                    Adicionar Usuário
+                </button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                        <th class="py-2 pr-3">Usuário</th>
+                        <th class="py-2 pr-3">Nível</th>
+                        <th class="py-2 pr-3 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-tabela-usuarios">
+                    <tr><td colspan="3" class="py-6 text-center text-slate-400 text-xs">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div id="modal-add-usuario" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 sm:p-6">
+        <h3 class="font-bold text-gray-800 text-lg mb-1">Adicionar Usuário</h3>
+        <p class="text-sm text-slate-500 mb-4">
+            {% if isDono %}
+                Escolha o nível de acesso do novo usuário.
+            {% else %}
+                Como Administrador, você só pode cadastrar usuários no nível Operário.
+            {% endif %}
+        </p>
+
+        <form id="form-add-usuario" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">Nome de Usuário</label>
+                <input type="text" id="input-nome-usuario" required
+                    class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">Senha</label>
+                <input type="password" id="input-senha-usuario" required minlength="4"
+                    class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                <p class="text-[11px] text-slate-400 mt-1">Mínimo de 4 caracteres.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">Nível de Acesso</label>
+                <select id="select-nivel-usuario" class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                    {% if isDono %}
+                    <option value="1">Dono</option>
+                    <option value="2">Administrador</option>
+                    {% endif %}
+                    <option value="3" selected>Operário</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <input type="checkbox" id="input-acessibilidade-usuario" class="rounded border-gray-300 text-blue-500 focus:ring-blue-500 w-5 h-5 shrink-0">
+                <label for="input-acessibilidade-usuario" class="text-sm font-bold text-slate-700 cursor-pointer">
+                    Ativar leitor de tela por padrão
+                </label>
+            </div>
+
+            <div id="msg-add-usuario" class="hidden p-3 rounded text-sm font-bold"></div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="btn-cancelar-add-usuario" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" id="btn-salvar-usuario" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-md cursor-pointer">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-senha-usuario" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 sm:p-6">
+        <h3 class="font-bold text-gray-800 text-lg mb-1">Alterar Senha</h3>
+        <p class="text-sm text-slate-500 mb-4">Definindo nova senha para <strong id="texto-usuario-senha"></strong>.</p>
+
+        <form id="form-senha-usuario" class="space-y-4">
+            <input type="hidden" id="input-usuario-alvo-senha">
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">Nova Senha</label>
+                <input type="password" id="input-nova-senha" required minlength="4"
+                    class="w-full border-2 border-gray-200 rounded-md px-4 py-2.5 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+            </div>
+
+            <div id="msg-senha-usuario" class="hidden p-3 rounded text-sm font-bold"></div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="btn-cancelar-senha-usuario" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-md cursor-pointer">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    const souDono = {{ 'true' if isDono else 'false' }};
+    const meuNivel = {{ nivelUsuario | default(3) }};
+    const meuUsuario = "{{ usuarioLogado | default('') }}";
+
+    const corpoTabela = document.getElementById('corpo-tabela-usuarios');
+    const filtroNivel = document.getElementById('filtro-nivel');
+
+    let listaCompletaUsuarios = [];
+
+    function badgeNivel(nivel, nomeNivelTexto) {
+        let classes = "text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ";
+        if (nivel === 1) classes += "bg-amber-100 text-amber-700";
+        else if (nivel === 2) classes += "bg-blue-100 text-blue-700";
+        else classes += "bg-slate-100 text-slate-600";
+        return `<span class="${classes}">${nomeNivelTexto}</span>`;
+    }
+
+    function possoAlterarSenhaDe(nivelAlvo) { return souDono || nivelAlvo > meuNivel; }
+    function possoApagar() { return souDono; }
+    function possoMudarNivel() { return souDono; }
+
+    function criarLinhaUsuario(u) {
+        const tr = document.createElement('tr');
+        tr.className = "border-b border-slate-100 last:border-0";
+
+        let botoesAcao = '';
+
+        if (possoAlterarSenhaDe(u.nivel)) {
+            botoesAcao += `<button data-usuario="${u.usuario}" class="btn-trocar-senha text-blue-600 hover:text-blue-800 text-xs font-bold mr-3 cursor-pointer">Senha</button>`;
+        }
+
+        if (possoMudarNivel() && u.usuario !== meuUsuario) {
+            botoesAcao += `
+                <select data-usuario="${u.usuario}" class="select-nivel-inline text-xs border border-slate-200 rounded px-1 py-0.5 mr-3 cursor-pointer">
+                    <option value="1" ${u.nivel === 1 ? 'selected' : ''}>Dono</option>
+                    <option value="2" ${u.nivel === 2 ? 'selected' : ''}>Administrador</option>
+                    <option value="3" ${u.nivel === 3 ? 'selected' : ''}>Operário</option>
+                </select>`;
+        }
+
+        if (possoApagar() && u.usuario !== meuUsuario) {
+            botoesAcao += `<button data-usuario="${u.usuario}" class="btn-apagar-usuario text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Apagar</button>`;
+        }
+
+        tr.innerHTML = `
+            <td class="py-3 pr-3 font-bold text-slate-700">${u.usuario}${u.usuario === meuUsuario ? ' <span class="text-[10px] text-slate-400 font-normal">(você)</span>' : ''}</td>
+            <td class="py-3 pr-3">${badgeNivel(u.nivel, u.nomeNivel)}</td>
+            <td class="py-3 pr-3 text-right whitespace-nowrap">${botoesAcao || '<span class="text-slate-300 text-xs">—</span>'}</td>
+        `;
+        return tr;
+    }
+
+    // NOVO: aplica o filtro selecionado e reordena por nível (Dono
+    // primeiro, depois Admin, depois Operário) dentro do resultado
+    function renderizarComFiltro() {
+        const filtroAtual = filtroNivel.value;
+        let lista = [...listaCompletaUsuarios];
+
+        if (filtroAtual !== 'todos') {
+            lista = lista.filter(u => String(u.nivel) === filtroAtual);
+        }
+
+        lista.sort((a, b) => a.nivel - b.nivel);
+
+        corpoTabela.innerHTML = '';
+
+        if (lista.length === 0) {
+            corpoTabela.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-slate-400 text-xs">Nenhum usuário encontrado com esse filtro.</td></tr>';
+            return;
+        }
+
+        lista.forEach(u => corpoTabela.appendChild(criarLinhaUsuario(u)));
+
+        document.querySelectorAll('.btn-trocar-senha').forEach(botao => {
+            botao.addEventListener('click', () => abrirModalSenha(botao.dataset.usuario));
+        });
+        document.querySelectorAll('.btn-apagar-usuario').forEach(botao => {
+            botao.addEventListener('click', () => apagarUsuario(botao.dataset.usuario));
+        });
+        document.querySelectorAll('.select-nivel-inline').forEach(select => {
+            select.addEventListener('change', () => mudarNivelUsuario(select.dataset.usuario, select.value));
+        });
+    }
+
+    filtroNivel.addEventListener('change', renderizarComFiltro);
+
+    async function carregarUsuarios() {
+        try {
+            const resposta = await fetch('/api/usuarios');
+            listaCompletaUsuarios = await resposta.json();
+            renderizarComFiltro();
+        } catch (erro) {
+            corpoTabela.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-red-500 text-xs">Erro ao carregar usuários.</td></tr>';
+        }
+    }
+    carregarUsuarios();
+
+    async function mudarNivelUsuario(usuario, novoNivel) {
+        try {
+            const resposta = await fetch('/api/usuarios/' + encodeURIComponent(usuario) + '/nivel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nivel: novoNivel })
+            });
+            const dados = await resposta.json();
+            if (!resposta.ok) {
+                alert(dados.erro || 'Não foi possível alterar o nível.');
+                carregarUsuarios();
+            } else {
+                carregarUsuarios();
+            }
+        } catch (erro) {
+            alert('Erro de conexão com o servidor.');
+            carregarUsuarios();
+        }
+    }
+
+    async function apagarUsuario(usuario) {
+        if (!confirm(`Apagar o usuário "${usuario}"? Essa ação não pode ser desfeita.`)) return;
+        try {
+            const resposta = await fetch('/api/usuarios/' + encodeURIComponent(usuario), { method: 'DELETE' });
+            const dados = await resposta.json();
+            if (resposta.ok) {
+                carregarUsuarios();
+            } else {
+                alert(dados.erro || 'Não foi possível apagar o usuário.');
+            }
+        } catch (erro) {
+            alert('Erro de conexão com o servidor.');
+        }
+    }
+
+    const btnAbrirAddUsuario = document.getElementById('btn-abrir-add-usuario');
+    const modalAddUsuario = document.getElementById('modal-add-usuario');
+    const btnCancelarAddUsuario = document.getElementById('btn-cancelar-add-usuario');
+    const formAddUsuario = document.getElementById('form-add-usuario');
+    const msgAddUsuario = document.getElementById('msg-add-usuario');
+    const btnSalvarUsuario = document.getElementById('btn-salvar-usuario');
+
+    function abrirModalAddUsuario() {
+        formAddUsuario.reset();
+        msgAddUsuario.classList.add('hidden');
+        modalAddUsuario.classList.remove('hidden');
+    }
+    function fecharModalAddUsuario() { modalAddUsuario.classList.add('hidden'); }
+
+    btnAbrirAddUsuario.addEventListener('click', abrirModalAddUsuario);
+    btnCancelarAddUsuario.addEventListener('click', fecharModalAddUsuario);
+    modalAddUsuario.addEventListener('click', (e) => { if (e.target === modalAddUsuario) fecharModalAddUsuario(); });
+
+    async function handlerSalvarUsuario(e) {
+        e.preventDefault();
+
+        const usuario = document.getElementById('input-nome-usuario').value.trim();
+        const senha = document.getElementById('input-senha-usuario').value;
+        const nivel = document.getElementById('select-nivel-usuario').value;
+        const acessibilidade = document.getElementById('input-acessibilidade-usuario').checked;
+
+        btnSalvarUsuario.disabled = true;
+        btnSalvarUsuario.innerText = 'Salvando...';
+
+        try {
+            const resposta = await fetch('/api/usuarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario, senha, nivel, acessibilidade })
+            });
+            const dados = await resposta.json();
+
+            if (resposta.ok) {
+                fecharModalAddUsuario();
+                carregarUsuarios();
+            } else {
+                msgAddUsuario.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+                msgAddUsuario.classList.add('bg-red-100', 'text-red-700');
+                msgAddUsuario.innerText = dados.erro || 'Não foi possível salvar.';
+            }
+        } catch (erro) {
+            msgAddUsuario.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+            msgAddUsuario.classList.add('bg-red-100', 'text-red-700');
+            msgAddUsuario.innerText = 'Erro de conexão com o servidor.';
+        } finally {
+            btnSalvarUsuario.disabled = false;
+            btnSalvarUsuario.innerText = 'Salvar';
+        }
+    }
+    formAddUsuario.addEventListener('submit', handlerSalvarUsuario);
+
+    const modalSenhaUsuario = document.getElementById('modal-senha-usuario');
+    const btnCancelarSenhaUsuario = document.getElementById('btn-cancelar-senha-usuario');
+    const formSenhaUsuario = document.getElementById('form-senha-usuario');
+    const msgSenhaUsuario = document.getElementById('msg-senha-usuario');
+    const textoUsuarioSenha = document.getElementById('texto-usuario-senha');
+    const inputUsuarioAlvoSenha = document.getElementById('input-usuario-alvo-senha');
+    const inputNovaSenha = document.getElementById('input-nova-senha');
+
+    function abrirModalSenha(usuario) {
+        textoUsuarioSenha.innerText = usuario;
+        inputUsuarioAlvoSenha.value = usuario;
+        inputNovaSenha.value = '';
+        msgSenhaUsuario.classList.add('hidden');
+        modalSenhaUsuario.classList.remove('hidden');
+    }
+    function fecharModalSenha() { modalSenhaUsuario.classList.add('hidden'); }
+
+    btnCancelarSenhaUsuario.addEventListener('click', fecharModalSenha);
+    modalSenhaUsuario.addEventListener('click', (e) => { if (e.target === modalSenhaUsuario) fecharModalSenha(); });
+
+    async function handlerSalvarSenha(e) {
+        e.preventDefault();
+        const usuario = inputUsuarioAlvoSenha.value;
+        const senha = inputNovaSenha.value;
+
+        try {
+            const resposta = await fetch('/api/usuarios/' + encodeURIComponent(usuario) + '/senha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ senha })
+            });
+            const dados = await resposta.json();
+
+            if (resposta.ok) {
+                fecharModalSenha();
+            } else {
+                msgSenhaUsuario.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+                msgSenhaUsuario.classList.add('bg-red-100', 'text-red-700');
+                msgSenhaUsuario.innerText = dados.erro || 'Não foi possível salvar.';
+            }
+        } catch (erro) {
+            msgSenhaUsuario.classList.remove('hidden', 'bg-green-100', 'text-green-700');
+            msgSenhaUsuario.classList.add('bg-red-100', 'text-red-700');
+            msgSenhaUsuario.innerText = 'Erro de conexão com o servidor.';
+        }
+    }
+    formSenhaUsuario.addEventListener('submit', handlerSalvarSenha);
+
+    window.__cleanupPagina = function() {};
+})();
+</script>
+{% endblock %}

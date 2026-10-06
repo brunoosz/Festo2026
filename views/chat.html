@@ -1,0 +1,1211 @@
+{% extends 'base.html' %}
+
+{% block title %}Dark Coders AI{% endblock %}
+
+{% block content %}
+<script src="/jspdf.js"></script>
+<script src="/jspdf-autotable.js"></script>
+
+<div class="flex flex-col h-full min-h-0 w-full">
+
+    <div class="card-painel flex-1 flex flex-col shadow-sm overflow-hidden p-0 bg-slate-50 border-t-4 border-t-blue-500 relative min-h-0">
+        
+        <div class="bg-white p-3 sm:p-4 border-b border-slate-200 flex items-center justify-between z-10 shadow-sm shrink-0 gap-2">
+            <div class="flex items-center gap-2.5 sm:gap-4 min-w-0">
+                <div class="w-9 h-9 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center shadow-inner border border-blue-200 text-blue-600 shrink-0">
+                    <svg class="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M12 8V4H8" />
+                        <rect width="16" height="12" x="4" y="8" rx="2" />
+                        <path d="M2 14h2" />
+                        <path d="M20 14h2" />
+                        <path d="M15 13v2" />
+                        <path d="M9 13v2" />
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <h2 class="text-sm sm:text-lg font-black text-slate-800 truncate">Dark Coders AI</h2>
+                    <div class="flex items-center gap-1.5">
+                        <span id="ponto-status-header" class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse shrink-0"></span>
+                        <p id="texto-status-header" class="text-[9px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider truncate">Assistente Técnico Local</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+                <button id="btn-iniciar-tutorial" data-tutorial-ignorar-leitor class="w-10 h-10 rounded-full hover:bg-slate-100 active:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer" title="Tutorial guiado do sistema">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/>
+                    </svg>
+                </button>
+
+                <div class="relative">
+                    <button id="btn-menu-chat" class="w-10 h-10 rounded-full hover:bg-slate-100 active:bg-slate-200 flex items-center justify-center text-slate-500 transition cursor-pointer" title="Opções da conversa">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
+                        </svg>
+                    </button>
+                    <div id="menu-dropdown-chat" class="hidden absolute right-0 top-11 bg-white border border-slate-200 rounded-lg shadow-lg py-1 w-48 z-20">
+                        <button id="btn-limpar-conversa" class="w-full text-left px-4 py-3 sm:py-2.5 text-sm text-red-600 hover:bg-red-50 active:bg-red-100 transition cursor-pointer flex items-center gap-2">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Limpar conversa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="area-mensagens" class="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 space-y-4 sm:space-y-6 bg-slate-100/50">
+        </div>
+
+        <div id="area-modo-voz" class="hidden flex-1 flex-col items-center justify-center overflow-hidden relative" style="background: radial-gradient(ellipse at center, #0c1e2e 0%, #030a12 100%);">
+
+            <div class="pointer-events-none absolute inset-0 z-20" style="background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0px, rgba(0,0,0,0.22) 1px, transparent 1px, transparent 3px); mix-blend-mode: multiply;"></div>
+
+            <button id="btn-fechar-modo-voz" class="absolute top-3 right-3 z-30 w-9 h-9 rounded-full bg-slate-800/80 hover:bg-red-600 active:bg-red-700 border border-slate-600 flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer" title="Fechar e interromper">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <canvas id="canvas-rosto" width="320" height="260" class="w-full max-w-xs sm:max-w-sm" style="image-rendering: pixelated;"></canvas>
+
+            <p id="voz-status-texto" class="text-xs font-bold text-sky-300 uppercase tracking-widest mt-2 mb-3 z-10">Toque no microfone pra falar</p>
+
+            <div id="voz-legenda-container" class="w-full max-w-md px-4 pb-4 z-10 min-h-[3rem]">
+            </div>
+        </div>
+
+        <div class="bg-white p-2.5 sm:p-4 border-t border-slate-200 z-10 shrink-0">
+            <form id="form-chat" class="flex items-center gap-2 sm:gap-3">
+                <div class="relative flex-1 min-w-0">
+                    <input type="text" id="input-pergunta" required autocomplete="off" placeholder="Escreva uma mensagem..." class="w-full bg-slate-100 border border-slate-300 rounded-full pl-4 pr-4 py-3 sm:py-3 focus:outline-none focus:border-blue-500 focus:bg-white transition text-slate-700 text-sm">
+                </div>
+
+                <button type="button" id="btn-modo-voz" class="w-12 h-12 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-600 rounded-full flex items-center justify-center transition shadow-sm cursor-pointer shrink-0" title="Falar com a IA por voz">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                    </svg>
+                </button>
+
+                <button type="submit" id="btn-enviar" class="w-12 h-12 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-full flex items-center justify-center transition shadow-md cursor-pointer shrink-0">
+                    <svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function() {
+    const formChat = document.getElementById('form-chat');
+    const inputPergunta = document.getElementById('input-pergunta');
+    const areaMensagens = document.getElementById('area-mensagens');
+    const btnEnviar = document.getElementById('btn-enviar');
+    const btnMenuChat = document.getElementById('btn-menu-chat');
+    const menuDropdownChat = document.getElementById('menu-dropdown-chat');
+    const btnLimparConversa = document.getElementById('btn-limpar-conversa');
+    const btnIniciarTutorial = document.getElementById('btn-iniciar-tutorial');
+
+    const inicialUsuario = "{{ (usuarioLogado | default('admin'))[0] | upper }}";
+    const nomeUsuario = "{{ usuarioLogado | default('Você') }}";
+    const msgBoasVindas = `Olá, <b>{{ usuarioLogado | default('Operador') }}</b>! Em que posso te ajudar hoje?`;
+
+    function limparTextoParaFala(texto) {
+        return texto
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/#{1,6}\s?/g, '')
+            .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, '')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    }
+
+    function rolarParaBaixo() {
+        areaMensagens.scrollTop = areaMensagens.scrollHeight;
+    }
+
+    // ALTERADO: comandos com número (velocidade/temperatura) agora são
+    // "modelos" — clicar só PREENCHE o campo, com o cursor pronto pra você
+    // digitar o valor, e você quem manda. Os outros continuam enviando na
+    // hora, porque não precisam de nenhum número.
+    function obterComandosSugeridos() {
+        const temaAtual = localStorage.getItem('tema_flowpack');
+        const rotuloTema = temaAtual === 'escuro' ? 'Muda o tema pra claro' : 'Muda o tema pra escuro';
+
+        return [
+            { texto: 'Mude a velocidade para ', parametrizado: true },
+            { texto: 'Desliga a esteira', parametrizado: false },
+            { texto: 'Coloca a temperatura da selagem 1 pra ', parametrizado: true },
+            { texto: 'Coloca a temperatura da selagem 2 pra ', parametrizado: true },
+            { texto: 'Baixa o relatório de hoje', parametrizado: false },
+            { texto: 'Me leva pra tela de logs', parametrizado: false },
+            { texto: 'Mostra a produção', parametrizado: false },
+            { texto: 'Leia os últimos logs', parametrizado: false },
+            { texto: 'Abre a visão computacional', parametrizado: false },
+            { texto: rotuloTema, parametrizado: false, ehChipDeTema: true }
+        ];
+    }
+
+    // NOVO: guarda referência dos chips de tema criados, pra atualizar o
+    // texto deles na hora, sem precisar recarregar a página
+    let chipsTemaAtivos = [];
+    function atualizarChipsDeTema() {
+        const temaAtual = localStorage.getItem('tema_flowpack');
+        const rotuloTema = temaAtual === 'escuro' ? 'Muda o tema pra claro' : 'Muda o tema pra escuro';
+        chipsTemaAtivos.forEach(chip => { chip.innerText = rotuloTema; });
+    }
+
+    function criarBolhaBoasVindas() {
+        const div = document.createElement('div');
+        div.className = "flex items-end justify-start gap-2";
+        div.innerHTML = `
+            <div class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0 border border-blue-200 text-blue-600">
+                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            </div>
+            <div class="flex flex-col gap-2 max-w-[88%] sm:max-w-[80%]">
+                <div class="bg-white border border-slate-200 text-slate-700 py-2.5 px-3.5 sm:py-3 sm:px-4 rounded-2xl rounded-bl-none shadow-sm text-sm">
+                    ${msgBoasVindas}
+                </div>
+                <button id="btn-toggle-sugestoes" type="button" class="flex items-center gap-1 text-xs font-bold text-blue-500 hover:text-blue-700 transition cursor-pointer self-start">
+                    Ver comandos prontos
+                    <svg id="seta-sugestoes" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="lista-sugestoes" class="hidden flex flex-wrap gap-1.5"></div>
+            </div>
+        `;
+        areaMensagens.appendChild(div);
+
+        const listaSugestoes = div.querySelector('#lista-sugestoes');
+        obterComandosSugeridos().forEach(item => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'text-[11px] bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 border border-blue-200 rounded-full px-3 py-1.5 transition cursor-pointer';
+            chip.innerText = item.parametrizado ? item.texto + '...' : item.texto;
+            if (item.ehChipDeTema) chipsTemaAtivos.push(chip);
+            chip.addEventListener('click', () => {
+                if (item.parametrizado) {
+                    inputPergunta.value = item.texto;
+                    inputPergunta.focus();
+                    inputPergunta.setSelectionRange(inputPergunta.value.length, inputPergunta.value.length);
+                } else {
+                    // ALTERADO: usa o texto ATUAL do chip (importante pro
+                    // chip de tema, que muda de rótulo dinamicamente)
+                    inputPergunta.value = chip.innerText;
+                    formChat.requestSubmit();
+                }
+            });
+            listaSugestoes.appendChild(chip);
+        });
+
+        const btnToggle = div.querySelector('#btn-toggle-sugestoes');
+        const setaSugestoes = div.querySelector('#seta-sugestoes');
+        btnToggle.addEventListener('click', () => {
+            const abrindo = listaSugestoes.classList.contains('hidden');
+            listaSugestoes.classList.toggle('hidden');
+            setaSugestoes.style.transform = abrindo ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
+    }
+
+    function criarParMensagem(parId, pergunta, resposta) {
+        const container = document.createElement('div');
+        container.className = "group relative space-y-3";
+        container.dataset.parId = parId;
+
+        container.innerHTML = `
+            <button class="btn-apagar-par absolute -top-1 right-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition bg-white border border-slate-200 active:bg-red-50 hover:bg-red-50 hover:border-red-200 text-slate-400 hover:text-red-500 rounded-full w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center shadow-sm cursor-pointer z-10" title="Apagar esta pergunta e resposta">
+                <svg class="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+
+            <div class="flex items-end justify-end gap-2">
+                <div class="bg-blue-500 text-white py-2.5 px-3.5 sm:py-3 sm:px-4 rounded-2xl rounded-br-none shadow-sm max-w-[88%] sm:max-w-[80%] text-sm break-words">
+                    ${pergunta}
+                </div>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 bg-slate-300 rounded-full flex items-center justify-center text-slate-700 font-black text-[11px] sm:text-xs shrink-0 border border-white shadow-sm">
+                    ${inicialUsuario}
+                </div>
+            </div>
+
+            <div class="flex items-end justify-start gap-2">
+                <div class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0 border border-blue-200 text-blue-600">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                </div>
+                <div class="bg-white border border-slate-200 text-slate-700 py-2.5 px-3.5 sm:py-3 sm:px-4 rounded-2xl rounded-bl-none shadow-sm max-w-[88%] sm:max-w-[80%] text-sm break-words">
+                    ${resposta.replace(/\n/g, '<br>')}
+                </div>
+            </div>
+        `;
+
+        container.querySelector('.btn-apagar-par').addEventListener('click', () => apagarPar(parId, container));
+
+        return container;
+    }
+
+    function criarBolhaDigitando() {
+        const div = document.createElement('div');
+        div.className = "flex items-end justify-start gap-2";
+        div.innerHTML = `
+            <div class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0 border border-blue-200 text-blue-600">
+                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            </div>
+            <div class="bg-white border border-slate-200 py-2.5 px-3.5 sm:py-3 sm:px-4 rounded-2xl rounded-bl-none shadow-sm">
+                <span class="flex items-center gap-1 h-5 px-2 opacity-50">
+                    <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0s"></span>
+                    <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
+                    <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                </span>
+            </div>
+        `;
+        areaMensagens.appendChild(div);
+        rolarParaBaixo();
+        return div;
+    }
+
+    async function carregarHistoricoDoServidor() {
+        areaMensagens.innerHTML = '';
+        criarBolhaBoasVindas();
+
+        try {
+            const resposta = await fetch('/api/chat/historico');
+            const lista = await resposta.json();
+
+            lista.forEach(item => {
+                const par = criarParMensagem(item.parId, item.pergunta, item.resposta);
+                areaMensagens.appendChild(par);
+            });
+        } catch (erro) {
+            console.error('Erro ao carregar histórico do chat:', erro);
+        }
+
+        rolarParaBaixo();
+    }
+
+    carregarHistoricoDoServidor();
+
+    async function handlerSubmitChat(e) {
+        e.preventDefault();
+
+        const pergunta = inputPergunta.value.trim();
+        if (!pergunta) return;
+
+        inputPergunta.value = '';
+
+        const comando = interpretarComando(pergunta);
+        if (comando) {
+            await executarComandoTexto(comando, pergunta);
+            inputPergunta.focus();
+            return;
+        }
+
+        inputPergunta.disabled = true;
+        btnEnviar.classList.add('opacity-50', 'cursor-not-allowed');
+
+        const bolhaDigitando = criarBolhaDigitando();
+
+        try {
+            const resposta = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pergunta })
+            });
+
+            const data = await resposta.json();
+
+            areaMensagens.removeChild(bolhaDigitando);
+
+            const par = criarParMensagem(data.parId, pergunta, data.resposta);
+            areaMensagens.appendChild(par);
+            rolarParaBaixo();
+
+        } catch (erro) {
+            console.error("Erro no chat:", erro);
+            areaMensagens.removeChild(bolhaDigitando);
+
+            const parErro = criarParMensagem('erro-' + Date.now(), pergunta, "Desculpe, ocorreu um erro de conexão interna. Tente novamente.");
+            areaMensagens.appendChild(parErro);
+            rolarParaBaixo();
+        } finally {
+            inputPergunta.disabled = false;
+            btnEnviar.classList.remove('opacity-50', 'cursor-not-allowed');
+            inputPergunta.focus();
+        }
+    }
+    formChat.addEventListener('submit', handlerSubmitChat);
+
+    async function apagarPar(parId, elementoDom) {
+        if (!confirm('Apagar esta pergunta e a resposta recebida?')) return;
+
+        try {
+            await fetch('/api/chat/mensagem/' + encodeURIComponent(parId), { method: 'DELETE' });
+            elementoDom.remove();
+        } catch (erro) {
+            alert('Não foi possível apagar essa mensagem agora. Tente novamente.');
+        }
+    }
+
+    function handlerAbrirMenuChat(e) {
+        e.stopPropagation();
+        menuDropdownChat.classList.toggle('hidden');
+    }
+    btnMenuChat.addEventListener('click', handlerAbrirMenuChat);
+
+    function handlerFecharMenuChat() {
+        menuDropdownChat.classList.add('hidden');
+    }
+    document.addEventListener('click', handlerFecharMenuChat);
+
+    async function handlerLimparConversa() {
+        menuDropdownChat.classList.add('hidden');
+        if (!confirm('Tem certeza que deseja apagar toda a conversa? Essa ação não pode ser desfeita.')) return;
+
+        try {
+            await fetch('/api/chat/limpar', { method: 'DELETE' });
+            await carregarHistoricoDoServidor();
+        } catch (erro) {
+            alert('Não foi possível limpar a conversa agora. Tente novamente.');
+        }
+    }
+    btnLimparConversa.addEventListener('click', handlerLimparConversa);
+
+    function handlerIniciarTutorial() {
+        if (typeof window.iniciarTutorial === 'function') window.iniciarTutorial();
+    }
+    btnIniciarTutorial.addEventListener('click', handlerIniciarTutorial);
+
+    let velocidadeAtualPct = null;
+    let temperatura1Atual = null;
+    let temperatura2Atual = null;
+
+    function handlerDadosVelocidade(data) {
+        if (data.velocidade === "EMERGENCIA") { velocidadeAtualPct = 0; return; }
+        const vel = parseFloat(data.velocidade);
+        if (!isNaN(vel)) velocidadeAtualPct = Math.round(vel * 100);
+    }
+    globalSocket.on('atualizar_velocidade', handlerDadosVelocidade);
+
+    function handlerDadosTemp1(data) {
+        if (typeof data.temperatura === 'number') temperatura1Atual = data.temperatura;
+    }
+    globalSocket.on('atualizar_temperatura', handlerDadosTemp1);
+
+    function handlerDadosTemp2(data) {
+        if (typeof data.temperatura === 'number') temperatura2Atual = data.temperatura;
+    }
+    globalSocket.on('atualizar_temperatura2', handlerDadosTemp2);
+
+    // ================================================================================
+    // NOVO: PDF RÁPIDO — gera e baixa DIRETO, sem sair do chat. Versão
+    // simplificada: só a tabela de eventos do dia (sem os gráficos de
+    // produção que o PDF completo da tela de Relatórios tem).
+    // ================================================================================
+    async function baixarRelatorioRapido() {
+        if (!window.jspdf) return 'A ferramenta de PDF ainda não carregou, tenta de novo em alguns segundos.';
+
+        const hoje = new Date();
+        const dataISO = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+        const dataFormatada = String(hoje.getDate()).padStart(2, '0') + '/' + String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
+
+        try {
+            const resposta = await fetch('/api/logs/' + dataISO);
+            const logs = await resposta.json();
+
+            if (logs.length === 0) return `Não tem nenhum evento registrado hoje (${dataFormatada}) pra colocar no relatório.`;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.setTextColor(30, 41, 59);
+            doc.text("RELATORIO RAPIDO - FLOW PACK", 14, 20);
+            doc.setFontSize(10);
+            doc.setTextColor(100, 116, 139);
+            doc.text(`Data: ${dataFormatada} | Gerado via Dark Coders AI`, 14, 27);
+
+            const linhas = logs.map(l => [l.hora, l.usuario || 'Sistema', l.texto.replace(/<[^>]*>?/gm, '').replace('🚨 ', '')]);
+
+            doc.autoTable({
+                startY: 34,
+                head: [['Horario', 'Usuario', 'Evento']],
+                body: linhas,
+                theme: 'grid',
+                headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+                styles: { fontSize: 9, cellPadding: 3 }
+            });
+
+            doc.save(`Relatorio_Rapido_${dataFormatada.replace(/\//g, '-')}.pdf`);
+            return `Pronto! Baixei o relatório de hoje (${dataFormatada}) com ${logs.length} eventos.`;
+        } catch (erro) {
+            console.error(erro);
+            return 'Não consegui gerar o PDF agora, tenta de novo.';
+        }
+    }
+
+    // ================================================================================
+    // INTÉRPRETE DE COMANDOS
+    // ================================================================================
+    function normalizarTextoComando(texto) {
+        return texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    }
+
+    // NOVO: converte números falados por extenso ("sessenta", "cento e
+    // cinquenta") em dígitos ("60", "150") — corrige o reconhecimento de
+    // voz não digitar o número quando o navegador transcreve por extenso
+    const NUMEROS_EXTENSO = {
+        'zero': 0, 'dois': 2, 'duas': 2, 'tres': 3, 'quatro': 4, 'cinco': 5,
+        'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10, 'onze': 11, 'doze': 12, 'treze': 13,
+        'catorze': 14, 'quatorze': 14, 'quinze': 15, 'dezesseis': 16, 'dezessete': 17, 'dezoito': 18,
+        'dezenove': 19, 'vinte': 20, 'trinta': 30, 'quarenta': 40, 'cinquenta': 50, 'sessenta': 60,
+        'setenta': 70, 'oitenta': 80, 'noventa': 90, 'cem': 100, 'cento': 100, 'duzentos': 200
+    };
+    const PALAVRAS_NUMERO = Object.keys(NUMEROS_EXTENSO).join('|');
+
+    function converterNumerosPorExtenso(texto) {
+        let t = texto;
+        const regexComposto = new RegExp(`\\b(${PALAVRAS_NUMERO})\\s+e\\s+(${PALAVRAS_NUMERO})\\b`, 'g');
+        t = t.replace(regexComposto, (m, a, b) => String(NUMEROS_EXTENSO[a] + NUMEROS_EXTENSO[b]));
+        const regexSimples = new RegExp(`\\b(${PALAVRAS_NUMERO})\\b`, 'g');
+        t = t.replace(regexSimples, (m) => String(NUMEROS_EXTENSO[m]));
+        return t;
+    }
+
+    const MAPA_TELAS = [
+        { padrao: /\b(dashboard|operacao|opera[cç]ao|inicio)\b/, url: '/dashboard', seletor: '#card-controle-esteira', nome: 'Operação' },
+        { padrao: /\b(producao|grafico)\b/, url: '/graficos', seletor: '#card-grafico-producao', nome: 'Produção' },
+        { padrao: /\brelatorio/, url: '/relatorios', seletor: '#area-pdf', nome: 'Relatórios' },
+        { padrao: /\b(visao|camera|produto)\b/, url: '/visao', seletor: null, nome: 'Visão Computacional' },
+        { padrao: /\b(configuracao|configuracoes)\b/, url: '/configuracoes', seletor: null, nome: 'Configurações' },
+        { padrao: /\blogs?\b/, url: '/logs', seletor: null, nome: 'Logs ao Vivo' }
+    ];
+
+    function interpretarComando(perguntaOriginal) {
+        let t = normalizarTextoComando(perguntaOriginal);
+        t = t.replace(/\bselagem (um|uma)\b/g, 'selagem 1')
+             .replace(/\bprimeira selagem\b/g, 'selagem 1')
+             .replace(/\bsegunda selagem\b/g, 'selagem 2');
+        t = converterNumerosPorExtenso(t);
+        t = t.replace(/\s*por\s*cento/g, '%');
+
+        if (/tema|modo/.test(t) && /escur/.test(t)) return { tipo: 'tema', modo: 'escuro' };
+        if (/tema|modo/.test(t) && /clar/.test(t)) return { tipo: 'tema', modo: 'claro' };
+        if (/\bmud(a|e|ar)\b/.test(t) && /\btema\b/.test(t)) return { tipo: 'tema', modo: null };
+
+        if (/(baixa|baixe|baixar|exporta|exportar|gera|gere|gerar)/.test(t) && /(relatorio|pdf)/.test(t)) return { tipo: 'pdf' };
+
+        if (/logs?/.test(t) && /(leia|\ble\b|mostra|mostre|ultimo|ultimos)/.test(t)) return { tipo: 'ler_logs' };
+
+        // Perguntas ("qual a temperatura?") vão para a IA responder com os dados ao vivo
+        const ehPergunta = /^(qual|quais|quanto|quanta|como|o que|por que|porque)\b/.test(t);
+
+        // Temperatura: tira o número da selagem antes de procurar o valor
+        if (!ehPergunta && /selagem|temperatura/.test(t)) {
+            const ehSelagem2 = /selagem\s*2\b/.test(t);
+            const semNumeroSelagem = t.replace(/selagem\s*[12]\b/g, 'selagem');
+            const m = semNumeroSelagem.match(/(\d{1,3})/);
+            if (m) return { tipo: 'temperatura', numero: ehSelagem2 ? 2 : 1, valor: Math.min(250, Math.max(0, parseInt(m[1], 10))) };
+        }
+
+        // Velocidade: o número tem prioridade ("para 60" não vira "parar")
+        if (!ehPergunta && /velocidade|esteira|potencia|motor/.test(t)) {
+            const m = t.match(/(\d{1,3})/);
+            if (m) return { tipo: 'velocidade', valor: Math.min(100, Math.max(0, parseInt(m[1], 10))) };
+            if (/\b(desliga|desligue|desligar|pare|parar|zera|zere|zerar)\b/.test(t) || /^para\b/.test(t)) return { tipo: 'velocidade', valor: 0 };
+            if (/\b(liga|ligue|ligar|inicia|inicie|iniciar)\b/.test(t)) return { tipo: 'velocidade', valor: 50 };
+        }
+
+        const verboNavegar = /(leva|leve|\bva\b|\bvai\b|mostra|mostre|abre|abra|ir para|ir pra|quero ver)/.test(t);
+        if (verboNavegar) {
+            for (const tela of MAPA_TELAS) {
+                if (tela.padrao.test(t)) return { tipo: 'navegar', url: tela.url, seletor: tela.seletor, nome: tela.nome };
+            }
+        }
+
+        return null;
+    }
+
+    async function executarComandoTexto(comando, perguntaOriginal) {
+        if (comando.tipo === 'velocidade') {
+            globalSocket.emit('comando_esteira', { acao: 'velocidade', valor: comando.valor / 100 });
+            globalSocket.emit('novo_log', { hora: new Date().toLocaleTimeString('pt-BR'), texto: `Velocidade da esteira alterada pela IA para ${comando.valor}%`, tipo: 'velocidade' });
+            const resp = `Pronto! Ajustei a velocidade da esteira para ${comando.valor}%.`;
+            areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), perguntaOriginal, resp));
+            rolarParaBaixo();
+            return;
+        }
+        if (comando.tipo === 'temperatura') {
+            const evento = comando.numero === 2 ? 'comando_selagem2' : 'comando_selagem';
+            globalSocket.emit(evento, { acao: 'setpoint', valor: comando.valor });
+            globalSocket.emit('novo_log', { hora: new Date().toLocaleTimeString('pt-BR'), texto: `Temperatura alvo da Selagem ${comando.numero} ajustada pela IA para ${comando.valor}°C`, tipo: 'temperatura' });
+            const resp = `Certo! Ajustei a temperatura da Selagem ${comando.numero} para ${comando.valor} graus.`;
+            areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), perguntaOriginal, resp));
+            rolarParaBaixo();
+            return;
+        }
+        if (comando.tipo === 'tema') {
+            const novoTema = window.iaAlternarTema(comando.modo);
+            atualizarChipsDeTema();
+            const resp = `Pronto, mudei pro tema ${novoTema === 'escuro' ? 'escuro' : 'claro'}.`;
+            areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), perguntaOriginal, resp));
+            rolarParaBaixo();
+            return;
+        }
+        if (comando.tipo === 'pdf') {
+            const bolha = criarBolhaDigitando();
+            const resp = await baixarRelatorioRapido();
+            areaMensagens.removeChild(bolha);
+            areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), perguntaOriginal, resp));
+            rolarParaBaixo();
+            return;
+        }
+        if (comando.tipo === 'ler_logs') {
+            try {
+                const hoje = new Date();
+                const dataISO = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+                const resposta = await fetch('/api/logs/' + dataISO);
+                const lista = await resposta.json();
+                const ultimos = lista.slice(-4).reverse();
+                const resp = ultimos.length === 0 ? 'Ainda não tem nenhum evento registrado hoje.' : 'Esses foram os últimos eventos: ' + ultimos.map(l => l.texto).join('. ');
+                areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), perguntaOriginal, resp));
+                rolarParaBaixo();
+                setTimeout(() => { window.iaExecutarComandoComNavegacao('/logs', null, limparTextoParaFala(resp), 6000, null, false); }, 300);
+            } catch (erro) {
+                areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), perguntaOriginal, 'Não consegui buscar os logs agora.'));
+                rolarParaBaixo();
+            }
+            return;
+        }
+        if (comando.tipo === 'navegar') {
+            const resp = `Te levando pra tela de ${comando.nome}.`;
+            areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), perguntaOriginal, resp));
+            rolarParaBaixo();
+            setTimeout(() => { window.iaExecutarComandoComNavegacao(comando.url, comando.seletor, limparTextoParaFala(resp), 5000, null, false); }, 300);
+            return;
+        }
+    }
+
+    // ================================================================================
+    // MODO VOZ
+    // ================================================================================
+    const btnModoVoz = document.getElementById('btn-modo-voz');
+    const btnFecharModoVoz = document.getElementById('btn-fechar-modo-voz');
+    const areaModoVoz = document.getElementById('area-modo-voz');
+    const vozStatusTexto = document.getElementById('voz-status-texto');
+    const vozLegendaContainer = document.getElementById('voz-legenda-container');
+    const canvasRosto = document.getElementById('canvas-rosto');
+    const ctxRosto = canvasRosto ? canvasRosto.getContext('2d') : null;
+    const textoStatusHeader = document.getElementById('texto-status-header');
+    const pontoStatusHeader = document.getElementById('ponto-status-header');
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let modoVozAtivo = false;
+    let estadoVoz = 'idle';
+    let reconhecimentoVoz = null;
+    let quadroAnimacaoRosto = null;
+    let linhaLegendaAtual = null;
+
+    let overlayDadoTexto = null;
+    let overlayDadoAte = 0;
+    let reacaoAtual = null;
+    let reacaoAte = 0;
+
+    const GRADE = 16;
+    const COR_CASCO = '#0f2942';
+    const COR_CASCO_BORDA = '#38bdf8';
+    const COR_VISOR_FUNDO = '#040b14';
+    const COR_OLHO_IDLE = '#38bdf8';
+    const COR_OLHO_OUVINDO = '#f87171';
+    const COR_OLHO_PENSANDO = '#fbbf24';
+    const COR_OLHO_FALANDO = '#7dd3fc';
+
+    let alturaOlho = 3;
+    let piscando = false;
+    let piscarProximoEm = 0;
+    let quadroBoca = 0;
+
+    function bloco(coluna, linha, largura, altura, cor) {
+        ctxRosto.fillStyle = cor;
+        ctxRosto.fillRect(coluna * GRADE, linha * GRADE, largura * GRADE, altura * GRADE);
+    }
+
+    function corOlhoAtual() {
+        if (estadoVoz === 'ouvindo') return COR_OLHO_OUVINDO;
+        if (estadoVoz === 'pensando') return COR_OLHO_PENSANDO;
+        if (estadoVoz === 'falando') return COR_OLHO_FALANDO;
+        return COR_OLHO_IDLE;
+    }
+
+    // ================================================================================
+    // SPRITES EM PIXEL ART: cada ícone é uma grade de texto. '.' é
+    // transparente e cada letra é uma cor da paleta. Para criar um novo,
+    // é só adicionar uma grade aqui e uma palavra-chave em PALAVRAS_ICONES.
+    // ================================================================================
+    const SPRITES = {
+        joinha: {
+            paleta: { d: '#14532d', o: '#4ade80', l: '#bbf7d0' },
+            grade: [
+                "........dd......",
+                ".......dood.....",
+                ".......dood.....",
+                "......doood.....",
+                ".....doood......",
+                "dddd.dooodddddd.",
+                "dlld.doooooooood",
+                "dlldooooodddddd.",
+                "dlldoooooooooood",
+                "dlldooooodddddd.",
+                "dlldoooooooooood",
+                "dlldooooodddddd.",
+                "dlldoooooooooood",
+                "dddd.dddddddddd."
+            ]
+        },
+        alerta: {
+            paleta: { o: '#f87171', w: '#1f0707' },
+            grade: [
+                "......o......",
+                ".....ooo.....",
+                ".....ooo.....",
+                "....oowoo....",
+                "....oowoo....",
+                "...ooowooo...",
+                "...ooowooo...",
+                "..oooowoooo..",
+                "..ooooooooo..",
+                ".ooooowooooo.",
+                "ooooooooooooo"
+            ]
+        },
+        grafico: {
+            paleta: { d: '#94a3b8', l: '#38bdf8' },
+            grade: [
+                "d.......ll..",
+                "d.......ll..",
+                "d....ll.ll..",
+                "d....ll.ll..",
+                "d.ll.ll.ll..",
+                "d.ll.ll.ll..",
+                "d.ll.ll.ll..",
+                "dddddddddddd"
+            ]
+        },
+        termometro: {
+            paleta: { d: '#cbd5e1', w: '#0f172a', r: '#f87171' },
+            grade: [
+                "..ddd..",
+                ".dwwwd.",
+                ".dwwwd.",
+                ".dwrwd.",
+                ".dwrwd.",
+                ".dwrwd.",
+                ".dwrwd.",
+                ".dwrwd.",
+                "ddrrrdd",
+                "drrrrrd",
+                "drrrrrd",
+                "ddrrrdd",
+                ".ddddd."
+            ]
+        },
+        engrenagem: {
+            paleta: { o: '#38bdf8' },
+            grade: [
+                "....ooo....",
+                ".o..ooo..o.",
+                "..ooooooo..",
+                ".ooo...ooo.",
+                "ooo.....ooo",
+                "ooo.....ooo",
+                "ooo.....ooo",
+                ".ooo...ooo.",
+                "..ooooooo..",
+                ".o..ooo..o.",
+                "....ooo...."
+            ]
+        }
+    };
+
+    const PALAVRAS_ICONES = [
+        { regex: /gr[aá]fico|produ[cç][aã]o|relat[oó]rio/gi, icone: 'grafico' },
+        { regex: /temperatura|selagem|aquec/gi, icone: 'termometro' },
+        { regex: /velocidade|esteira|motor/gi, icone: 'engrenagem' },
+        { regex: /\berro|problema|desculp|n[aã]o consegui|falha|cr[ií]tic/gi, icone: 'alerta' },
+        { regex: /^(oi|ol[aá]|e a[ií])|\bpronto\b|\bclaro\b|\bcerto\b|[oó]tim[oa]|\bperfeito\b|\bfeito\b/gi, icone: 'joinha' }
+    ];
+
+    let iconeAtual = null;
+    let iconeAte = 0;
+
+    function desenharSprite(nome) {
+        const s = SPRITES[nome];
+        if (!s) return;
+        const linhas = s.grade.length;
+        const colunas = s.grade[0].length;
+        const tam = Math.floor(Math.min(176 / colunas, 100 / linhas));
+        const x0 = Math.round(160 - (colunas * tam) / 2);
+        const y0 = Math.round(144 - (linhas * tam) / 2);
+        ctxRosto.shadowBlur = 8;
+        for (let y = 0; y < linhas; y++) {
+            for (let x = 0; x < colunas; x++) {
+                const ch = s.grade[y][x];
+                if (ch === '.') continue;
+                const cor = s.paleta[ch];
+                ctxRosto.shadowColor = cor;
+                ctxRosto.fillStyle = cor;
+                ctxRosto.fillRect(x0 + x * tam, y0 + y * tam, tam, tam);
+            }
+        }
+        ctxRosto.shadowBlur = 0;
+    }
+
+    // Monta a lista de "gatilhos": em qual posição do texto cada ícone ou
+    // número deve aparecer. Eles só disparam quando a fala chega ali.
+    function prepararGatilhosVisuais(texto) {
+        const gatilhos = [];
+        for (const m of texto.matchAll(/(\d{1,3})\s*%/g)) {
+            gatilhos.push({ indice: m.index, tipo: 'dado', valor: m[1] + '%' });
+        }
+        for (const m of texto.matchAll(/(\d{1,3}(?:[.,]\d)?)\s*(?:°\s*C|graus)/gi)) {
+            gatilhos.push({ indice: m.index, tipo: 'dado', valor: m[1].replace(',', '.') + '°C' });
+        }
+        const indicesDados = gatilhos.map(g => g.indice);
+        PALAVRAS_ICONES.forEach(item => {
+            for (const m of texto.matchAll(item.regex)) {
+                if (indicesDados.some(i => Math.abs(i - m.index) < 25)) continue;
+                gatilhos.push({ indice: m.index, tipo: 'icone', valor: item.icone });
+            }
+        });
+        gatilhos.sort((a, b) => a.indice - b.indice);
+        return gatilhos.filter((g, i, arr) => i === 0 || !(g.tipo === arr[i - 1].tipo && g.valor === arr[i - 1].valor));
+    }
+
+    function ativarGatilho(g) {
+        if (g.tipo === 'icone') {
+            iconeAtual = g.valor;
+            iconeAte = Date.now() + 1800;
+            overlayDadoTexto = null;
+        } else {
+            overlayDadoTexto = g.valor;
+            overlayDadoAte = Date.now() + 3000;
+            iconeAtual = null;
+        }
+    }
+
+    // Mantido só para não quebrar chamadas antigas: agora quem cuida dos
+    // visuais é a própria fala, sincronizada palavra por palavra
+    function analisarRespostaParaVisor() {}
+
+    function desenharRosto() {
+        if (!ctxRosto) return;
+        ctxRosto.clearRect(0, 0, canvasRosto.width, canvasRosto.height);
+
+        const antenaPisca = Math.floor(Date.now() / 500) % 2 === 0;
+        bloco(9.5, 0, 1, 2, COR_CASCO_BORDA);
+        bloco(9, 0, 2, 1, antenaPisca ? corOlhoAtual() : COR_CASCO_BORDA);
+
+        bloco(3, 2, 14, 1, COR_CASCO_BORDA);
+        bloco(2, 3, 1, 1, COR_CASCO_BORDA);
+        bloco(17, 3, 1, 1, COR_CASCO_BORDA);
+        bloco(2, 4, 16, 10, COR_CASCO);
+        bloco(2, 14, 1, 1, COR_CASCO_BORDA);
+        bloco(17, 14, 1, 1, COR_CASCO_BORDA);
+        bloco(3, 15, 14, 1, COR_CASCO_BORDA);
+
+        bloco(0, 6, 1.5, 4, COR_CASCO_BORDA);
+        bloco(0.3, 7, 0.9, 2, COR_VISOR_FUNDO);
+        bloco(18.5, 6, 1.5, 4, COR_CASCO_BORDA);
+        bloco(18.8, 7, 0.9, 2, COR_VISOR_FUNDO);
+
+        bloco(3.5, 5, 13, 8, COR_CASCO_BORDA);
+        bloco(4, 5.5, 12, 7, COR_VISOR_FUNDO);
+
+        if (iconeAtual && Date.now() < iconeAte) { desenharSprite(iconeAtual); return; }
+        if (iconeAtual) iconeAtual = null;
+
+        if (overlayDadoTexto && Date.now() < overlayDadoAte) {
+            ctxRosto.shadowColor = corOlhoAtual();
+            ctxRosto.shadowBlur = 10;
+            ctxRosto.fillStyle = corOlhoAtual();
+            ctxRosto.font = "900 46px 'Courier New', monospace";
+            ctxRosto.textAlign = "center";
+            ctxRosto.textBaseline = "middle";
+            ctxRosto.fillText(overlayDadoTexto, canvasRosto.width / 2, 145);
+            ctxRosto.shadowBlur = 0;
+            ctxRosto.textAlign = "left";
+            return;
+        }
+        if (overlayDadoTexto) overlayDadoTexto = null;
+
+        const corOlho = corOlhoAtual();
+        ctxRosto.shadowColor = corOlho;
+        ctxRosto.shadowBlur = 9;
+
+        desenharOlho(7, corOlho);
+        desenharOlho(12.5, corOlho);
+
+        const yBoca = 10.5;
+        if (estadoVoz === 'falando') {
+            const quadros = [
+                { largura: 3, altura: 0.6 },
+                { largura: 2.4, altura: 1.4 },
+                { largura: 3.6, altura: 2 },
+                { largura: 2.4, altura: 1.4 }
+            ];
+            const q = quadros[quadroBoca % quadros.length];
+            bloco(10 - q.largura / 2, yBoca, q.largura, q.altura, corOlho);
+        } else if (estadoVoz === 'pensando') {
+            const ativo = Math.floor(Date.now() / 300) % 3;
+            for (let i = 0; i < 3; i++) { if (i <= ativo) bloco(9 + i * 1.2, yBoca + 0.3, 0.8, 0.8, corOlho); }
+        } else {
+            bloco(7.5, yBoca, 1, 0.6, corOlho);
+            bloco(8.5, yBoca + 0.6, 3, 0.6, corOlho);
+            bloco(11.5, yBoca, 1, 0.6, corOlho);
+        }
+
+        ctxRosto.shadowBlur = 0;
+    }
+
+    function desenharOlho(colunaBase, cor) {
+        if (alturaOlho <= 0.6) {
+            bloco(colunaBase + 0.6, 8.2, 0.6, 0.5, cor);
+            bloco(colunaBase, 8.7, 0.6, 0.5, cor);
+            bloco(colunaBase + 1.2, 8.7, 0.6, 0.5, cor);
+        } else {
+            bloco(colunaBase, 8 + (2.4 - alturaOlho) / 2, 1.8, alturaOlho, cor);
+        }
+    }
+
+    function loopAnimacaoRosto(agora) {
+        if (agora > piscarProximoEm && estadoVoz !== 'falando' && !overlayDadoTexto) {
+            piscando = true;
+            piscarProximoEm = agora + 2500 + Math.random() * 3000;
+        }
+        if (piscando === true) {
+            alturaOlho -= 0.5;
+            if (alturaOlho <= 0) { alturaOlho = 0; piscando = 'subindo'; }
+        } else if (piscando === 'subindo') {
+            alturaOlho += 0.5;
+            if (alturaOlho >= (estadoVoz === 'idle' ? 0 : 2.4)) { alturaOlho = (estadoVoz === 'idle' ? 0 : 2.4); piscando = false; }
+        } else if (estadoVoz !== 'idle') {
+            alturaOlho = 2.4;
+        } else if (!piscando) {
+            alturaOlho = 0;
+        }
+
+        if (estadoVoz === 'falando' && agora % 150 < 20) quadroBoca++;
+
+        desenharRosto();
+        quadroAnimacaoRosto = requestAnimationFrame(loopAnimacaoRosto);
+    }
+
+    function definirEstadoVoz(novoEstado) {
+        estadoVoz = novoEstado;
+        if (novoEstado === 'idle') {
+            vozStatusTexto.innerText = 'Toque no microfone pra falar';
+            btnModoVoz.classList.remove('bg-red-100', 'text-red-600');
+            textoStatusHeader.innerText = 'Assistente Técnico Local';
+            pontoStatusHeader.className = 'w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-pulse shrink-0';
+        } else if (novoEstado === 'ouvindo') {
+            vozStatusTexto.innerText = 'Ouvindo...';
+            btnModoVoz.classList.add('bg-red-100', 'text-red-600');
+            textoStatusHeader.innerText = 'Ouvindo...';
+            pontoStatusHeader.className = 'w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 animate-pulse shrink-0';
+        } else if (novoEstado === 'pensando') {
+            vozStatusTexto.innerText = 'Pensando...';
+            btnModoVoz.classList.remove('bg-red-100', 'text-red-600');
+            textoStatusHeader.innerText = 'Pensando...';
+            pontoStatusHeader.className = 'w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 animate-pulse shrink-0';
+        } else if (novoEstado === 'falando') {
+            vozStatusTexto.innerText = 'Falando...';
+            textoStatusHeader.innerText = 'Falando...';
+            pontoStatusHeader.className = 'w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 animate-pulse shrink-0';
+        }
+    }
+
+    function adicionarLinhaLegenda(quem) {
+        vozLegendaContainer.innerHTML = '';
+        const p = document.createElement('p');
+        p.className = "text-center text-sm font-mono leading-relaxed";
+        p.innerHTML = `<span class="font-black ${quem === 'usuario' ? 'text-sky-200' : 'text-sky-400'}">${quem === 'usuario' ? nomeUsuario : 'DarkIA'}:</span> <span class="texto-legenda text-sky-300"></span>`;
+        vozLegendaContainer.appendChild(p);
+        linhaLegendaAtual = p.querySelector('.texto-legenda');
+        return linhaLegendaAtual;
+    }
+
+    function ativarModoVoz(tentativaAutomatica) {
+        if (!window.isSecureContext) {
+            if (!tentativaAutomatica) alert('O microfone só funciona em conexão segura (HTTPS). Acesse o site pelo link do Tailscale.');
+            return false;
+        }
+        if (!SpeechRecognitionAPI) {
+            if (!tentativaAutomatica) alert('Seu navegador não tem suporte a reconhecimento de voz. Use o Google Chrome ou o Microsoft Edge.');
+            return false;
+        }
+
+        modoVozAtivo = true;
+        areaMensagens.classList.add('hidden');
+        areaModoVoz.classList.remove('hidden');
+        areaModoVoz.classList.add('flex');
+        vozLegendaContainer.innerHTML = '';
+        linhaLegendaAtual = null;
+        definirEstadoVoz('idle');
+
+        if (!quadroAnimacaoRosto) quadroAnimacaoRosto = requestAnimationFrame(loopAnimacaoRosto);
+        if (!reconhecimentoVoz) configurarReconhecimentoVoz();
+
+        const conseguiu = iniciarEscutaVoz();
+        if (!conseguiu && tentativaAutomatica) {
+            vozStatusTexto.innerText = 'Toque no microfone pra habilitar (seu navegador exige um toque)';
+        }
+        return true;
+    }
+
+    function desativarModoVoz() {
+        modoVozAtivo = false;
+        areaModoVoz.classList.add('hidden');
+        areaModoVoz.classList.remove('flex');
+        areaMensagens.classList.remove('hidden');
+
+        if (quadroAnimacaoRosto) { cancelAnimationFrame(quadroAnimacaoRosto); quadroAnimacaoRosto = null; }
+        if (reconhecimentoVoz) { try { reconhecimentoVoz.stop(); } catch (e) {} }
+        window.speechSynthesis.cancel();
+        definirEstadoVoz('idle');
+    }
+
+    btnModoVoz.addEventListener('click', () => {
+        if (modoVozAtivo) desativarModoVoz();
+        else ativarModoVoz(false);
+    });
+
+    btnFecharModoVoz.addEventListener('click', () => {
+        desativarModoVoz();
+    });
+
+    function configurarReconhecimentoVoz() {
+        reconhecimentoVoz = new SpeechRecognitionAPI();
+        reconhecimentoVoz.lang = 'pt-BR';
+        reconhecimentoVoz.continuous = false;
+        reconhecimentoVoz.interimResults = true;
+
+        reconhecimentoVoz.onresult = (evento) => {
+            let textoIntermediario = '';
+            let textoFinal = '';
+
+            for (let i = evento.resultIndex; i < evento.results.length; i++) {
+                const transcricao = evento.results[i][0].transcript;
+                if (evento.results[i].isFinal) textoFinal += transcricao;
+                else textoIntermediario += transcricao;
+            }
+
+            if (!linhaLegendaAtual) adicionarLinhaLegenda('usuario');
+            linhaLegendaAtual.innerText = textoFinal || textoIntermediario || '...';
+
+            if (textoFinal.trim()) {
+                const perguntaFinal = textoFinal.trim();
+                linhaLegendaAtual = null;
+                processarPerguntaVoz(perguntaFinal);
+            }
+        };
+
+        reconhecimentoVoz.onerror = (evento) => {
+            console.warn('Erro no reconhecimento de voz:', evento.error);
+            if (evento.error === 'not-allowed') {
+                adicionarLinhaLegenda('ia').innerText = 'Permissão de microfone negada. Libere o acesso nas configurações do navegador.';
+            }
+            definirEstadoVoz('idle');
+        };
+
+        reconhecimentoVoz.onend = () => {
+            if (estadoVoz === 'ouvindo') definirEstadoVoz('idle');
+        };
+    }
+
+    function iniciarEscutaVoz() {
+        window.speechSynthesis.cancel();
+        try {
+            reconhecimentoVoz.start();
+            definirEstadoVoz('ouvindo');
+            return true;
+        } catch (erro) {
+            console.warn('Não foi possível iniciar o microfone:', erro.message);
+            return false;
+        }
+    }
+
+    async function processarPerguntaVoz(pergunta) {
+        const comando = interpretarComando(pergunta);
+        if (comando) {
+            definirEstadoVoz('pensando');
+
+            if (comando.tipo === 'velocidade' || comando.tipo === 'temperatura' || comando.tipo === 'tema' || comando.tipo === 'pdf') {
+                let respostaComando;
+                if (comando.tipo === 'velocidade') {
+                    globalSocket.emit('comando_esteira', { acao: 'velocidade', valor: comando.valor / 100 });
+                    globalSocket.emit('novo_log', { hora: new Date().toLocaleTimeString('pt-BR'), texto: `Velocidade da esteira alterada pela IA para ${comando.valor}%`, tipo: 'velocidade' });
+                    respostaComando = `Pronto! Ajustei a velocidade da esteira para ${comando.valor}%.`;
+                } else if (comando.tipo === 'temperatura') {
+                    const evento = comando.numero === 2 ? 'comando_selagem2' : 'comando_selagem';
+                    globalSocket.emit(evento, { acao: 'setpoint', valor: comando.valor });
+                    globalSocket.emit('novo_log', { hora: new Date().toLocaleTimeString('pt-BR'), texto: `Temperatura alvo da Selagem ${comando.numero} ajustada pela IA para ${comando.valor}°C`, tipo: 'temperatura' });
+                    respostaComando = `Certo! Ajustei a temperatura da Selagem ${comando.numero} para ${comando.valor} graus.`;
+                } else if (comando.tipo === 'tema') {
+                    const novoTema = window.iaAlternarTema(comando.modo);
+                    atualizarChipsDeTema();
+                    respostaComando = `Pronto, mudei pro tema ${novoTema === 'escuro' ? 'escuro' : 'claro'}.`;
+                } else {
+                    respostaComando = await baixarRelatorioRapido();
+                }
+
+                if (!modoVozAtivo) return;
+
+                const par = criarParMensagem('cmd-' + Date.now(), pergunta, respostaComando);
+                areaMensagens.appendChild(par);
+                analisarRespostaParaVisor(respostaComando, pergunta);
+                falarRespostaVoz(respostaComando);
+                return;
+            }
+
+            let textoParaFalar = '';
+            if (comando.tipo === 'ler_logs') {
+                try {
+                    const hoje = new Date();
+                    const dataISO = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+                    const resposta = await fetch('/api/logs/' + dataISO);
+                    const lista = await resposta.json();
+                    const ultimos = lista.slice(-4).reverse();
+                    textoParaFalar = ultimos.length === 0 ? 'Ainda não tem nenhum evento registrado hoje.' : 'Esses foram os últimos eventos: ' + ultimos.map(l => l.texto).join('. ');
+                } catch (erro) {
+                    textoParaFalar = 'Não consegui buscar os logs agora.';
+                }
+                if (!modoVozAtivo) return;
+                window.iaExecutarComandoComNavegacao('/logs', null, textoParaFalar, 6500, null, true);
+                return;
+            }
+            if (comando.tipo === 'navegar') {
+                textoParaFalar = `Te levando pra tela de ${comando.nome}.`;
+                window.iaExecutarComandoComNavegacao(comando.url, comando.seletor, textoParaFalar, 5000, null, true);
+                return;
+            }
+        }
+
+        definirEstadoVoz('pensando');
+
+        try {
+            const resposta = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pergunta })
+            });
+            const dados = await resposta.json();
+            const respostaFinal = dados.resposta || 'Desculpe, não consegui pensar em uma resposta agora.';
+
+            if (!modoVozAtivo) return;
+
+            if (dados.parId) {
+                const par = criarParMensagem(dados.parId, pergunta, respostaFinal);
+                areaMensagens.appendChild(par);
+                rolarParaBaixo();
+            }
+
+            analisarRespostaParaVisor(respostaFinal, pergunta);
+            falarRespostaVoz(respostaFinal);
+        } catch (erro) {
+            console.error('Erro ao consultar a IA:', erro);
+            if (!modoVozAtivo) return;
+            falarRespostaVoz('Tive um problema para me conectar. Pode tentar de novo?');
+        }
+    }
+
+    function falarRespostaVoz(texto) {
+        if (!modoVozAtivo) return;
+
+        definirEstadoVoz('falando');
+
+        const textoLimpo = limparTextoParaFala(texto);
+        const linhaIa = adicionarLinhaLegenda('ia');
+        const palavras = textoLimpo.split(' ');
+        linhaIa.innerHTML = palavras.map(p => `<span>${p}</span>`).join(' ');
+        const spansPalavras = linhaIa.querySelectorAll('span');
+
+        const inicioPalavras = [];
+        let posicao = 0;
+        palavras.forEach(p => { inicioPalavras.push(posicao); posicao += p.length + 1; });
+
+        const gatilhos = prepararGatilhosVisuais(textoLimpo);
+        let proximoGatilho = 0;
+        let recebeuBoundary = false;
+        let intervaloEstimativa = null;
+        let inicioFala = 0;
+
+        // Velocidade média da voz em pt-BR; usada quando o navegador não
+        // informa a palavra atual (voz do Google no Chrome). Ajuste se o
+        // ícone aparecer adiantado (diminua) ou atrasado (aumente).
+        const CARACTERES_POR_SEGUNDO = 14;
+
+        function avancarAte(indiceCaractere) {
+            let indicePalavra = 0;
+            for (let i = 0; i < inicioPalavras.length; i++) {
+                if (inicioPalavras[i] <= indiceCaractere) indicePalavra = i;
+                else break;
+            }
+            spansPalavras.forEach((span, i) => {
+                span.style.color = i === indicePalavra ? '#e0f2fe' : '#7dd3fc';
+                span.style.fontWeight = i === indicePalavra ? '900' : '400';
+            });
+            while (proximoGatilho < gatilhos.length && gatilhos[proximoGatilho].indice <= indiceCaractere) {
+                ativarGatilho(gatilhos[proximoGatilho]);
+                proximoGatilho++;
+            }
+        }
+
+        window.speechSynthesis.cancel();
+        const fala = new SpeechSynthesisUtterance(textoLimpo);
+        fala.lang = 'pt-BR';
+        fala.rate = 1;
+        fala.pitch = 1;
+
+        fala.onstart = () => {
+            inicioFala = Date.now();
+            avancarAte(0);
+            intervaloEstimativa = setInterval(() => {
+                if (recebeuBoundary) return;
+                const decorrido = (Date.now() - inicioFala) / 1000;
+                avancarAte(Math.floor(decorrido * CARACTERES_POR_SEGUNDO));
+            }, 100);
+        };
+
+        fala.onboundary = (evento) => {
+            if (evento.name !== 'word') return;
+            recebeuBoundary = true;
+            avancarAte(evento.charIndex);
+        };
+
+        function aoTerminarFala() {
+            clearInterval(intervaloEstimativa);
+            definirEstadoVoz('idle');
+            linhaLegendaAtual = null;
+            const espera = Math.min(2500, Math.max(400, iconeAte - Date.now()));
+            if (modoVozAtivo) setTimeout(() => { if (modoVozAtivo) iniciarEscutaVoz(); }, espera);
+        }
+        fala.onend = aoTerminarFala;
+        fala.onerror = () => clearInterval(intervaloEstimativa);
+
+        window.speechSynthesis.speak(fala);
+    }
+
+    if (window.__acessibilidadeAtivaInicial === true) {
+        setTimeout(() => ativarModoVoz(true), 400);
+    } else if (sessionStorage.getItem('ia_retomar_voz_no_chat') === '1') {
+        sessionStorage.removeItem('ia_retomar_voz_no_chat');
+        setTimeout(() => ativarModoVoz(true), 400);
+    }
+
+    window.__cleanupPagina = function() {
+        document.removeEventListener('click', handlerFecharMenuChat);
+        btnIniciarTutorial.removeEventListener('click', handlerIniciarTutorial);
+        globalSocket.off('atualizar_velocidade', handlerDadosVelocidade);
+        globalSocket.off('atualizar_temperatura', handlerDadosTemp1);
+        globalSocket.off('atualizar_temperatura2', handlerDadosTemp2);
+        if (quadroAnimacaoRosto) cancelAnimationFrame(quadroAnimacaoRosto);
+        if (reconhecimentoVoz) { try { reconhecimentoVoz.stop(); } catch (e) {} }
+        window.speechSynthesis.cancel();
+    };
+})();
+</script>
+{% endblock %}

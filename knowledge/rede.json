@@ -1,0 +1,81 @@
+[
+  {
+    "id": 501,
+    "pergunta": "Como acesso o painel de controle pelo celular?",
+    "perguntas_alternativas": [
+      "como entro no site pelo celular",
+      "consigo acessar o painel de fora do notebook",
+      "como conecto pelo smartphone"
+    ],
+    "resposta": "1. Conecte seu celular na rede Wi-Fi 'DarkCoders' (a mesma que o ESP32 usa). 2. Abra o navegador. 3. Digite http://192.168.4.1:5000 na barra de endereços."
+  },
+  {
+    "id": 502,
+    "pergunta": "Qual é a senha do Wi-Fi da máquina?",
+    "perguntas_alternativas": [
+      "qual o nome da rede wifi",
+      "como conecto na rede da esteira",
+      "qual a senha pra conectar no wifi do sistema"
+    ],
+    "resposta": "A rede Wi-Fi criada pelo Raspberry Pi se chama 'DarkCoders'. A senha configurada é definida no próprio Raspberry Pi (Access Point) — consulte a equipe responsável pela configuração de rede caso precise dela."
+  },
+  {
+    "id": 503,
+    "pergunta": "Precisa de internet para o sistema funcionar?",
+    "perguntas_alternativas": [
+      "funciona sem conexão externa?",
+      "se cair a internet da fábrica, o sistema para?",
+      "o sistema depende de provedor de internet?"
+    ],
+    "resposta": "Não. O sistema foi projetado para operar 100% offline. O Raspberry Pi gera sua própria rede Wi-Fi local e hospeda o site internamente, sem depender de nenhuma conexão externa com a internet."
+  },
+  {
+    "id": 504,
+    "pergunta": "O ESP32 precisa de internet?",
+    "perguntas_alternativas": [
+      "o microcontrolador acessa a internet?",
+      "o esp32 depende de servidor externo?"
+    ],
+    "resposta": "Não. O ESP32 se conecta apenas à rede Wi-Fi local 'DarkCoders' e se comunica com o broker MQTT no endereço 192.168.4.1, que é o próprio Raspberry Pi. Nenhum dado sai dessa rede local."
+  },
+  {
+    "id": 505,
+    "pergunta": "Por que o site não abre no meu notebook?",
+    "perguntas_alternativas": [
+      "não consigo acessar o painel, o que fazer",
+      "o site não carrega, qual o problema",
+      "deu erro de conexão ao tentar acessar o site"
+    ],
+    "resposta": "O motivo mais comum é estar conectado em outra rede Wi-Fi (de casa, da faculdade, dados móveis). Verifique se seu dispositivo está conectado especificamente na rede 'DarkCoders', gerada pelo Raspberry Pi, e depois acesse http://192.168.4.1:5000."
+  },
+  {
+    "id": 506,
+    "pergunta": "Quantos dispositivos podem acessar o painel ao mesmo tempo?",
+    "perguntas_alternativas": [
+      "várias pessoas podem controlar ao mesmo tempo",
+      "dá pra abrir o site em mais de um celular",
+      "tem limite de acessos simultâneos"
+    ],
+    "resposta": "Sim, múltiplos dispositivos podem se conectar simultaneamente à mesma rede e acessar o painel ao mesmo tempo. Todos veem as mesmas informações em tempo real (velocidade, status, logs), já que tudo é sincronizado pelo servidor central no Raspberry Pi."
+  },
+  {
+    "id": 507,
+    "pergunta": "O que é o indicador 'RASPBERRY ONLINE' no topo do site?",
+    "perguntas_alternativas": [
+      "o que significa aquele texto verde no canto",
+      "pra que serve o indicador de status no cabeçalho",
+      "o que é aquela bolinha verde no topo"
+    ],
+    "resposta": "Esse indicador mostra se o seu navegador está conectado ao servidor do Raspberry Pi via Socket.IO. Quando está verde ('ONLINE'), significa que a comunicação em tempo real está funcionando; se ficar vermelho ('OFFLINE'), o navegador perdeu a conexão com o servidor (geralmente por sair da rede Wi-Fi correta, ou o servidor ter parado)."
+  },
+  {
+    "id": 508,
+    "pergunta": "O que é o LED 'ESTEIRA' que fica na tela de Operação?",
+    "perguntas_alternativas": [
+      "o que significa a luz verde da esteira",
+      "pra que serve aquele indicador na tela de operação",
+      "o led esteira mostra o quê"
+    ],
+    "resposta": "Esse LED indica se o ESP32 está conectado à rede e ao broker MQTT do Raspberry Pi — ou seja, é um indicador de conexão de rede do hardware, e não de se o motor está girando ou parado. Ele acende verde assim que o ESP32 se conecta, independente da velocidade configurada."
+  }
+]

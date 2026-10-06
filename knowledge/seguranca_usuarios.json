@@ -1,0 +1,82 @@
+[
+  {
+    "id": 701,
+    "pergunta": "Como faço login no sistema?",
+    "perguntas_alternativas": [
+      "como eu entro no painel",
+      "qual usuário e senha eu uso",
+      "como acesso minha conta"
+    ],
+    "resposta": "Na tela inicial, digite seu usuário e senha cadastrados e clique em 'LOGAR'. Se você marcar a opção 'Lembrar de mim', o sistema mantém você conectado nas próximas vezes, sem precisar digitar a senha de novo naquele dispositivo."
+  },
+  {
+    "id": 702,
+    "pergunta": "Esqueci minha senha, o que eu faço?",
+    "perguntas_alternativas": [
+      "perdi minha senha, como recupero",
+      "não lembro minha senha",
+      "posso recuperar minha senha sozinho?"
+    ],
+    "resposta": "Usuários comuns não conseguem redefinir a própria senha sozinhos por segurança. Procure um administrador do sistema (que tem acesso à aba 'Usuários') para que ele redefina sua senha por você."
+  },
+  {
+    "id": 703,
+    "pergunta": "Como um administrador adiciona um novo usuário?",
+    "perguntas_alternativas": [
+      "como cadastro uma nova pessoa no sistema",
+      "como crio um login pra outra pessoa",
+      "como adiciono acesso pra alguém"
+    ],
+    "resposta": "Na aba 'Usuários' (visível só para administradores), preencha o nome de usuário e a senha no formulário 'Adicionar Novo Login', marque a caixa 'administrador' se essa pessoa também deve gerenciar outros usuários, e clique em 'Adicionar Usuário'."
+  },
+  {
+    "id": 704,
+    "pergunta": "Qual a diferença entre administrador e operador?",
+    "perguntas_alternativas": [
+      "o que muda entre os tipos de usuário",
+      "todo usuário pode fazer tudo?",
+      "existe hierarquia de acesso"
+    ],
+    "resposta": "Administradores têm acesso a tudo que operadores têm (controle da esteira, gráficos, relatórios, chat) mais a aba exclusiva 'Usuários', onde podem criar, remover e redefinir senhas de qualquer conta. Operadores não enxergam nem conseguem acessar essa aba de gerenciamento."
+  },
+  {
+    "id": 705,
+    "pergunta": "É possível remover o acesso de alguém?",
+    "perguntas_alternativas": [
+      "como eu tiro o acesso de uma pessoa",
+      "como excluo um usuário",
+      "posso bloquear alguém de entrar no sistema"
+    ],
+    "resposta": "Sim. Um administrador pode ir na aba 'Usuários' e clicar em 'Remover' na linha da pessoa desejada. Por segurança, não é possível remover a própria conta enquanto estiver logado, nem remover o último administrador restante do sistema."
+  },
+  {
+    "id": 706,
+    "pergunta": "As senhas ficam visíveis para os administradores?",
+    "perguntas_alternativas": [
+      "o admin consegue ver minha senha",
+      "alguém pode espiar minha senha",
+      "as senhas são armazenadas em texto puro?"
+    ],
+    "resposta": "Não. As senhas são armazenadas como hashes criptográficos (usando scrypt), um processo irreversível. Nem mesmo um administrador consegue visualizar a senha original de outro usuário — ele só pode definir uma senha nova."
+  },
+  {
+    "id": 707,
+    "pergunta": "Como eu troco minha própria senha?",
+    "perguntas_alternativas": [
+      "onde eu mudo minha senha",
+      "quero alterar minha própria senha",
+      "como atualizo minha senha de acesso"
+    ],
+    "resposta": "Vá na aba 'Configuração', digite sua senha atual no campo correspondente e defina a nova senha no campo abaixo. Clique em 'Atualizar Senha' para confirmar."
+  },
+  {
+    "id": 708,
+    "pergunta": "O que acontece se eu clicar em Sair do Sistema?",
+    "perguntas_alternativas": [
+      "o que o botão sair faz",
+      "eu perco meus dados ao sair",
+      "o que acontece com o histórico do chat ao deslogar"
+    ],
+    "resposta": "Você faz logoff da sua conta, e o histórico da conversa atual com a Dark Coders AI é apagado da memória do navegador por questões de privacidade. Os dados de produção e logs do sistema, porém, continuam salvos normalmente no servidor."
+  }
+]

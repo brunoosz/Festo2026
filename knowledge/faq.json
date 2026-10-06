@@ -1,0 +1,52 @@
+[
+  {
+    "id": 601,
+    "pergunta": "Como alterar o tema do sistema?",
+    "perguntas_alternativas": [
+      "como ativo o modo escuro",
+      "tem tema dark nesse site?",
+      "como deixo a tela mais escura"
+    ],
+    "resposta": "Acesse a aba 'Configuração' no menu lateral e clique no botão 'Ativar Tema Escuro'. O sistema salva sua preferência automaticamente no navegador, aplicando o tema escolhido sempre que você acessar novamente."
+  },
+  {
+    "id": 602,
+    "pergunta": "Como mudar a senha do administrador?",
+    "perguntas_alternativas": [
+      "como troco a senha padrão",
+      "a senha admin é fixa?",
+      "posso mudar a senha inicial"
+    ],
+    "resposta": "Vá em 'Configuração', digite a senha atual e defina a nova senha no formulário de credenciais de acesso. Isso vale para qualquer usuário, incluindo o administrador padrão."
+  },
+  {
+    "id": 603,
+    "pergunta": "Este é um projeto acadêmico ou comercial?",
+    "perguntas_alternativas": [
+      "esse produto está à venda?",
+      "é um projeto de faculdade?",
+      "isso é pra fins comerciais"
+    ],
+    "resposta": "Este é um projeto acadêmico desenvolvido por alunos da FIAP, na disciplina de Resolução Diferenciada de Problemas (RDP), em parceria com a empresa FESTO."
+  },
+  {
+    "id": 604,
+    "pergunta": "Quais melhorias estão planejadas para o futuro?",
+    "perguntas_alternativas": [
+      "o que ainda falta implementar",
+      "quais são os próximos passos do projeto",
+      "o que vai ser adicionado depois"
+    ],
+    "resposta": "Entre as melhorias planejadas estão: liberar o módulo de temperatura/selagem assim que o hardware físico estiver pronto, adicionar sensores reais de temperatura, e possivelmente evoluir o assistente de IA com mais variações de perguntas."
+  },
+  {
+    "id": 605,
+    "pergunta": "Quem eu procuro se tiver um problema técnico?",
+    "perguntas_alternativas": [
+      "com quem eu falo se der erro",
+      "quem dá suporte nesse sistema",
+      "a quem eu reporto um bug"
+    ],
+    "resposta": "Para questões técnicas, problemas ou sugestões sobre o sistema, entre em contato diretamente com a equipe Dark Coders, responsável pelo desenvolvimento e manutenção do projeto."
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "ip": "192.168.4.28",
+  "porta": 80,
+  "caminho": "/cam-lo.jpg",
+  "zonaInicio": 0.29435073583996013,
+  "zonaFim": 0.742329359363826,
+  "limiar": 20,
+  "intervaloMs": 400,
+  "usarIaVisao": true
+}

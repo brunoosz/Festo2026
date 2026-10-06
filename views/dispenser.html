@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+
+{% block title %}Dispenser{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-4 sm:gap-5 max-w-5xl mx-auto w-full">
+
+    <!-- Cabeçalho -->
+    <div class="card-painel">
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-5.5 8v6l-5 2v-8z"/></svg>
+                </div>
+                <div class="min-w-0">
+                    <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Dispenser de Grãos</h2>
+                    <p class="text-[11px] text-slate-400">Escolha o grão e a quantidade e toque em DOSAR.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="disp-led" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[10px] font-bold text-slate-700">DISPENSER</span>
+                </div>
+                <button id="disp-btn-config" class="hidden w-9 h-9 bg-white border border-slate-200 rounded-full items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm" title="Configurar o Dispenser (Administrador / Dono)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+        </div>
+        <p id="disp-aviso" class="hidden mt-3 text-xs font-bold rounded-lg px-3 py-2"></p>
+    </div>
+
+    <!-- 1. Qual grão -->
+    <div class="card-painel">
+        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">1 · Qual grão?</h3>
+        <div id="disp-reservatorios" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+    </div>
+
+    <!-- 2. Quantidade -->
+    <div class="card-painel">
+        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">2 · Quantidade</h3>
+        <div id="disp-doses" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+        <p id="disp-resumo" class="mt-3 text-xs text-slate-500 min-h-[1.25rem]"></p>
+    </div>
+
+    <!-- 3. Dosar -->
+    <div class="card-painel">
+        <button id="disp-btn-dosar" class="w-full bg-[#10b981] hover:bg-[#059669] active:bg-[#047857] text-white font-black py-4 rounded-xl shadow-md transition cursor-pointer tracking-widest text-lg disabled:opacity-40 disabled:cursor-not-allowed">DOSAR</button>
+        <div id="disp-progresso" class="hidden mt-3">
+            <div class="flex justify-between text-[11px] font-bold text-slate-500 mb-1"><span id="disp-progresso-texto">Dosando...</span><span id="disp-progresso-pct"></span></div>
+            <div class="h-2.5 bg-slate-200 rounded-full overflow-hidden"><div id="disp-progresso-barra" class="h-full bg-blue-500 rounded-full transition-all duration-300" style="width:0%"></div></div>
+            <button id="disp-btn-parar" class="mt-3 w-full bg-slate-600 hover:bg-slate-700 active:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition cursor-pointer text-xs tracking-wider">PARAR DOSAGEM</button>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-3 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/></svg>
+            Velocidade e demais ajustes são definidos pelo Administrador e ficam travados para o operador.
+        </p>
+    </div>
+
+    <!-- Última dosagem + contadores -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="card-painel">
+            <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Última dosagem</h3>
+            <p id="disp-ultima" class="text-sm text-slate-700">Nenhuma dosagem desde que o sistema ligou.</p>
+        </div>
+        <div class="card-painel">
+            <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Hoje</h3>
+            <p id="disp-contador" class="text-sm text-slate-700">0 dosagens</p>
+        </div>
+    </div>
+</div>
+
+<!-- Configuração (Administrador / Dono) -->
+<div id="disp-modal-config" class="hidden fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-4 sm:p-6 my-4">
+        <div class="flex items-center justify-between mb-1">
+            <h3 class="font-black text-slate-800 text-lg">Configurar o Dispenser</h3>
+            <button id="disp-cfg-fechar" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer" aria-label="Fechar">✕</button>
+        </div>
+        <p class="text-xs text-slate-500 mb-4">Os ajustes abaixo valem para todos os operadores. Use <b>Testar</b> antes de salvar: o teste usa os valores que estão na tela.</p>
+
+        <div id="disp-cfg-reservatorios" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+        <h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mt-5 mb-2">Quantidades disponíveis para o operador</h4>
+        <div id="disp-cfg-doses" class="flex flex-wrap gap-4"></div>
+
+        <p id="disp-cfg-msg" class="hidden mt-4 text-xs font-bold rounded-lg px-3 py-2"></p>
+
+        <div class="flex gap-3 mt-5">
+            <button id="disp-cfg-cancelar" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg transition cursor-pointer">Cancelar</button>
+            <button id="disp-cfg-salvar" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-md cursor-pointer">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const permissaoTotal = (window.__nivelUsuarioInicial || 3) <= 2;
+    const LED_ON = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] shrink-0";
+    const LED_OFF = "w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0";
+    const COR_GRAO = { A: '#f4ecd8', B: '#8a5a3a' };
+    const ROTULO_QUARTOS = { 1: '¼ de volta', 2: '½ volta', 3: '¾ de volta', 4: '1 volta' };
+
+    const el = (id) => document.getElementById(id);
+    const btnEmergencia = el('btn-emergencia-global');
+
+    let estado = {
+        online: false,
+        motores: { 1: { ocupado: false, restantes: 0 }, 2: { ocupado: false, restantes: 0 } },
+        ultimaDose: null,
+        contador: { doses: 0, quartosPorReservatorio: { A: 0, B: 0 } },
+        config: null
+    };
+    let escolha = { reservatorio: 'A', gramas: 100 };
+    try { const salvo = JSON.parse(localStorage.getItem('dispenser_escolha') || 'null'); if (salvo) escolha = salvo; } catch (e) {}
+    let emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
+    let aguardando = false;
+    let totalEmAndamento = 0;
+    const ouvintes = [];
+    function ouvir(evento, funcao) { globalSocket.on(evento, funcao); ouvintes.push([evento, funcao]); }
+
+    // ---------------------------------------------------------------- utilidades
+    function toast(msg, tipo) {
+        const d = document.createElement('div');
+        d.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[999996] px-4 py-3 rounded-xl shadow-lg text-sm font-bold text-white max-w-[90vw] text-center ' + (tipo === 'erro' ? 'bg-red-600' : 'bg-slate-800');
+        d.textContent = msg;
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 3400);
+    }
+
+    async function api(url, metodo, corpo) {
+        try {
+            const r = await fetch(url, {
+                method: metodo || 'GET',
+                headers: corpo ? { 'Content-Type': 'application/json' } : undefined,
+                body: corpo ? JSON.stringify(corpo) : undefined
+            });
+            let dados = {};
+            try { dados = await r.json(); } catch (e) {}
+            return { ok: r.ok, dados };
+        } catch (e) {
+            return { ok: false, dados: { erro: 'Sem conexão com o servidor.' } };
+        }
+    }
+
+    function nomeReservatorio(r) {
+        const c = estado.config;
+        return c && c.reservatorios[r] ? c.reservatorios[r].nome : (r === 'A' ? 'Reservatório A' : 'Reservatório B');
+    }
+
+    function motorOcupado() { return estado.motores[1].ocupado || estado.motores[2].ocupado; }
+    function reservatoriosEscolhidos() { return escolha.reservatorio === 'AB' ? ['A', 'B'] : [escolha.reservatorio]; }
+
+    function svgPizza(n) {
+        const cx = 50, cy = 50, r = 42;
+        let h = '<svg viewBox="0 0 100 100" class="w-16 h-16 mx-auto">';
+        for (let i = 0; i < 4; i++) {
+            const a1 = (-90 + 90 * i) * Math.PI / 180, a2 = (-90 + 90 * (i + 1)) * Math.PI / 180;
+            const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1), x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+            h += '<path d="M' + cx + ',' + cy + ' L' + x1.toFixed(1) + ',' + y1.toFixed(1) + ' A' + r + ',' + r + ' 0 0 1 ' + x2.toFixed(1) + ',' + y2.toFixed(1) + ' Z" fill="' + (i < n ? '#1d6fe0' : '#e2e8f0') + '" stroke="#ffffff" stroke-width="3"/>';
+        }
+        return h + '</svg>';
+    }
+
+    function svgFunil(cor) {
+        return '<svg viewBox="0 0 40 40" class="w-9 h-9 shrink-0"><polygon points="5,6 35,6 25,28 15,28" fill="#e6c9a0" stroke="#b48f62" stroke-width="2"/><polygon points="8,11 32,11 24.5,27 15.5,27" fill="' + cor + '"/><rect x="17" y="28" width="6" height="8" rx="1" fill="#94a3b8"/></svg>';
+    }
+
+    // ---------------------------------------------------------------- telas
+    function renderReservatorios() {
+        const caixa = el('disp-reservatorios');
+        const nomeA = nomeReservatorio('A'), nomeB = nomeReservatorio('B');
+        const opcoes = [
+            { id: 'A', rotulo: nomeA, icone: svgFunil(COR_GRAO.A) },
+            { id: 'B', rotulo: nomeB, icone: svgFunil(COR_GRAO.B) },
+            { id: 'AB', rotulo: nomeA + ' + ' + nomeB, icone: svgFunil(COR_GRAO.A) + svgFunil(COR_GRAO.B) }
+        ];
+        caixa.innerHTML = '';
+        opcoes.forEach(o => {
+            const b = document.createElement('button');
+            const sel = escolha.reservatorio === o.id;
+            b.type = 'button';
+            b.className = 'flex items-center gap-3 border-2 rounded-xl px-4 py-3 text-left transition cursor-pointer ' + (sel ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-slate-200 bg-white hover:border-blue-300');
+            b.innerHTML = o.icone + '<span class="font-bold text-sm text-slate-800">' + o.rotulo + '</span>';
+            b.addEventListener('click', () => { escolha.reservatorio = o.id; salvarEscolha(); renderTudo(); });
+            caixa.appendChild(b);
+        });
+    }
+
+    function renderDoses() {
+        const caixa = el('disp-doses');
+        const doses = (estado.config ? estado.config.doses : []).filter(d => d.ativo);
+        if (doses.length && !doses.some(d => d.gramas === escolha.gramas)) escolha.gramas = doses[0].gramas;
+        caixa.innerHTML = '';
+        doses.forEach(d => {
+            const quartos = Math.round(d.gramas / 50);
+            const sel = escolha.gramas === d.gramas;
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'border-2 rounded-xl px-3 py-4 text-center transition cursor-pointer ' + (sel ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-slate-200 bg-white hover:border-blue-300');
+            b.innerHTML = svgPizza(quartos) + '<div class="mt-2 text-2xl font-black text-slate-800">' + d.gramas + ' g</div><div class="text-[11px] font-bold text-blue-600">' + ROTULO_QUARTOS[quartos] + '</div>';
+            b.addEventListener('click', () => { escolha.gramas = d.gramas; salvarEscolha(); renderTudo(); });
+            caixa.appendChild(b);
+        });
+        if (!doses.length) caixa.innerHTML = '<p class="text-sm text-slate-400 col-span-full">Nenhuma quantidade disponível. Peça a um Administrador para ativar.</p>';
+    }
+
+    function renderResumo() {
+        const quartos = Math.round(escolha.gramas / 50);
+        const res = reservatoriosEscolhidos();
+        const partes = res.map(r => {
+            const gpb = estado.config && estado.config.reservatorios[r] ? estado.config.reservatorios[r].gramasPorBolso : 50;
+            return nomeReservatorio(r) + ' (≈ ' + Math.round(quartos * gpb) + ' g reais)';
+        });
+        el('disp-resumo').textContent = 'Vai dosar ' + ROTULO_QUARTOS[quartos] + ' do rotor: ' + partes.join(' e ') + '.';
+    }
+
+    function mostrarAviso(texto, tipo) {
+        const a = el('disp-aviso');
+        if (!texto) { a.classList.add('hidden'); return; }
+        a.textContent = texto;
+        a.className = 'mt-3 text-xs font-bold rounded-lg px-3 py-2 ' + (tipo === 'erro' ? 'bg-red-50 text-red-600 border border-red-200' : (tipo === 'info' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'));
+    }
+
+    function podeDosar() {
+        return estado.online && !motorOcupado() && !emEmergencia && !aguardando && !!estado.config
+            && estado.config.doses.some(d => d.ativo && d.gramas === escolha.gramas);
+    }
+
+    function atualizarBotoes() {
+        const ocupado = motorOcupado();
+        el('disp-led').className = estado.online ? LED_ON : LED_OFF;
+        el('disp-btn-dosar').disabled = !podeDosar();
+        el('disp-btn-dosar').textContent = ocupado ? 'DOSANDO...' : 'DOSAR';
+
+        const prog = el('disp-progresso');
+        if (ocupado) {
+            prog.classList.remove('hidden');
+            const restantes = Math.max(estado.motores[1].restantes, estado.motores[2].restantes);
+            if (totalEmAndamento > 0) {
+                const feito = Math.max(0, Math.min(1, 1 - restantes / totalEmAndamento));
+                el('disp-progresso-barra').style.width = Math.round(feito * 100) + '%';
+                el('disp-progresso-pct').textContent = Math.round(feito * 100) + '%';
+            } else {
+                el('disp-progresso-barra').style.width = '60%';
+                el('disp-progresso-pct').textContent = '';
+            }
+        } else {
+            prog.classList.add('hidden');
+            totalEmAndamento = 0;
+        }
+
+        if (emEmergencia) mostrarAviso('EMERGÊNCIA ATIVA: a dosagem está bloqueada. Desbloqueie pelo botão no topo da tela.', 'erro');
+        else if (!estado.online) mostrarAviso('O Dispenser está desconectado da rede. Verifique a alimentação do equipamento.', 'alerta');
+        else if (ocupado) mostrarAviso('Dosagem em andamento...', 'info');
+        else mostrarAviso('');
+    }
+
+    function renderUltima() {
+        const u = estado.ultimaDose;
+        el('disp-ultima').textContent = u
+            ? u.hora + ' · ' + u.gramas + ' g de ' + u.nomes.join(' + ') + ' · por ' + u.usuario
+            : 'Nenhuma dosagem desde que o sistema ligou.';
+        const c = estado.contador;
+        const gA = Math.round((c.quartosPorReservatorio.A || 0) * 50), gB = Math.round((c.quartosPorReservatorio.B || 0) * 50);
+        el('disp-contador').textContent = c.doses + (c.doses === 1 ? ' dosagem' : ' dosagens') + ' · ' + nomeReservatorio('A') + ' ≈ ' + gA + ' g · ' + nomeReservatorio('B') + ' ≈ ' + gB + ' g (valores nominais)';
+    }
+
+    function renderTudo() {
+        renderReservatorios();
+        renderDoses();
+        renderResumo();
+        renderUltima();
+        atualizarBotoes();
+    }
+
+    function salvarEscolha() { try { localStorage.setItem('dispenser_escolha', JSON.stringify(escolha)); } catch (e) {} }
+
+    function aplicarEstado(novo) {
+        if (!novo) return;
+        estado = Object.assign({}, estado, novo);
+        renderTudo();
+    }
+
+    // ---------------------------------------------------------------- ações
+    async function dosar() {
+        if (!podeDosar()) return;
+        const quartos = Math.round(escolha.gramas / 50);
+        if (window.__tutorialAtivo) { toast('Modo de teste do tutorial: nada foi enviado à máquina.'); return; }
+        aguardando = true; atualizarBotoes();
+        const r = await api('/api/dispenser/dosar', 'POST', { gramas: escolha.gramas, reservatorios: reservatoriosEscolhidos() });
+        aguardando = false;
+        if (r.ok) { totalEmAndamento = quartos; toast('Dosagem enviada!'); }
+        else toast(r.dados.erro || 'Não foi possível dosar.', 'erro');
+        atualizarBotoes();
+    }
+
+    async function pararDosagem() {
+        if (window.__tutorialAtivo) return;
+        const r = await api('/api/dispenser/parar', 'POST', {});
+        toast(r.ok ? 'Dosagem interrompida.' : (r.dados.erro || 'Não foi possível parar.'), r.ok ? undefined : 'erro');
+    }
+
+    el('disp-btn-dosar').addEventListener('click', dosar);
+    el('disp-btn-parar').addEventListener('click', pararDosagem);
+
+    // ---------------------------------------------------------------- configuração (Administrador / Dono)
+    const modal = el('disp-modal-config');
+    let cfgEditavel = null;
+
+    function msgCfg(texto, tipo) {
+        const m = el('disp-cfg-msg');
+        if (!texto) { m.classList.add('hidden'); return; }
+        m.textContent = texto;
+        m.className = 'mt-4 text-xs font-bold rounded-lg px-3 py-2 ' + (tipo === 'erro' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200');
+    }
+
+    function lerFormulario() {
+        const cfg = JSON.parse(JSON.stringify(cfgEditavel));
+        ['A', 'B'].forEach(r => {
+            const caixa = document.querySelector('[data-cfg-res="' + r + '"]');
+            const c = cfg.reservatorios[r];
+            c.nome = caixa.querySelector('.f-nome').value.trim();
+            c.gramasPorBolso = parseFloat(caixa.querySelector('.f-gpb').value);
+            c.pwm = parseInt(caixa.querySelector('.f-pwm').value, 10);
+            c.tempoQuartoMs = parseInt(caixa.querySelector('.f-tempo').value, 10);
+            c.pausaMs = parseInt(caixa.querySelector('.f-pausa').value, 10);
+            c.sentidoInvertido = caixa.querySelector('.f-sentido').value === 'invertido';
+        });
+        cfg.doses.forEach((d, i) => { d.ativo = document.querySelector('[data-cfg-dose="' + i + '"]').checked; });
+        return cfg;
+    }
+
+    function desenharConfig() {
+        const caixa = el('disp-cfg-reservatorios');
+        caixa.innerHTML = '';
+        ['A', 'B'].forEach(r => {
+            const c = cfgEditavel.reservatorios[r];
+            const d = document.createElement('div');
+            d.setAttribute('data-cfg-res', r);
+            d.className = 'border-2 border-slate-200 rounded-xl p-4 space-y-3';
+            d.innerHTML =
+                '<div class="flex items-center gap-2">' + svgFunil(COR_GRAO[r]) + '<div><div class="font-black text-slate-800 text-sm">Reservatório ' + r + '</div><div class="text-[10px] text-slate-400 uppercase font-bold">Motor ' + c.motor + '</div></div></div>' +
+                '<label class="block text-[11px] font-bold text-slate-600">Nome do grão<input class="f-nome mt-1 w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm" maxlength="20" value="' + c.nome.replace(/"/g, '&quot;') + '"></label>' +
+                '<label class="block text-[11px] font-bold text-slate-600">Gramas reais por bolso (calibração com balança)<input class="f-gpb mt-1 w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm" type="number" min="10" max="150" step="0.5" value="' + c.gramasPorBolso + '"></label>' +
+                '<label class="block text-[11px] font-bold text-slate-600">Velocidade do motor: <span class="f-pwm-txt text-blue-600">' + c.pwm + '%</span><input class="f-pwm mt-1 w-full range-slider" type="range" min="20" max="100" step="5" value="' + c.pwm + '"></label>' +
+                '<div class="grid grid-cols-2 gap-3">' +
+                '<label class="block text-[11px] font-bold text-slate-600">Tempo de ¼ de volta (ms)<input class="f-tempo mt-1 w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm" type="number" min="50" max="2000" step="10" value="' + c.tempoQuartoMs + '"></label>' +
+                '<label class="block text-[11px] font-bold text-slate-600">Pausa entre ¼ (ms)<input class="f-pausa mt-1 w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm" type="number" min="0" max="2000" step="10" value="' + c.pausaMs + '"></label>' +
+                '</div>' +
+                '<label class="block text-[11px] font-bold text-slate-600">Sentido de giro<select class="f-sentido mt-1 w-full border-2 border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"><option value="normal"' + (c.sentidoInvertido ? '' : ' selected') + '>Normal</option><option value="invertido"' + (c.sentidoInvertido ? ' selected' : '') + '>Invertido</option></select></label>' +
+                '<div class="grid grid-cols-3 gap-2 pt-1">' +
+                '<button type="button" class="f-testar col-span-3 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold py-2 rounded-lg cursor-pointer">TESTAR ¼ DE VOLTA</button>' +
+                '<button type="button" class="f-aj-menos bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold py-2 rounded-lg cursor-pointer">◀ 30 ms</button>' +
+                '<div class="text-[10px] text-slate-400 text-center self-center leading-tight">ajuste fino do alinhamento</div>' +
+                '<button type="button" class="f-aj-mais bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold py-2 rounded-lg cursor-pointer">30 ms ▶</button>' +
+                '</div>';
+            caixa.appendChild(d);
+
+            const pwm = d.querySelector('.f-pwm');
+            pwm.addEventListener('input', () => { d.querySelector('.f-pwm-txt').textContent = pwm.value + '%'; });
+            const sobreposicao = () => {
+                const f = lerFormulario().reservatorios[r];
+                return { pwm: f.pwm, tempoQuartoMs: f.tempoQuartoMs, pausaMs: f.pausaMs, sentidoInvertido: f.sentidoInvertido };
+            };
+            d.querySelector('.f-testar').addEventListener('click', async () => {
+                const x = await api('/api/dispenser/teste', 'POST', Object.assign({ reservatorio: r, tipo: 'quarto' }, sobreposicao()));
+                msgCfg(x.ok ? 'Teste enviado: o motor ' + c.motor + ' vai girar ¼ de volta.' : (x.dados.erro || 'Falha no teste.'), x.ok ? 'ok' : 'erro');
+            });
+            d.querySelector('.f-aj-menos').addEventListener('click', async () => {
+                const x = await api('/api/dispenser/teste', 'POST', { reservatorio: r, tipo: 'ajuste', ajusteMs: -30 });
+                if (!x.ok) msgCfg(x.dados.erro || 'Falha no ajuste.', 'erro');
+            });
+            d.querySelector('.f-aj-mais').addEventListener('click', async () => {
+                const x = await api('/api/dispenser/teste', 'POST', { reservatorio: r, tipo: 'ajuste', ajusteMs: 30 });
+                if (!x.ok) msgCfg(x.dados.erro || 'Falha no ajuste.', 'erro');
+            });
+        });
+
+        const dosesCaixa = el('disp-cfg-doses');
+        dosesCaixa.innerHTML = '';
+        cfgEditavel.doses.forEach((dose, i) => {
+            const l = document.createElement('label');
+            l.className = 'flex items-center gap-2 text-sm font-bold text-slate-700 cursor-pointer';
+            l.innerHTML = '<input type="checkbox" data-cfg-dose="' + i + '" class="w-5 h-5 rounded border-slate-300"' + (dose.ativo ? ' checked' : '') + '> ' + dose.gramas + ' g <span class="text-[10px] text-slate-400 font-normal">(' + ROTULO_QUARTOS[Math.round(dose.gramas / 50)] + ')</span>';
+            dosesCaixa.appendChild(l);
+        });
+    }
+
+    async function abrirConfig() {
+        if (!permissaoTotal) return;
+        const r = await api('/api/dispenser/estado');
+        if (!r.ok || !r.dados.config) { toast('Não foi possível carregar a configuração.', 'erro'); return; }
+        cfgEditavel = JSON.parse(JSON.stringify(r.dados.config));
+        msgCfg('');
+        desenharConfig();
+        modal.classList.remove('hidden');
+    }
+    function fecharConfig() { modal.classList.add('hidden'); }
+
+    async function salvarConfig() {
+        const cfg = lerFormulario();
+        const r = await api('/api/dispenser/config', 'POST', cfg);
+        if (r.ok) { msgCfg('Configuração salva!', 'ok'); setTimeout(fecharConfig, 700); await carregar(); }
+        else msgCfg(r.dados.erro || 'Não foi possível salvar.', 'erro');
+    }
+
+    if (permissaoTotal) {
+        el('disp-btn-config').classList.remove('hidden');
+        el('disp-btn-config').classList.add('flex');
+    }
+    el('disp-btn-config').addEventListener('click', abrirConfig);
+    el('disp-cfg-fechar').addEventListener('click', fecharConfig);
+    el('disp-cfg-cancelar').addEventListener('click', fecharConfig);
+    el('disp-cfg-salvar').addEventListener('click', salvarConfig);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fecharConfig(); });
+
+    // ---------------------------------------------------------------- estado ao vivo
+    async function carregar() {
+        const r = await api('/api/dispenser/estado');
+        if (r.ok) aplicarEstado(r.dados);
+    }
+
+    function handlerEmergencia() {
+        setTimeout(() => { emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true'; atualizarBotoes(); }, 0);
+    }
+    if (btnEmergencia) btnEmergencia.addEventListener('click', handlerEmergencia);
+
+    ouvir('dispenser_estado', (dados) => aplicarEstado(dados));
+    ouvir('dispenser_config', (cfg) => { estado.config = Object.assign({}, estado.config, cfg); renderTudo(); });
+    ouvir('emergencia_remota', () => { emEmergencia = true; atualizarBotoes(); });
+
+    renderTudo();
+    carregar();
+
+    window.__cleanupPagina = function () {
+        ouvintes.forEach(([evento, funcao]) => globalSocket.off(evento, funcao));
+        if (btnEmergencia) btnEmergencia.removeEventListener('click', handlerEmergencia);
+    };
+})();
+</script>
+{% endblock %}

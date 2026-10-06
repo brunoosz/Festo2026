@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block title %}Status do Sistema{% endblock %}
+
+{% block content %}
+<style>
+    .sis-h3 { font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }
+    .sis-banner { border-radius: 12px; padding: 14px 16px; font-weight: 900; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .sis-banner.ok { background: #16a34a; } .sis-banner.atencao { background: #d97706; } .sis-banner.problema { background: #dc2626; } .sis-banner.carregando { background: #64748b; }
+    .sis-linha { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    .sis-linha:last-child { border-bottom: 0; }
+    .sis-linha b { color: #334155; } .sis-linha span { color: #475569; text-align: right; word-break: break-word; }
+    .sis-ponto { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: #94a3b8; vertical-align: middle; }
+    .sis-ponto.on { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,.6); } .sis-ponto.off { background: #ef4444; } .sis-ponto.warn { background: #f59e0b; }
+    .sis-grade { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 760px) { .sis-grade { grid-template-columns: 1fr 1fr; } }
+    .sis-btn { border: 2px solid #1e293b; background: #fff; color: #1e293b; border-radius: 10px; padding: 10px 14px; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .sis-btn.azul { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .sis-log { background: #0f172a; color: #cbd5e1; font-family: monospace; font-size: 11px; border-radius: 8px; padding: 10px; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
+    .sis-dica { font-size: 11px; color: #64748b; margin-top: 8px; line-height: 1.45; }
+</style>
+
+<div class="flex flex-col gap-4 sm:gap-5 max-w-5xl mx-auto w-full">
+
+    <div class="card-painel">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="min-w-0">
+                <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Status do Sistema</h2>
+                <p class="text-[11px] text-slate-400">Internet, túnel, Raspberry e placas. Atualiza sozinho a cada 5 segundos.</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="sis-copiar" class="sis-btn azul">Copiar relatório</button>
+                <button id="sis-atualizar" class="sis-btn">Atualizar</button>
+            </div>
+        </div>
+        <div id="sis-banner" class="sis-banner carregando" style="margin-top:12px">Carregando...</div>
+        <p id="sis-atualizado" class="sis-dica"></p>
+    </div>
+
+    <div class="sis-grade">
+        <div class="card-painel">
+            <h3 class="sis-h3">Internet do celular</h3>
+            <div id="sis-rede"></div>
+        </div>
+        <div class="card-painel">
+            <h3 class="sis-h3">Acesso de fora (túnel)</h3>
+            <div id="sis-vigia"></div>
+        </div>
+        <div class="card-painel">
+            <h3 class="sis-h3">Raspberry Pi</h3>
+            <div id="sis-pi"></div>
+        </div>
+        <div class="card-painel">
+            <h3 class="sis-h3">Placas e câmera</h3>
+            <div id="sis-dispositivos"></div>
+        </div>
+    </div>
+
+    <div class="card-painel">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h3 class="sis-h3" style="margin:0">Registro do guarda-rede</h3>
+            <button id="sis-ver-log" class="sis-btn">Ver últimas linhas</button>
+        </div>
+        <pre id="sis-log" class="sis-log" style="display:none;margin-top:10px"></pre>
+    </div>
+</div>
+
+<script>
+(function () {
+    const el = (id) => document.getElementById(id);
+    let ultimo = null;
+    let timer = null;
+
+    function tempoCurto(s) {
+        if (s === null || s === undefined) return '-';
+        if (s < 90) return s + ' s';
+        if (s < 5400) return Math.round(s / 60) + ' min';
+        if (s < 172800) return Math.round(s / 3600 * 10) / 10 + ' h';
+        return Math.round(s / 86400 * 10) / 10 + ' dias';
+    }
+    function esc(t) { return String(t === null || t === undefined ? '-' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+    function linha(rotulo, valor, estado) {
+        return '<div class="sis-linha"><b>' + esc(rotulo) + '</b><span>' + (estado ? '<i class="sis-ponto ' + estado + '"></i>' : '') + valor + '</span></div>';
+    }
+    const MOTIVOS = {
+        tethering_desligado: 'celular desconectado (ligue o tethering USB)', sem_ip: 'o celular não entregou endereço',
+        celular_mudo: 'o celular não responde', sem_dados_no_celular: 'celular sem dados/sinal', ok: 'ok'
+    };
+
+    function avaliar(d) {
+        const problemas = [], atencao = [];
+        const r = d.rede;
+        if (!d.guardaRedeInstalado) atencao.push('guarda-rede não instalado');
+        else {
+            if (d.redeIdadeS > 90) atencao.push('guarda-rede sem atualizar há ' + tempoCurto(d.redeIdadeS));
+            if (!r.internet) problemas.push('sem internet (' + (MOTIVOS[r.motivo] || r.motivo) + ')');
+        }
+        if (d.vigia.ultimo && !d.vigia.ultimo.ok) problemas.push('túnel fora do ar');
+        const s = d.sistema;
+        if (s.throttled && s.throttled.subtensaoAgora) problemas.push('Raspberry com falta de energia agora');
+        else if (s.throttled && s.throttled.subtensaoJaOcorreu) atencao.push('já houve falta de energia no Raspberry');
+        if (s.tempCpu !== null && s.tempCpu > 80) problemas.push('Raspberry muito quente (' + s.tempCpu.toFixed(0) + ' °C)');
+        else if (s.tempCpu !== null && s.tempCpu > 70) atencao.push('Raspberry quente (' + s.tempCpu.toFixed(0) + ' °C)');
+        if (s.memDisponivelMB < 80) problemas.push('memória quase acabando (' + s.memDisponivelMB + ' MB livres)');
+        else if (s.memDisponivelMB < 150) atencao.push('pouca memória livre (' + s.memDisponivelMB + ' MB)');
+        d.dispositivos.filter(x => !x.online).forEach(x => atencao.push(x.nome + ' offline'));
+        return { problemas, atencao };
+    }
+
+    function render(d) {
+        ultimo = d;
+        const av = avaliar(d);
+        const b = el('sis-banner');
+        if (av.problemas.length) { b.className = 'sis-banner problema'; b.textContent = 'Problema: ' + av.problemas.join(' · '); }
+        else if (av.atencao.length) { b.className = 'sis-banner atencao'; b.textContent = 'Atenção: ' + av.atencao.slice(0, 3).join(' · ') + (av.atencao.length > 3 ? ' · +' + (av.atencao.length - 3) : ''); }
+        else { b.className = 'sis-banner ok'; b.textContent = 'Tudo certo'; }
+        el('sis-atualizado').textContent = 'Atualizado em ' + d.agora;
+
+        // internet
+        const r = d.rede;
+        if (!d.guardaRedeInstalado) {
+            el('sis-rede').innerHTML = '<p class="sis-dica" style="margin:0">O guarda-rede ainda não está instalado. Rode <b>sudo bash instalar_guarda_rede.sh</b> no Raspberry para ele vigiar e consertar a internet do celular sozinho.</p>';
+        } else {
+            el('sis-rede').innerHTML =
+                linha('Internet', r.internet ? 'funcionando' : 'SEM INTERNET', r.internet ? 'on' : 'off') +
+                linha('Entrada usada', esc(r.uplink) + (r.ip ? ' · ' + esc(r.ip) : '')) +
+                linha('Resposta', r.latencia_ms ? r.latencia_ms + ' ms' : '-') +
+                (r.internet ? '' : linha('Motivo', esc(MOTIVOS[r.motivo] || r.motivo), 'warn') + linha('Falhas seguidas', r.falhas_seguidas) + linha('Última ação', esc(r.acao || '-'))) +
+                linha('Quedas hoje', r.quedas_hoje) +
+                linha('Última queda', esc(r.ultima_queda || 'nenhuma')) +
+                linha('Última recuperação', esc(r.ultima_recuperacao || '-')) +
+                linha('Guarda-rede', d.redeIdadeS > 90 ? 'parado há ' + tempoCurto(d.redeIdadeS) : 'vigiando', d.redeIdadeS > 90 ? 'warn' : 'on');
+        }
+
+        // vigia
+        const v = d.vigia;
+        el('sis-vigia').innerHTML =
+            linha('Último teste de fora', v.ultimo ? (v.ultimo.ok ? 'OK' : 'FALHOU') : 'sem registro', v.ultimo ? (v.ultimo.ok ? 'on' : 'off') : '') +
+            '<pre class="sis-log" style="margin-top:8px;max-height:150px">' + esc((v.linhas || []).slice(-6).join('\n') || '(sem registro do vigia)') + '</pre>';
+
+        // pi
+        const s = d.sistema, t = s.throttled;
+        el('sis-pi').innerHTML =
+            linha('Ligado há', tempoCurto(s.uptimeS)) +
+            linha('Site rodando há', tempoCurto(s.siteUptimeS) + (s.siteUptimeS < 300 ? ' (reiniciou há pouco)' : ''), s.siteUptimeS < 300 ? 'warn' : '') +
+            linha('Temperatura', s.tempCpu === null ? '-' : s.tempCpu.toFixed(1) + ' °C', s.tempCpu > 80 ? 'off' : (s.tempCpu > 70 ? 'warn' : 'on')) +
+            linha('Carga (1/5/15 min)', s.load.join(' / ')) +
+            linha('Memória livre', s.memDisponivelMB + ' de ' + s.memTotalMB + ' MB', s.memDisponivelMB < 80 ? 'off' : (s.memDisponivelMB < 150 ? 'warn' : 'on')) +
+            linha('Memória virtual', s.swapTotalMB ? (s.swapTotalMB - s.swapLivreMB) + ' de ' + s.swapTotalMB + ' MB em uso' : 'nenhuma (instale o guarda-rede)', s.swapTotalMB ? '' : 'warn') +
+            linha('Memória do site', s.siteMemMB + ' MB') +
+            linha('Energia', t ? (t.subtensaoAgora ? 'FALTA DE ENERGIA AGORA' : (t.subtensaoJaOcorreu ? 'já faltou energia desde que ligou' : 'ok')) : 'sem leitura', t ? (t.subtensaoAgora ? 'off' : (t.subtensaoJaOcorreu ? 'warn' : 'on')) : '');
+
+        // dispositivos
+        el('sis-dispositivos').innerHTML = d.dispositivos.map(x => linha(x.nome, x.online ? 'online' : 'offline', x.online ? 'on' : 'off')).join('');
+    }
+
+    function relatorio() {
+        if (!ultimo) return 'Sem dados ainda.';
+        const d = ultimo, s = d.sistema, r = d.rede, L = [];
+        L.push('RELATORIO FLOWPACK - ' + d.agora);
+        const av = avaliar(d);
+        L.push('Resumo: ' + (av.problemas.length ? 'PROBLEMA - ' + av.problemas.join('; ') : (av.atencao.length ? 'ATENCAO - ' + av.atencao.join('; ') : 'tudo certo')));
+        L.push('');
+        if (r) {
+            L.push('INTERNET: ' + (r.internet ? 'ok' : 'SEM INTERNET') + ' | entrada ' + r.uplink + ' ' + (r.ip || '') + ' | ' + (r.latencia_ms || '-') + ' ms');
+            L.push('  motivo: ' + r.motivo + ' | falhas seguidas: ' + r.falhas_seguidas + ' | acao: ' + (r.acao || '-'));
+            L.push('  quedas hoje: ' + r.quedas_hoje + ' | ultima queda: ' + (r.ultima_queda || '-') + ' | ultima recuperacao: ' + (r.ultima_recuperacao || '-'));
+        } else L.push('INTERNET: guarda-rede nao instalado');
+        L.push('VIGIA: ' + (d.vigia.ultimo ? (d.vigia.ultimo.ok ? 'ok' : 'FALHOU') : 'sem registro'));
+        (d.vigia.linhas || []).slice(-5).forEach(x => L.push('  ' + x));
+        L.push('');
+        L.push('RASPBERRY: ligado ha ' + tempoCurto(s.uptimeS) + ' | site ha ' + tempoCurto(s.siteUptimeS) + ' | ' + (s.tempCpu === null ? '-' : s.tempCpu.toFixed(1)) + ' C | carga ' + s.load.join('/'));
+        L.push('  memoria livre ' + s.memDisponivelMB + '/' + s.memTotalMB + ' MB | swap ' + (s.swapTotalMB - s.swapLivreMB) + '/' + s.swapTotalMB + ' MB | site usa ' + s.siteMemMB + ' MB');
+        L.push('  energia (get_throttled): ' + (s.throttled ? s.throttled.bruto + (s.throttled.subtensaoAgora ? ' FALTA AGORA' : '') + (s.throttled.subtensaoJaOcorreu ? ' ja faltou' : '') : 'sem leitura'));
+        L.push('');
+        L.push('PLACAS: ' + d.dispositivos.map(x => x.nome + '=' + (x.online ? 'on' : 'OFF')).join(' | '));
+        return L.join('\n');
+    }
+
+    async function carregar() {
+        try {
+            const r = await fetch('/api/sistema/status');
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            render(await r.json());
+        } catch (e) {
+            const b = el('sis-banner'); b.className = 'sis-banner problema'; b.textContent = 'Sem resposta do site (' + e.message + ')';
+        }
+    }
+
+    el('sis-atualizar').addEventListener('click', carregar);
+    el('sis-copiar').addEventListener('click', async () => {
+        const texto = relatorio();
+        try { await navigator.clipboard.writeText(texto); el('sis-copiar').textContent = 'Copiado!'; }
+        catch (e) { const ta = document.createElement('textarea'); ta.value = texto; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); el('sis-copiar').textContent = 'Copiado!'; } catch (e2) { el('sis-copiar').textContent = 'Não deu para copiar'; } ta.remove(); }
+        setTimeout(() => { el('sis-copiar').textContent = 'Copiar relatório'; }, 2000);
+    });
+    el('sis-ver-log').addEventListener('click', async () => {
+        const r = await fetch('/api/sistema/log-rede');
+        const pre = el('sis-log'); pre.textContent = await r.text(); pre.style.display = 'block'; pre.scrollTop = pre.scrollHeight;
+    });
+
+    carregar();
+    timer = setInterval(carregar, 5000);
+    window.__cleanupPagina = function () { clearInterval(timer); };
+})();
+</script>
+{% endblock %}

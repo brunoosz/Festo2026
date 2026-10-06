@@ -1,0 +1,104 @@
+[
+  {
+    "id": 201,
+    "pergunta": "Como a esteira funciona?",
+    "perguntas_alternativas": [
+      "como a esteira se movimenta",
+      "o que faz a esteira girar",
+      "explica o funcionamento da esteira"
+    ],
+    "resposta": "A esteira é tracionada por motores DC, controlados por dois módulos driver L298N. A velocidade é regulada por sinais PWM enviados pelo ESP32, com base na porcentagem escolhida pelo operador no painel web (de 0% a 100%)."
+  },
+  {
+    "id": 202,
+    "pergunta": "Quem controla o motor da esteira?",
+    "perguntas_alternativas": [
+      "o que faz o motor girar mais rápido ou devagar",
+      "quem manda no motor"
+    ],
+    "resposta": "O controle de potência é feito pelos drivers L298N, que recebem as instruções lógicas (PWM) do ESP32. O ESP32, por sua vez, recebe os comandos de velocidade do site via MQTT."
+  },
+  {
+    "id": 203,
+    "pergunta": "Quais são os pinos do motor no ESP32?",
+    "perguntas_alternativas": [
+      "qual o pinout do esp32 nessa máquina",
+      "quais gpios são usados pro motor",
+      "como está ligado o l298n no esp32"
+    ],
+    "resposta": "O sistema atualmente usa dois drivers L298N em paralelo (ambos recebem o mesmo comando de velocidade). Driver 1: IN1 no GPIO33, IN2 no GPIO14, ENA no GPIO32. Driver 2: IN1 no GPIO26, IN2 no GPIO27, ENA no GPIO25."
+  },
+  {
+    "id": 204,
+    "pergunta": "Por que o motor da esteira não gira?",
+    "perguntas_alternativas": [
+      "a esteira não responde ao comando, o que pode ser",
+      "cliquei em iniciar e nada aconteceu",
+      "o motor está travado",
+      "a esteira não liga, o que eu faço"
+    ],
+    "resposta": "Verifique estes pontos, na ordem: 1) Se a Parada de Emergência está ativada no site (o botão fica amarelo quando travado). 2) Se o LED 'ESTEIRA' no painel está verde, indicando que o ESP32 está realmente conectado à rede do Raspberry. 3) Se o slider de velocidade está acima de 0%. 4) Se a fonte de alimentação dos motores está conectada corretamente aos drivers L298N."
+  },
+  {
+    "id": 205,
+    "pergunta": "Como alterar a velocidade da esteira?",
+    "perguntas_alternativas": [
+      "como eu mudo a velocidade",
+      "como faço pra deixar mais rápido",
+      "como diminuo a velocidade da esteira",
+      "onde eu ajusto a potência do motor",
+      "como acelero a esteira"
+    ],
+    "resposta": "Na aba 'Operação' do painel, utilize o controle deslizante (slider) de Potência do Motor, logo abaixo do visor de porcentagem. Você pode ajustar de 0% a 100%, em incrementos de 10%."
+  },
+  {
+    "id": 206,
+    "pergunta": "O que significa o visor de porcentagem no painel?",
+    "perguntas_alternativas": [
+      "o que aquele número no meio da tela representa",
+      "o visor mostra rpm ou percentual",
+      "o que significa aquele percentual grande"
+    ],
+    "resposta": "O visor central na aba de Operação mostra a porcentagem atual de potência aplicada ao motor da esteira, numa escala de 0% (parado) a 100% (potência máxima)."
+  },
+  {
+    "id": 207,
+    "pergunta": "Como ligo a esteira rapidamente?",
+    "perguntas_alternativas": [
+      "existe um botão de ligar rápido",
+      "como inicio a esteira sem mexer no slider",
+      "qual botão eu aperto pra começar"
+    ],
+    "resposta": "Na aba 'Operação', clique no botão verde 'INICIAR'. Isso já envia um comando automático para a esteira rodar a 50% de velocidade, e o visor e o controle deslizante são atualizados na hora para refletir isso."
+  },
+  {
+    "id": 208,
+    "pergunta": "Qual sinal o ESP32 usa para controlar o motor?",
+    "perguntas_alternativas": [
+      "o motor usa pwm?",
+      "como o esp32 varia a velocidade do motor",
+      "que tipo de controle é feito no motor"
+    ],
+    "resposta": "O ESP32 utiliza modulação por largura de pulso (PWM) nos pinos ENA dos drivers L298N, o que permite controlar a velocidade do motor de forma suave e gradual, sem ligar/desligar bruscamente."
+  },
+  {
+    "id": 209,
+    "pergunta": "Por que existem dois drivers de motor?",
+    "perguntas_alternativas": [
+      "tem quantos motores nessa esteira",
+      "por que dois l298n",
+      "os dois motores giram juntos?"
+    ],
+    "resposta": "O sistema atual controla dois drivers L298N simultaneamente, ambos recebendo o mesmo valor de PWM — ou seja, giram sempre juntos e na mesma velocidade. Isso permite tracionar a esteira com mais força/redundância do que um único motor conseguiria sozinho."
+  },
+  {
+    "id": 210,
+    "pergunta": "O que acontece quando o ESP32 liga ou reinicia?",
+    "perguntas_alternativas": [
+      "por que a esteira dá uma sacudida quando religo o esp32",
+      "por que o motor gira sozinho ao ligar",
+      "existe algum teste automático no boot"
+    ],
+    "resposta": "Sim — ao ligar ou reiniciar, o ESP32 executa um teste de hardware automático: ele gira os dois motores na potência máxima por 1 segundo, só para confirmar que o hardware está fisicamente respondendo, e depois já aguarda comandos normais do site."
+  }
+]

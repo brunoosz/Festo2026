@@ -1,0 +1,70 @@
+[
+  {
+    "id": 401,
+    "pergunta": "O que é o botão de emergência?",
+    "perguntas_alternativas": [
+      "pra que serve o botão vermelho",
+      "onde fica o botão de parada",
+      "o que faz o botão de emergência"
+    ],
+    "resposta": "É o botão vermelho localizado no canto superior direito de todas as telas do sistema. Ele serve para travar completamente a operação da esteira em caso de risco, falha técnica, ou qualquer situação que exija parada imediata."
+  },
+  {
+    "id": 402,
+    "pergunta": "O que acontece quando a emergência é ativada?",
+    "perguntas_alternativas": [
+      "o que muda na tela quando aciono a emergência",
+      "quais os efeitos de apertar o botão vermelho",
+      "o que trava quando ativo a parada"
+    ],
+    "resposta": "O sistema zera a velocidade da esteira imediatamente (envia comando de 0.00 via MQTT), trava o controle deslizante de velocidade, mantém o slider de temperatura travado, muda o LED de emergência para vermelho piscante, registra um log crítico no servidor e bloqueia qualquer novo comando de movimento até ser desbloqueado."
+  },
+  {
+    "id": 403,
+    "pergunta": "Como destravar o sistema após uma emergência?",
+    "perguntas_alternativas": [
+      "como eu desbloqueio depois da emergência",
+      "o botão ficou amarelo, como eu volto ao normal",
+      "como eu libero a esteira de novo"
+    ],
+    "resposta": "Depois de garantir que a máquina está segura, clique no mesmo botão (que agora aparece amarelo, escrito 'SISTEMA TRAVADO / DESBLOQUEAR') no canto superior direito. Isso libera os controles da esteira novamente para operação normal."
+  },
+  {
+    "id": 404,
+    "pergunta": "A emergência desliga o Raspberry Pi ou o site?",
+    "perguntas_alternativas": [
+      "o site fica fora do ar durante a emergência?",
+      "o raspberry desliga quando aciono a emergência",
+      "eu perco acesso ao painel na emergência?"
+    ],
+    "resposta": "Não. A parada de emergência é uma trava lógica, aplicada apenas ao movimento da esteira. O servidor, a rede Wi-Fi e o painel web continuam funcionando normalmente, para que você possa monitorar a situação e desbloquear o sistema quando for seguro."
+  },
+  {
+    "id": 405,
+    "pergunta": "Posso mudar a velocidade durante a emergência?",
+    "perguntas_alternativas": [
+      "o slider funciona durante a parada de emergência",
+      "consigo mexer na esteira travada",
+      "o controle fica bloqueado mesmo?"
+    ],
+    "resposta": "Não. Enquanto o sistema estiver em estado de emergência, o controle deslizante de velocidade fica desabilitado e o visor central mostra 'ERR' no lugar da porcentagem."
+  },
+  {
+    "id": 406,
+    "pergunta": "O botão de emergência funciona em todas as páginas do site?",
+    "perguntas_alternativas": [
+      "o botão vermelho aparece em toda tela?",
+      "preciso estar na tela de operação pra acionar a emergência?"
+    ],
+    "resposta": "Sim. O botão de Parada de Emergência aparece fixo no cabeçalho de todas as páginas do sistema (Operação, Produção, Relatórios, Chat, Usuários, Configuração), permitindo travar a esteira de qualquer lugar do site."
+  },
+  {
+    "id": 407,
+    "pergunta": "O sistema sabe que a esteira parou mesmo, ou só o site acha que parou?",
+    "perguntas_alternativas": [
+      "e se o comando de emergência não chegar no motor?",
+      "como o site confirma que o motor realmente parou"
+    ],
+    "resposta": "Quando a emergência é ativada, o site envia o comando de velocidade 0.00 via MQTT para o ESP32, que efetivamente corta o PWM dos motores. O ESP32 também publica de volta a velocidade atual, então o painel reflete o estado real informado pelo hardware, não apenas uma suposição da tela."
+  }
+]

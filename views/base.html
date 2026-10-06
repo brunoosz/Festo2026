@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Dark Coders - FIAP</title>
+    <script src="/tailwind.js"></script>
+    <style>
+        .range-slider { -webkit-appearance: none; width: 100%; height: 10px; border-radius: 5px; background: #cbd5e1; outline: none; touch-action: none; }
+        .range-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #0284c7; cursor: pointer; border: 3px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+        .range-slider::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: #0284c7; cursor: pointer; border: 3px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+        .card-painel { background-color: white; border: 2px solid #1e293b; border-radius: 0.75rem; padding: 1rem; }
+        .titulo-painel { font-size: 0.875rem; text-transform: uppercase; color: #1e293b; font-weight: normal; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        html.dark { filter: invert(1) hue-rotate(180deg); background-color: #111; }
+        html.dark img, html.dark .manter-cor { filter: invert(1) hue-rotate(180deg); }
+        @media (max-width: 640px) { .card-painel { padding: 0.85rem; border-radius: 0.65rem; } .titulo-painel { font-size: 0.7rem; margin-bottom: 0.6rem; padding-bottom: 0.4rem; } }
+        input, select, textarea { font-size: 16px; }
+        @media (min-width: 640px) { input, select, textarea { font-size: 14px; } }
+        .leitor-tela-armado { outline: 3px solid #f59e0b !important; outline-offset: 2px; }
+        .altura-tela-segura { height: 100vh; height: 100dvh; }
+        .sidebar-recolhida-desktop { display: none !important; }
+        #tutorial-overlay { z-index: 999999 !important; }
+        #tutorial-borda-ativa { position: fixed; inset: 0; z-index: 999990; pointer-events: none; border: 4px solid #3b82f6; box-shadow: inset 0 0 35px rgba(59, 130, 246, 0.55), inset 0 0 8px rgba(59, 130, 246, 0.9), 0 0 20px rgba(59, 130, 246, 0.5); animation: pulso-borda-tutorial 2s ease-in-out infinite; }
+        @keyframes pulso-borda-tutorial { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+        .tutorial-dim-retangulo { position: fixed; z-index: 999980; background: rgba(5, 10, 20, 0.68); pointer-events: none; }
+        #tutorial-quadro-destaque { position: fixed; z-index: 999986; pointer-events: none; border: 3px solid #3b82f6; border-radius: 14px; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.35), 0 0 30px 10px rgba(59, 130, 246, 0.6); transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease; animation: pulso-quadro-tutorial 1.4s ease-in-out infinite; }
+        @keyframes pulso-quadro-tutorial { 0%, 100% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.35), 0 0 30px 10px rgba(59, 130, 246, 0.6); } 50% { box-shadow: 0 0 0 6px rgba(96, 165, 250, 0.5), 0 0 45px 16px rgba(59, 130, 246, 0.8); } }
+    </style>
+    <script>
+        if (localStorage.getItem('tema_flowpack') === 'escuro') document.documentElement.classList.add('dark');
+        if (window.innerWidth >= 768 && localStorage.getItem('sidebar_recolhida_pc') === '1') document.documentElement.classList.add('preparar-sidebar-recolhida');
+    </script>
+</head>
+<body class="altura-tela-segura bg-[#f0f4f8] text-gray-800 font-sans flex overflow-hidden overscroll-none">
+
+    <div id="barra-carregamento" class="hidden fixed top-0 left-0 right-0 h-1 bg-blue-500 z-[60]"></div>
+    <div id="overlay-sidebar" class="hidden fixed inset-0 bg-black/50 backdrop-blur-[1px] z-40 md:hidden transition-opacity"></div>
+
+    <aside id="sidebar-mobile" class="w-72 max-w-[85vw] bg-white border-r border-gray-300 flex flex-col justify-between fixed md:static inset-y-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+        <div class="overflow-y-auto">
+            <div class="p-5 sm:p-6 flex flex-col items-center border-b border-gray-200 relative">
+                <button id="btn-fechar-sidebar" aria-label="Fechar menu" class="md:hidden absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <div class="flex items-center justify-center mb-5 w-full">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo Dark Coders" class="h-14 sm:h-16 w-auto object-contain">
+                </div>
+                <div class="flex items-center gap-3 w-full">
+                    <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-gray-800 uppercase truncate">{{ usuarioLogado | default('admin') }}</p>
+                        <p class="text-xs text-gray-500">{{ nomeNivelUsuario | default('Operário') }}</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="p-3 sm:p-4 space-y-1">
+                <a href="/dashboard" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-operacao">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V16zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V16z"></path></svg>
+                    Operação
+                </a>
+                <a href="/dispenser" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-dispenser">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-5.5 8v6l-5 2v-8z"/></svg>
+                    Dispenser
+                </a>
+                <a href="/separador" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-separador">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6l4-6h6M10 12l4 6h6"/></svg>
+                    Separador
+                </a>
+                <a href="/receitas" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-receitas">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="16" r="3"/></svg>
+                    Receitas
+                </a>
+                <a href="/graficos" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-producao">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Produção
+                </a>
+                <a href="/relatorios" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-relatorios">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Relatórios
+                </a>
+                <a href="/visao" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-visao">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    Visão Computacional
+                </a>
+                <a href="/chat" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-chat">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h.01M15 9h.01"></path></svg>
+                    Dark Coders AI
+                </a>
+                <a href="/logs" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-logs">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M4 17h16a2 2 0 002-2V5a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    Logs ao Vivo
+                    <span id="badge-notificacoes-menu" class="hidden ml-auto min-w-[26px] h-[26px] px-1.5 bg-blue-600 text-white text-[13px] font-black rounded-full flex items-center justify-center shadow-lg animate-pulse">0</span>
+                </a>
+                {% if isAdmin %}
+                <a href="/controle" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-controle">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"></path></svg>
+                    Painel de Controle
+                </a>
+                {% endif %}
+                {% if isAdmin %}
+                <a href="/sistema" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-sistema">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+                    Status do Sistema
+                </a>
+                {% endif %}
+                {% if isAdmin %}
+                <a href="/usuarios" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-usuarios">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-3.13a4 4 0 100-8 4 4 0 000 8zm6 3c1.657 0 3 1.567 3 3.5S22.657 20 21 20m-9-7c1.657 0 3-1.567 3-3.5S13.657 6 12 6s-3 1.567-3 3.5S10.343 13 12 13z"></path></svg>
+                    Usuários
+                </a>
+                {% endif %}
+                <a href="/configuracoes" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-configuracoes">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Configuração
+                </a>
+            </nav>
+        </div>
+        <div class="p-3 sm:p-4 border-t border-gray-100">
+            <button type="button" data-abrir-manuais class="w-full flex items-center justify-center gap-2 mb-2 bg-blue-50 border border-blue-100 hover:bg-blue-100 active:bg-blue-200 text-blue-700 py-3 rounded-lg text-xs font-bold transition uppercase tracking-wider cursor-pointer shadow-sm">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                Manuais
+            </button>
+            <a href="/logout" class="flex items-center justify-center gap-2 bg-[#f8fafc] border border-gray-200 hover:bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-lg text-xs font-bold transition uppercase tracking-wider cursor-pointer shadow-sm">
+                Sair do Sistema
+            </a>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header class="bg-white px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-sm z-10 border-b border-gray-200 gap-2 shrink-0">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+                <button id="btn-hamburguer" aria-label="Abrir ou recolher menu" class="relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-700 transition cursor-pointer shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    <span id="badge-notificacoes-hamburguer" class="hidden absolute -top-1.5 -right-1.5 min-w-[24px] h-[24px] px-1.5 bg-blue-600 text-white text-[12px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse"></span>
+                </button>
+                <div class="hidden md:block min-w-0">
+                    <h1 class="text-xl font-bold text-gray-800 tracking-wide flex items-center flex-wrap">
+                        Dark Coders <span class="text-gray-400 font-medium mx-2 text-lg">x</span> <span class="text-[#e2005a] font-black tracking-widest text-xl manter-cor">FIAP</span> <span class="text-gray-400 font-medium mx-2 text-lg">x</span> <span class="text-[#00A0E3] font-black tracking-widest text-xl manter-cor">FESTO</span>
+                    </h1>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest">Sistema de Controle</p>
+                </div>
+                <h1 class="md:hidden text-sm font-black text-gray-800 tracking-wide truncate">Dark Coders</h1>
+            </div>
+            <div class="flex items-center gap-1.5 sm:gap-4 shrink-0">
+                <button type="button" data-abrir-manuais title="Manuais (PDF)" class="hidden sm:flex w-9 h-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:text-blue-600 hover:border-blue-300 transition cursor-pointer shadow-sm">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </button>
+                <div class="text-base sm:text-2xl font-light text-gray-800 px-0.5 sm:px-4" id="relogio-topo">--:--</div>
+                <div class="hidden sm:flex items-center gap-2 border border-gray-200 px-4 py-2 rounded-lg bg-white shadow-sm">
+                    <svg class="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    <div class="flex flex-col leading-none">
+                        <span class="text-[10px] font-bold text-gray-800">RASPBERRY</span>
+                        <span id="pi-texto" class="text-[9px] text-green-600 font-bold uppercase">ONLINE (Green)</span>
+                    </div>
+                </div>
+                <span id="pi-dot-mobile" class="sm:hidden w-2.5 h-2.5 rounded-full bg-green-500 shrink-0"></span>
+                <button id="btn-emergencia-global" class="bg-[#ff0000] hover:bg-[#cc0000] active:bg-[#aa0000] text-white font-bold px-3 sm:px-6 py-2.5 sm:py-2 rounded-lg border-2 border-[#990000] shadow-md flex items-center gap-2 transition cursor-pointer manter-cor shrink-0">
+                    <span id="icone-emergencia" class="bg-[#990000] text-white rounded-full w-5 h-5 flex items-center justify-center border border-[#ff6666] shrink-0">
+                        <svg id="svg-icone-emergencia" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </span>
+                    <div class="hidden sm:flex flex-col text-left leading-none">
+                        <span id="texto-parada" class="text-[10px] text-red-100">PARADA DE</span>
+                        <span id="texto-emergencia" class="text-sm tracking-wide">EMERGÊNCIA</span>
+                    </div>
+                </button>
+            </div>
+        </header>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            const globalSocket = io();
+            const relogio = document.getElementById('relogio-topo');
+            const piTexto = document.getElementById('pi-texto');
+            const piDotMobile = document.getElementById('pi-dot-mobile');
+
+            setInterval(() => {
+                const agora = new Date();
+                relogio.innerText = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+            }, 1000);
+
+            globalSocket.on('connect', () => {
+                piTexto.innerText = 'ONLINE (Green)';
+                piTexto.className = 'text-[9px] text-green-600 font-bold uppercase';
+                if (piDotMobile) piDotMobile.className = 'sm:hidden w-2.5 h-2.5 rounded-full bg-green-500 shrink-0';
+            });
+            globalSocket.on('disconnect', () => {
+                piTexto.innerText = 'OFFLINE (Red)';
+                piTexto.className = 'text-[9px] text-red-600 font-bold uppercase';
+                if (piDotMobile) piDotMobile.className = 'sm:hidden w-2.5 h-2.5 rounded-full bg-red-500 shrink-0';
+            });
+
+            window.__tutorialAtivo = false;
+            const EVENTOS_MAQUINA_BLOQUEADOS_NO_TUTORIAL = ['comando_esteira', 'comando_selagem', 'comando_selagem2', 'comando_sentido', 'comando_painel'];
+            const emitirOriginalSocket = globalSocket.emit.bind(globalSocket);
+            globalSocket.emit = function(nomeEvento, ...resto) {
+                if (window.__tutorialAtivo && EVENTOS_MAQUINA_BLOQUEADOS_NO_TUTORIAL.includes(nomeEvento)) {
+                    console.log('[Tutorial] Modo de teste — comando NÃO enviado à máquina:', nomeEvento, resto);
+                    return globalSocket;
+                }
+                return emitirOriginalSocket(nomeEvento, ...resto);
+            };
+
+            const btnEmergencia = document.getElementById('btn-emergencia-global');
+            const iconeEmergencia = document.getElementById('icone-emergencia');
+            const textoParada = document.getElementById('texto-parada');
+            const textoEmergencia = document.getElementById('texto-emergencia');
+            let emergenciaAtivada = sessionStorage.getItem('estado_emergencia') === 'true';
+
+            function adicionarLogInvisivel(mensagem, tipo) {
+                const hora = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                globalSocket.emit('novo_log', { hora: hora, texto: mensagem, tipo: tipo || 'sistema' });
+            }
+
+            function atualizarVisualBotao() {
+                if (emergenciaAtivada) {
+                    btnEmergencia.className = 'bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white font-bold px-3 sm:px-6 py-2.5 sm:py-2 rounded-lg border-2 border-yellow-700 shadow-md flex items-center gap-2 transition cursor-pointer manter-cor shrink-0';
+                    iconeEmergencia.className = 'bg-yellow-700 text-white rounded-full w-5 h-5 flex items-center justify-center border border-yellow-300 shrink-0';
+                    iconeEmergencia.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>`;
+                    textoParada.innerText = 'SISTEMA TRAVADO'; textoParada.className = 'text-[10px] text-yellow-100';
+                    textoEmergencia.innerText = 'DESBLOQUEAR';
+                } else {
+                    btnEmergencia.className = 'bg-[#ff0000] hover:bg-[#cc0000] active:bg-[#aa0000] text-white font-bold px-3 sm:px-6 py-2.5 sm:py-2 rounded-lg border-2 border-[#990000] shadow-md flex items-center gap-2 transition cursor-pointer manter-cor shrink-0';
+                    iconeEmergencia.className = 'bg-[#990000] text-white rounded-full w-5 h-5 flex items-center justify-center border border-[#ff6666] shrink-0';
+                    iconeEmergencia.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                    textoParada.innerText = 'PARADA DE'; textoParada.className = 'text-[10px] text-red-100';
+                    textoEmergencia.innerText = 'EMERGÊNCIA';
+                }
+            }
+            atualizarVisualBotao();
+
+            btnEmergencia.addEventListener('click', () => {
+                emergenciaAtivada = !emergenciaAtivada;
+                sessionStorage.setItem('estado_emergencia', emergenciaAtivada);
+                if (emergenciaAtivada) {
+                    globalSocket.emit('comando_esteira', { acao: 'emergencia' });
+                    adicionarLogInvisivel('SISTEMA DE EMERGÊNCIA ATIVADO. Velocidade zerada.', 'emergencia');
+                } else {
+                    adicionarLogInvisivel('SISTEMA DESBLOQUEADO. Pronto para operação.', 'emergencia');
+                }
+                atualizarVisualBotao();
+            });
+
+            const conteudoPagina = document.getElementById('conteudo-pagina');
+            const barraCarregamento = document.getElementById('barra-carregamento');
+            function mostrarBarraCarregamento() { if (barraCarregamento) barraCarregamento.classList.remove('hidden'); }
+            function esconderBarraCarregamento() { if (barraCarregamento) barraCarregamento.classList.add('hidden'); }
+
+            function atualizarMenuAtivo(caminho) {
+                document.querySelectorAll('[data-spa-link]').forEach(link => {
+                    link.className = "flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600";
+                });
+                let idAlvo = null;
+                if (caminho === '/dashboard') idAlvo = 'link-operacao';
+                else if (caminho === '/graficos') idAlvo = 'link-producao';
+                else if (caminho === '/relatorios') idAlvo = 'link-relatorios';
+                else if (caminho === '/visao') idAlvo = 'link-visao';
+                else if (caminho === '/chat') idAlvo = 'link-chat';
+                else if (caminho === '/logs') idAlvo = 'link-logs';
+                else if (caminho === '/dispenser') idAlvo = 'link-dispenser';
+                else if (caminho === '/receitas') idAlvo = 'link-receitas';
+                else if (caminho === '/modelo3d') idAlvo = 'link-modelo3d';
+                else if (caminho === '/separador') idAlvo = 'link-separador';
+                else if (caminho === '/sistema') idAlvo = 'link-sistema';
+                else if (caminho === '/controle') idAlvo = 'link-controle';
+                else if (caminho === '/usuarios') idAlvo = 'link-usuarios';
+                else if (caminho === '/configuracoes') idAlvo = 'link-configuracoes';
+                if (idAlvo) {
+                    const el = document.getElementById(idAlvo);
+                    if (el) el.className = "flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition bg-[#e0f2fe] text-[#0369a1] border-l-4 border-[#0284c7]";
+                }
+            }
+
+            function extrairConteudoDePagina(htmlTexto) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlTexto, 'text/html');
+                return { elemento: doc.getElementById('conteudo-pagina'), titulo: doc.querySelector('title') ? doc.querySelector('title').textContent : document.title };
+            }
+
+            function executarScriptsEmOrdem(scripts) {
+                return scripts.reduce((promessaAnterior, scriptAntigo) => {
+                    return promessaAnterior.then(() => new Promise((resolve) => {
+                        const scriptNovo = document.createElement('script');
+                        [...scriptAntigo.attributes].forEach(attr => scriptNovo.setAttribute(attr.name, attr.value));
+                        if (scriptAntigo.src) { scriptNovo.onload = () => resolve(); scriptNovo.onerror = () => resolve(); conteudoPagina.appendChild(scriptNovo); }
+                        else { scriptNovo.textContent = scriptAntigo.textContent; conteudoPagina.appendChild(scriptNovo); resolve(); }
+                    }));
+                }, Promise.resolve());
+            }
+
+            let paginaAtualParaNotificacoes = window.location.pathname;
+
+            async function navegarPara(url, atualizarHistorico = true) {
+                if (typeof window.__cleanupPagina === 'function') { try { window.__cleanupPagina(); } catch (e) { console.error('Erro ao limpar página anterior:', e); } window.__cleanupPagina = null; }
+                mostrarBarraCarregamento();
+                try {
+                    const resposta = await fetch(url);
+                    if (!resposta.ok) { window.location.href = url; return; }
+                    const texto = await resposta.text();
+                    const { elemento, titulo } = extrairConteudoDePagina(texto);
+                    if (!elemento) { window.location.href = url; return; }
+                    const scripts = [...elemento.querySelectorAll('script')];
+                    scripts.forEach(s => s.remove());
+                    conteudoPagina.innerHTML = elemento.innerHTML;
+                    document.title = titulo;
+                    await executarScriptsEmOrdem(scripts);
+                    if (atualizarHistorico) history.pushState({ url }, '', url);
+                    const caminhoNovo = new URL(url, window.location.origin).pathname;
+                    atualizarMenuAtivo(caminhoNovo);
+                    fecharMenuMobile();
+                    conteudoPagina.scrollTop = 0;
+                    paginaAtualParaNotificacoes = caminhoNovo;
+                    zerarNotificacoesSeNaOperacao();
+                } catch (erro) { console.error('Erro na navegação, recarregando a página normalmente:', erro); window.location.href = url; }
+                finally { esconderBarraCarregamento(); }
+            }
+
+            let acessibilidadeAtiva = window.__acessibilidadeAtivaInicial === true;
+            let elementoArmado = null;
+            let timeoutDesarmar = null;
+
+            function falarTexto(texto) {
+                if (!texto) return;
+                try {
+                    window.speechSynthesis.cancel();
+                    const fala = new SpeechSynthesisUtterance(texto.trim().slice(0, 300));
+                    fala.lang = 'pt-BR'; fala.rate = 1; fala.pitch = 1; fala.volume = 1;
+                    window.speechSynthesis.speak(fala);
+                } catch (e) { console.warn('Leitor de tela indisponível neste dispositivo.'); }
+            }
+
+            function extrairTextoParaLeitura(elemento) {
+                return (elemento.getAttribute('aria-label') || elemento.getAttribute('title') || (elemento.innerText || '').trim() || (elemento.textContent || '').trim() || elemento.getAttribute('alt') || elemento.getAttribute('placeholder') || '');
+            }
+
+            function desarmarElemento() { if (elementoArmado) elementoArmado.classList.remove('leitor-tela-armado'); elementoArmado = null; clearTimeout(timeoutDesarmar); }
+
+            document.addEventListener('click', function(e) {
+                if (!acessibilidadeAtiva || !e.isTrusted) return;
+                const alvo = e.target.closest('button, a[href], [role="button"], [data-spa-link]');
+                if (!alvo) return;
+                if (alvo.hasAttribute('data-tutorial-ignorar-leitor') || alvo.closest('#tutorial-overlay')) return;
+                if (elementoArmado === alvo) { desarmarElemento(); return; }
+                e.preventDefault(); e.stopPropagation();
+                desarmarElemento();
+                const texto = extrairTextoParaLeitura(alvo);
+                falarTexto(texto || 'Elemento sem descrição');
+                elementoArmado = alvo;
+                alvo.classList.add('leitor-tela-armado');
+                timeoutDesarmar = setTimeout(desarmarElemento, 4000);
+            }, true);
+
+            document.addEventListener('focusin', function(e) {
+                if (!acessibilidadeAtiva) return;
+                const el = e.target;
+                if (el.matches && el.matches('input, textarea, select')) {
+                    const texto = el.getAttribute('aria-label') || el.placeholder || el.name || 'Campo de preenchimento';
+                    falarTexto(texto);
+                }
+            });
+
+            window.definirAcessibilidade = function(ativo) { acessibilidadeAtiva = !!ativo; desarmarElemento(); if (!acessibilidadeAtiva) window.speechSynthesis.cancel(); };
+
+            // NOVO: alternar tema por comando (voz ou texto) — também
+            // reaproveitável em qualquer lugar do site
+            window.iaAlternarTema = function(modo) {
+                let atual = localStorage.getItem('tema_flowpack');
+                let novo;
+                if (modo === 'escuro') novo = 'escuro';
+                else if (modo === 'claro') novo = 'claro';
+                else novo = atual === 'escuro' ? 'claro' : 'escuro';
+                localStorage.setItem('tema_flowpack', novo);
+                if (novo === 'escuro') document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+                return novo;
+            };
+
+            document.addEventListener('click', (e) => {
+                const link = e.target.closest('[data-spa-link]');
+                if (!link) return;
+                const url = link.getAttribute('href');
+                if (!url || url.startsWith('http') || link.target === '_blank') return;
+                e.preventDefault();
+                if (window.location.pathname === url) { fecharMenuMobile(); return; }
+                navegarPara(url);
+            });
+
+            window.addEventListener('popstate', () => { navegarPara(window.location.pathname, false); });
+            atualizarMenuAtivo(window.location.pathname);
+
+            const btnHamburguer = document.getElementById('btn-hamburguer');
+            const btnFecharSidebar = document.getElementById('btn-fechar-sidebar');
+            const sidebarMobile = document.getElementById('sidebar-mobile');
+            const overlaySidebar = document.getElementById('overlay-sidebar');
+
+            function abrirMenuMobile() { sidebarMobile.classList.remove('-translate-x-full'); overlaySidebar.classList.remove('hidden'); document.body.style.overflow = 'hidden'; atualizarBadgeNotificacoes(); }
+            function fecharMenuMobile() {
+                if (window.innerWidth < 768) { sidebarMobile.classList.add('-translate-x-full'); overlaySidebar.classList.add('hidden'); document.body.style.overflow = ''; }
+                atualizarBadgeNotificacoes();
+            }
+
+            function aplicarEstadoRecolhidoDesktop(recolhido) {
+                if (recolhido) sidebarMobile.classList.add('sidebar-recolhida-desktop');
+                else sidebarMobile.classList.remove('sidebar-recolhida-desktop');
+                localStorage.setItem('sidebar_recolhida_pc', recolhido ? '1' : '0');
+                atualizarBadgeNotificacoes();
+            }
+
+            if (window.innerWidth >= 768 && localStorage.getItem('sidebar_recolhida_pc') === '1') sidebarMobile.classList.add('sidebar-recolhida-desktop');
+
+            function handlerHamburguer() {
+                if (window.innerWidth >= 768) { const estaRecolhido = sidebarMobile.classList.contains('sidebar-recolhida-desktop'); aplicarEstadoRecolhidoDesktop(!estaRecolhido); }
+                else { abrirMenuMobile(); }
+            }
+            if (btnHamburguer) btnHamburguer.addEventListener('click', handlerHamburguer);
+            if (btnFecharSidebar) btnFecharSidebar.addEventListener('click', fecharMenuMobile);
+            if (overlaySidebar) overlaySidebar.addEventListener('click', fecharMenuMobile);
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 768) { overlaySidebar.classList.add('hidden'); document.body.style.overflow = ''; sidebarMobile.classList.remove('-translate-x-full'); }
+                atualizarBadgeNotificacoes();
+            });
+
+            function sidebarEstaVisivelAgora() {
+                if (window.innerWidth < 768) return !sidebarMobile.classList.contains('-translate-x-full');
+                return !sidebarMobile.classList.contains('sidebar-recolhida-desktop');
+            }
+
+            const badgeNotificacoes = document.getElementById('badge-notificacoes-hamburguer');
+            const badgeNotificacoesMenu = document.getElementById('badge-notificacoes-menu');
+            let contadorNotificacoes = parseInt(sessionStorage.getItem('notificacoes_nao_lidas') || '0', 10);
+
+            function atualizarBadgeNotificacoes() {
+                const texto = contadorNotificacoes > 99 ? '99+' : contadorNotificacoes;
+                if (badgeNotificacoesMenu) {
+                    if (contadorNotificacoes > 0) { badgeNotificacoesMenu.textContent = texto; badgeNotificacoesMenu.classList.remove('hidden'); }
+                    else badgeNotificacoesMenu.classList.add('hidden');
+                }
+                if (badgeNotificacoes) {
+                    if (contadorNotificacoes > 0 && !sidebarEstaVisivelAgora()) { badgeNotificacoes.textContent = texto; badgeNotificacoes.classList.remove('hidden'); }
+                    else badgeNotificacoes.classList.add('hidden');
+                }
+            }
+
+            function zerarNotificacoesSeNaOperacao() {
+                if (paginaAtualParaNotificacoes === '/logs') {
+                    contadorNotificacoes = 0;
+                    sessionStorage.setItem('notificacoes_nao_lidas', '0');
+                    atualizarBadgeNotificacoes();
+                }
+            }
+
+            const CHAVE_BUFFER_LOGS = 'logs_buffer_sessao';
+            function adicionarAoBufferDeLogs(log) {
+                let buffer = JSON.parse(sessionStorage.getItem(CHAVE_BUFFER_LOGS) || '[]');
+                buffer.push(log);
+                if (buffer.length > 100) buffer.shift();
+                sessionStorage.setItem(CHAVE_BUFFER_LOGS, JSON.stringify(buffer));
+            }
+
+            // Emergencia acionada fora do site (ex: pela Alexa): trava a tela
+            // de quem estiver com o site aberto, igual apertar o botao
+            globalSocket.on('emergencia_remota', () => {
+                if (!emergenciaAtivada) btnEmergencia.click();
+            });
+
+            globalSocket.on('novo_log_servidor', (log) => {
+                adicionarAoBufferDeLogs(log);
+                if (paginaAtualParaNotificacoes !== '/logs') {
+                    contadorNotificacoes++;
+                    sessionStorage.setItem('notificacoes_nao_lidas', contadorNotificacoes.toString());
+                    atualizarBadgeNotificacoes();
+                }
+            });
+
+            atualizarBadgeNotificacoes();
+            zerarNotificacoesSeNaOperacao();
+        </script>
+
+        <script>
+            window.__acessibilidadeAtivaInicial = {{ 'true' if acessibilidadeAtiva else 'false' }};
+            window.__isAdminInicial = {{ 'true' if isAdmin else 'false' }};
+            window.__nivelUsuarioInicial = {{ nivelUsuario | default(3) }};
+            window.__tutorialObrigatorioInicial = {{ 'true' if tutorialObrigatorio else 'false' }};
+            if (typeof acessibilidadeAtiva !== 'undefined') acessibilidadeAtiva = window.__acessibilidadeAtivaInicial === true;
+        </script>
+
+        <div id="conteudo-pagina" class="p-3 sm:p-6 flex-1 bg-[#f0f4f8] min-h-0 overflow-y-auto overflow-x-hidden" style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch;">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    
+<!-- MANUAIS (botao no menu e no topo) -->
+<div id="modal-manuais" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[999990] p-3">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-1">
+            <h3 class="font-black text-slate-800 text-lg">Manuais</h3>
+            <button id="manuais-fechar" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer" aria-label="Fechar">✕</button>
+        </div>
+        <p class="text-xs text-slate-500 mb-4">Baixe o PDF para ler no celular ou no computador.</p>
+        <div id="manuais-lista" class="space-y-2"><p class="text-sm text-slate-400">Carregando...</p></div>
+    </div>
+</div>
+<script>
+(function () {
+    const modal = document.getElementById('modal-manuais');
+    const lista = document.getElementById('manuais-lista');
+    function formatarTamanho(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+    async function abrir() {
+        const overlay = document.getElementById('overlay-sidebar');
+        if (overlay && !overlay.classList.contains('hidden') && window.innerWidth < 768) overlay.click();
+        modal.classList.remove('hidden');
+        lista.innerHTML = '<p class="text-sm text-slate-400">Carregando...</p>';
+        try {
+            const r = await fetch('/api/manuais');
+            const manuais = await r.json();
+            lista.innerHTML = '';
+            manuais.forEach(m => {
+                const linha = document.createElement('div');
+                linha.className = 'flex items-center gap-3 border border-slate-200 rounded-xl p-3';
+                const botao = m.disponivel
+                    ? '<a href="/manuais/baixar/' + m.id + '" class="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg">Baixar PDF</a>'
+                    : '<span class="shrink-0 bg-slate-100 text-slate-400 text-xs font-bold px-3 py-2 rounded-lg">Em breve</span>';
+                linha.innerHTML = '<div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-[10px] font-black shrink-0">PDF</div>' +
+                    '<div class="min-w-0 flex-1"><div class="font-bold text-sm text-slate-800">' + m.titulo + '</div><div class="text-[11px] text-slate-400">' + m.descricao + (m.disponivel ? ' · ' + formatarTamanho(m.tamanho) : '') + '</div></div>' + botao;
+                lista.appendChild(linha);
+            });
+        } catch (e) {
+            lista.innerHTML = '<p class="text-sm text-red-500">Não foi possível carregar a lista de manuais.</p>';
+        }
+    }
+    function fechar() { modal.classList.add('hidden'); }
+    window.abrirManuais = abrir;
+    document.querySelectorAll('[data-abrir-manuais]').forEach(b => b.addEventListener('click', abrir));
+    document.getElementById('manuais-fechar').addEventListener('click', fechar);
+    modal.addEventListener('click', (e) => { if (e.target === modal) fechar(); });
+})();
+</script>
+<div id="tutorial-borda-ativa" class="hidden"></div>
+    <div id="tutorial-dim-top" class="tutorial-dim-retangulo hidden"></div>
+    <div id="tutorial-dim-bottom" class="tutorial-dim-retangulo hidden"></div>
+    <div id="tutorial-dim-left" class="tutorial-dim-retangulo hidden"></div>
+    <div id="tutorial-dim-right" class="tutorial-dim-retangulo hidden"></div>
+    <div id="tutorial-quadro-destaque" class="hidden"></div>
+
+    <div id="ia-rosto-flutuante" class="hidden fixed bottom-5 right-5 z-[999995] w-16 h-16 rounded-full bg-gradient-to-br from-sky-500 to-blue-700 shadow-[0_0_25px_rgba(56,189,248,0.7)] flex items-center justify-center border-2 border-sky-300">
+        <div class="flex gap-2.5">
+            <span class="w-2 h-2 rounded-full bg-white"></span>
+            <span class="w-2 h-2 rounded-full bg-white"></span>
+        </div>
+    </div>
+
+    <div id="tutorial-overlay" class="hidden fixed inset-0 pointer-events-none flex items-end justify-center sm:justify-end p-3 sm:p-6">
+        <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl border-2 border-blue-500 p-4 sm:p-5 pointer-events-auto">
+            <div class="flex items-start gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-[10px] font-bold text-blue-500 uppercase tracking-wider" id="tutorial-progresso">Passo 1</p>
+                    <h4 class="font-black text-slate-800 text-sm" id="tutorial-titulo">Título</h4>
+                </div>
+                <button id="btn-fechar-tutorial" data-tutorial-ignorar-leitor aria-label="Fechar tutorial" class="text-slate-400 hover:text-slate-600 cursor-pointer shrink-0 p-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <p class="text-sm text-slate-600 mb-4" id="tutorial-texto">Texto explicativo.</p>
+            <div class="flex gap-2">
+                <button id="btn-tutorial-anterior" data-tutorial-ignorar-leitor class="px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition cursor-pointer disabled:opacity-40">Anterior</button>
+                <button id="btn-tutorial-proximo" data-tutorial-ignorar-leitor class="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition cursor-pointer">Próximo</button>
+            </div>
+            <button id="btn-tutorial-pular" data-tutorial-ignorar-leitor class="w-full text-center text-[11px] text-slate-400 hover:text-slate-600 mt-2 cursor-pointer">Pular tutorial</button>
+        </div>
+    </div>
+
+    <script>
+        const CHAVE_TUTORIAL_ATIVO = 'tutorial_ativo';
+        const CHAVE_TUTORIAL_PASSO = 'tutorial_passo';
+
+        function construirPassosTutorial() {
+            const passos = [
+                { pagina: null, titulo: 'Bem-vindo(a) ao tour!', texto: 'Vou te mostrar as principais telas do sistema, uma por uma. Clique em Próximo quando quiser continuar.' },
+                { pagina: '/dashboard', titulo: 'Controle da Esteira', texto: 'Este card inteiro controla a VELOCIDADE da esteira em tempo real. Fique à vontade pra mexer — durante o tutorial, nada disso afeta a máquina de verdade.', alvoSeletor: '#card-controle-esteira' },
+                { pagina: '/dashboard', titulo: 'Selagem 1', texto: 'Este é o card da SELAGEM 1, com seu próprio controle de temperatura, independente da Selagem 2.', alvoSeletor: '#card-selagem1' },
+                { pagina: '/dashboard', titulo: 'Selagem 2', texto: 'E este é o card da SELAGEM 2 — totalmente independente da Selagem 1, com seu próprio sensor e controle.', alvoSeletor: '#card-selagem2' },
+                { pagina: '/dashboard', titulo: 'Parada de Emergência', texto: 'Este botão vermelho, sempre visível no topo, para tudo instantaneamente. Tudo que acontece por aqui fica registrado em tempo real na tela de Logs ao Vivo, e também disponível a qualquer momento em Relatórios.', alvoSeletor: '#btn-emergencia-global' },
+                { pagina: '/graficos', titulo: 'Produção em Gráficos', texto: 'Aqui você acompanha a produção em GRÁFICOS, por dia, semana, mês ou ano.', alvoSeletor: '#card-grafico-producao' },
+                { pagina: '/relatorios', titulo: 'Histórico de Eventos', texto: 'Todos os eventos do sistema ficam registrados aqui, incluindo quem fez login e a que horas.' },
+                { pagina: '/relatorios', titulo: 'Exportar em PDF', texto: 'Este botão gera um PDF com o relatório completo do dia selecionado, pronto pra imprimir ou arquivar.', alvoSeletor: '#btn-baixar-pdf' },
+                { pagina: '/visao', titulo: 'Visão Computacional', texto: 'A câmera identifica os produtos passando pela esteira usando inteligência artificial, e conta cada um automaticamente.' },
+                { pagina: '/chat', titulo: 'Dark Coders AI', texto: 'Esta sou eu! Pode me perguntar qualquer coisa sobre o projeto ou o funcionamento do sistema, a qualquer momento.' },
+                { pagina: '/logs', titulo: 'Logs ao Vivo', texto: 'Aqui você vê, em tempo real, cada login, mudança de velocidade, ajuste de temperatura e emergência — cada tipo com uma cor própria.' }
+            ];
+            if (window.__isAdminInicial) passos.push({ pagina: '/usuarios', titulo: 'Usuários', texto: 'Aqui você gerencia os níveis de acesso: Dono, Administrador e Operário, cada um com suas próprias permissões.' });
+            passos.push({ pagina: '/configuracoes', titulo: 'Configurações', texto: 'Por fim, aqui você pode trocar sua senha, ativar o leitor de tela, e ajustar outras preferências.' });
+            passos.push({ pagina: null, titulo: 'Tudo pronto!', texto: 'Esse foi o tour rápido pelo sistema. Você pode reabrir este tutorial a qualquer momento, aqui no Chat.' });
+            return passos;
+        }
+
+        const overlayTutorial = document.getElementById('tutorial-overlay');
+        const bordaTutorialAtiva = document.getElementById('tutorial-borda-ativa');
+        const dimTop = document.getElementById('tutorial-dim-top');
+        const dimBottom = document.getElementById('tutorial-dim-bottom');
+        const dimLeft = document.getElementById('tutorial-dim-left');
+        const dimRight = document.getElementById('tutorial-dim-right');
+        const quadroDestaqueTutorial = document.getElementById('tutorial-quadro-destaque');
+        const tutorialTitulo = document.getElementById('tutorial-titulo');
+        const tutorialTexto = document.getElementById('tutorial-texto');
+        const tutorialProgresso = document.getElementById('tutorial-progresso');
+        const btnTutorialAnterior = document.getElementById('btn-tutorial-anterior');
+        const btnTutorialProximo = document.getElementById('btn-tutorial-proximo');
+        const btnTutorialPular = document.getElementById('btn-tutorial-pular');
+        const btnFecharTutorial = document.getElementById('btn-fechar-tutorial');
+
+        let elementosDestacadosAtuais = [];
+        let intervaloAcompanharQuadro = null;
+
+        function esconderRetangulosDim() { [dimTop, dimBottom, dimLeft, dimRight].forEach(el => el.classList.add('hidden')); }
+
+        function reposicionarCaixaTutorial(retanguloAlvo) {
+            const overlay = overlayTutorial;
+            const alturaTela = window.innerHeight;
+            const centroVerticalAlvo = retanguloAlvo ? (retanguloAlvo.top + retanguloAlvo.bottom) / 2 : alturaTela;
+            const alvoEstaEmbaixo = centroVerticalAlvo > alturaTela / 2;
+            overlay.classList.remove('items-end', 'items-start', 'justify-center', 'justify-start', 'sm:justify-end');
+            if (alvoEstaEmbaixo) overlay.classList.add('items-start', 'justify-center', 'sm:justify-end');
+            else overlay.classList.add('items-end', 'justify-center', 'sm:justify-end');
+        }
+
+        function atualizarPosicaoQuadro() {
+            if (elementosDestacadosAtuais.length === 0) { esconderRetangulosDim(); quadroDestaqueTutorial.classList.add('hidden'); reposicionarCaixaTutorial(null); return; }
+            let top = Infinity, left = Infinity, right = -Infinity, bottom = -Infinity;
+            elementosDestacadosAtuais.forEach(el => {
+                const r = el.getBoundingClientRect();
+                top = Math.min(top, r.top); left = Math.min(left, r.left); right = Math.max(right, r.right); bottom = Math.max(bottom, r.bottom);
+            });
+            reposicionarCaixaTutorial({ top, bottom });
+            const folga = 8;
+            top -= folga; left -= folga; right += folga; bottom += folga;
+            quadroDestaqueTutorial.style.top = top + 'px'; quadroDestaqueTutorial.style.left = left + 'px';
+            quadroDestaqueTutorial.style.width = (right - left) + 'px'; quadroDestaqueTutorial.style.height = (bottom - top) + 'px';
+            quadroDestaqueTutorial.classList.remove('hidden');
+            const larguraTela = window.innerWidth, alturaTela = window.innerHeight;
+            dimTop.style.top = '0px'; dimTop.style.left = '0px'; dimTop.style.width = larguraTela + 'px'; dimTop.style.height = Math.max(0, top) + 'px';
+            dimBottom.style.top = Math.max(0, bottom) + 'px'; dimBottom.style.left = '0px'; dimBottom.style.width = larguraTela + 'px'; dimBottom.style.height = Math.max(0, alturaTela - bottom) + 'px';
+            dimLeft.style.top = Math.max(0, top) + 'px'; dimLeft.style.left = '0px'; dimLeft.style.width = Math.max(0, left) + 'px'; dimLeft.style.height = Math.max(0, bottom - top) + 'px';
+            dimRight.style.top = Math.max(0, top) + 'px'; dimRight.style.left = Math.max(0, right) + 'px'; dimRight.style.width = Math.max(0, larguraTela - right) + 'px'; dimRight.style.height = Math.max(0, bottom - top) + 'px';
+            [dimTop, dimBottom, dimLeft, dimRight].forEach(el => el.classList.remove('hidden'));
+        }
+
+        function limparDestaqueAtual() {
+            elementosDestacadosAtuais = [];
+            quadroDestaqueTutorial.classList.add('hidden');
+            esconderRetangulosDim();
+            if (intervaloAcompanharQuadro) { clearInterval(intervaloAcompanharQuadro); intervaloAcompanharQuadro = null; }
+        }
+
+        function aplicarDestaque(seletor) {
+            limparDestaqueAtual();
+            if (!seletor) return;
+            const elementos = Array.from(document.querySelectorAll(seletor));
+            if (elementos.length === 0) return;
+            elementosDestacadosAtuais = elementos;
+            elementos[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(atualizarPosicaoQuadro, 350);
+            intervaloAcompanharQuadro = setInterval(atualizarPosicaoQuadro, 200);
+        }
+
+        function salvarEstadoTutorial(ativo, passo) {
+            if (ativo) { sessionStorage.setItem(CHAVE_TUTORIAL_ATIVO, '1'); sessionStorage.setItem(CHAVE_TUTORIAL_PASSO, String(passo)); }
+            else { sessionStorage.removeItem(CHAVE_TUTORIAL_ATIVO); sessionStorage.removeItem(CHAVE_TUTORIAL_PASSO); }
+        }
+
+        function exibirPassoAtual() {
+            const passos = construirPassosTutorial();
+            const indice = parseInt(sessionStorage.getItem(CHAVE_TUTORIAL_PASSO) || '0', 10);
+            const passo = passos[indice];
+            if (!passo) { encerrarTutorial(); return; }
+            window.__tutorialAtivo = true;
+            overlayTutorial.classList.remove('hidden');
+            bordaTutorialAtiva.classList.remove('hidden');
+            tutorialTitulo.innerText = passo.titulo;
+            tutorialTexto.innerText = passo.texto;
+            tutorialProgresso.innerText = `Passo ${indice + 1} de ${passos.length}`;
+            btnTutorialAnterior.disabled = indice === 0;
+            btnTutorialProximo.innerText = (indice === passos.length - 1) ? 'Concluir' : 'Próximo';
+            aplicarDestaque(passo.alvoSeletor);
+            falarTexto(passo.titulo + '. ' + passo.texto);
+        }
+
+        function irParaPasso(novoIndice) {
+            const passos = construirPassosTutorial();
+            if (novoIndice < 0) return;
+            if (novoIndice >= passos.length) { encerrarTutorial(); return; }
+            salvarEstadoTutorial(true, novoIndice);
+            const passo = passos[novoIndice];
+            if (passo.pagina && window.location.pathname !== passo.pagina) { window.location.href = passo.pagina; return; }
+            exibirPassoAtual();
+        }
+
+        window.iniciarTutorial = function() { salvarEstadoTutorial(true, 0); irParaPasso(0); };
+
+        function marcarTutorialComoVisto() { fetch('/api/usuario/tutorial-visto', { method: 'POST' }).catch(() => {}); }
+
+        function encerrarTutorial() {
+            salvarEstadoTutorial(false, 0);
+            window.__tutorialAtivo = false;
+            overlayTutorial.classList.add('hidden');
+            bordaTutorialAtiva.classList.add('hidden');
+            limparDestaqueAtual();
+            window.speechSynthesis.cancel();
+            marcarTutorialComoVisto();
+        }
+
+        btnTutorialProximo.addEventListener('click', () => { const i = parseInt(sessionStorage.getItem(CHAVE_TUTORIAL_PASSO) || '0', 10); irParaPasso(i + 1); });
+        btnTutorialAnterior.addEventListener('click', () => { const i = parseInt(sessionStorage.getItem(CHAVE_TUTORIAL_PASSO) || '0', 10); irParaPasso(i - 1); });
+        btnTutorialPular.addEventListener('click', encerrarTutorial);
+        btnFecharTutorial.addEventListener('click', encerrarTutorial);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlayTutorial.classList.contains('hidden')) encerrarTutorial(); });
+
+        // ================================================================================
+        // NOVO: sistema de comando da IA via NAVEGAÇÃO REAL (recarrega a
+        // página de verdade) — mesma técnica que corrigiu o travamento do
+        // tutorial. Chamado por chat.html quando um comando de voz/texto
+        // precisa mudar de tela. Guarda o que fazer no sessionStorage,
+        // navega de verdade, e RETOMA aqui embaixo quando a página volta.
+        // ================================================================================
+        const rostoFlutuanteIA = document.getElementById('ia-rosto-flutuante');
+
+        window.iaExecutarComandoComNavegacao = function(destino, seletorDestaque, textoFala, tempoTotalMs, seletorClique, retomarVoz) {
+            sessionStorage.setItem('ia_cmd_ativo', '1');
+            sessionStorage.setItem('ia_cmd_seletor', seletorDestaque || '');
+            sessionStorage.setItem('ia_cmd_texto', textoFala || '');
+            sessionStorage.setItem('ia_cmd_tempo', String(tempoTotalMs || 5000));
+            sessionStorage.setItem('ia_cmd_clique', seletorClique || '');
+            if (retomarVoz) sessionStorage.setItem('ia_cmd_retomar_voz', '1');
+            window.location.href = destino;
+        };
+
+        // Ao carregar QUALQUER página (recarregamento real), verifica se
+        // havia um comando da IA pendente e retoma a partir daqui
+        (function retomarComandoIAAposNavegacao() {
+            if (sessionStorage.getItem('ia_cmd_ativo') !== '1') return;
+
+            const seletor = sessionStorage.getItem('ia_cmd_seletor') || '';
+            const texto = sessionStorage.getItem('ia_cmd_texto') || '';
+            const tempoTotal = parseInt(sessionStorage.getItem('ia_cmd_tempo') || '5000', 10);
+            const seletorClique = sessionStorage.getItem('ia_cmd_clique') || '';
+            const retomarVoz = sessionStorage.getItem('ia_cmd_retomar_voz') === '1';
+
+            sessionStorage.removeItem('ia_cmd_ativo');
+            sessionStorage.removeItem('ia_cmd_seletor');
+            sessionStorage.removeItem('ia_cmd_texto');
+            sessionStorage.removeItem('ia_cmd_tempo');
+            sessionStorage.removeItem('ia_cmd_clique');
+            sessionStorage.removeItem('ia_cmd_retomar_voz');
+
+            document.addEventListener('DOMContentLoaded', () => {
+                rostoFlutuanteIA.classList.remove('hidden');
+                bordaTutorialAtiva.classList.remove('hidden');
+
+                setTimeout(() => {
+                    if (seletor) aplicarDestaque(seletor);
+                    if (seletorClique) {
+                        const botao = document.querySelector(seletorClique);
+                        if (botao) botao.click();
+                    }
+                }, 500);
+
+                // ALTERADO: agora espera a FALA TERMINAR DE VERDADE (evento
+                // onend), em vez de um tempo fixo — corrige o áudio sendo
+                // cortado no meio quando a frase é mais longa que o previsto.
+                // Depois que termina de falar, ainda espera mais alguns
+                // segundos de "leitura" antes de voltar, dando tempo de olhar.
+                const TEMPO_LEITURA_EXTRA_MS = 4000;
+
+                function finalizarComandoENavegarDeVolta() {
+                    limparDestaqueAtual();
+                    bordaTutorialAtiva.classList.add('hidden');
+                    rostoFlutuanteIA.classList.add('hidden');
+                    if (retomarVoz) sessionStorage.setItem('ia_retomar_voz_no_chat', '1');
+                    window.location.href = '/chat';
+                }
+
+                if (texto) {
+                    try {
+                        const fala = new SpeechSynthesisUtterance(texto.slice(0, 400));
+                        fala.lang = 'pt-BR'; fala.rate = 1;
+                        fala.onend = () => { setTimeout(finalizarComandoENavegarDeVolta, TEMPO_LEITURA_EXTRA_MS); };
+                        fala.onerror = () => { setTimeout(finalizarComandoENavegarDeVolta, tempoTotal); };
+                        window.speechSynthesis.speak(fala);
+                    } catch (e) {
+                        setTimeout(finalizarComandoENavegarDeVolta, tempoTotal);
+                    }
+                } else {
+                    setTimeout(finalizarComandoENavegarDeVolta, tempoTotal);
+                }
+            });
+        })();
+
+        if (sessionStorage.getItem(CHAVE_TUTORIAL_ATIVO) === '1') exibirPassoAtual();
+        else if (window.__tutorialObrigatorioInicial) window.iniciarTutorial();
+    </script>
+
+</body>
+</html>

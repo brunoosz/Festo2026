@@ -1,0 +1,83 @@
+[
+  {
+    "id": 101,
+    "pergunta": "O que é este sistema?",
+    "perguntas_alternativas": [
+      "me explica o que é esse projeto",
+      "do que se trata esse sistema",
+      "qual o objetivo desse painel",
+      "pra que serve esse site",
+      "o que vocês construíram aqui",
+      "me dá uma visão geral do projeto",
+      "o que é a flow pack de vocês"
+    ],
+    "resposta": "Este é o sistema de controle da Flow Pack, desenvolvido pela equipe Dark Coders — 5 alunos do 1º ano de Engenharia da Computação da FIAP, em parceria com a empresa FESTO. O sistema controla remotamente uma máquina embaladora que passa por 5 estágios: esteira, bobina de plástico, dispenser de produto, dobra e selagem horizontal, e selagem vertical com corte."
+  },
+  {
+    "id": 102,
+    "pergunta": "Quem desenvolveu esse projeto?",
+    "perguntas_alternativas": [
+      "quem fez esse sistema",
+      "quem é a equipe por trás disso",
+      "quem criou esse painel",
+      "de quem é esse projeto",
+      "quantas pessoas fazem parte da equipe"
+    ],
+    "resposta": "O projeto foi desenvolvido pela equipe Dark Coders, formada por 5 alunos de Engenharia da Computação da FIAP (1º ano), em parceria com a empresa FESTO, que propôs o desafio de criar uma Flow Pack com soluções inovadoras."
+  },
+  {
+    "id": 103,
+    "pergunta": "Quais são os estágios da máquina Flow Pack?",
+    "perguntas_alternativas": [
+      "como funciona o processo da flow pack",
+      "quais as etapas de produção",
+      "explica o fluxo completo da máquina",
+      "quantos estágios tem a máquina"
+    ],
+    "resposta": "A Flow Pack opera em 5 estágios: 1) Esteira, que transporta o produto; 2) Bobina de plástico, que fornece o filme de selagem; 3) Dispenser, que libera o produto sobre o plástico; 4) Dobra do plástico e selagem horizontal, envolvendo o produto; 5) Selagem vertical e corte, onde um módulo sobe e desce para separar uma unidade da outra, finalizando o processo."
+  },
+  {
+    "id": 104,
+    "pergunta": "Como o site conversa com a máquina?",
+    "perguntas_alternativas": [
+      "como funciona a comunicação entre o site e o motor",
+      "qual protocolo é usado pra controlar a esteira",
+      "como o comando chega até o motor",
+      "explica o fluxo de comunicação",
+      "como o site fala com o esp32"
+    ],
+    "resposta": "O site controla os microcontroladores ESP32 da máquina via protocolo MQTT: o servidor (Raspberry Pi) publica comandos, e cada ESP32 (esteira, selagem) escuta e executa, respondendo de volta com dados em tempo real, como velocidade e temperatura."
+  },
+  {
+    "id": 105,
+    "pergunta": "O sistema funciona sem internet?",
+    "perguntas_alternativas": [
+      "precisa de internet pra funcionar",
+      "funciona offline mesmo?",
+      "e se não tiver wifi da rua, funciona?",
+      "esse sistema depende de internet?"
+    ],
+    "resposta": "O controle da máquina (esteira, temperatura, emergência) funciona 100% offline: o Raspberry Pi cria sua própria rede Wi-Fi local, sem depender de internet externa. A internet só é usada para recursos extras, como a IA generativa do chat — se ela cair, o chat continua funcionando com um sistema local de respostas."
+  },
+  {
+    "id": 106,
+    "pergunta": "Quais são as telas disponíveis no sistema?",
+    "perguntas_alternativas": [
+      "quais páginas o site tem",
+      "o que cada aba do menu faz",
+      "quais funcionalidades o painel oferece",
+      "me lista as seções do site"
+    ],
+    "resposta": "O sistema tem: Operação (controle da esteira e selagem em tempo real), Produção (gráficos e indicadores), Relatórios (histórico de eventos e exportação em PDF), Visão Computacional (contagem de produtos por câmera), Dark Coders AI (este chat), Usuários (gerenciamento de acessos, restrito a administradores) e Configuração."
+  },
+  {
+    "id": 107,
+    "pergunta": "É possível controlar a máquina de qualquer lugar?",
+    "perguntas_alternativas": [
+      "consigo controlar de longe",
+      "dá pra acessar remotamente",
+      "preciso estar perto da máquina"
+    ],
+    "resposta": "Sim, desde que o dispositivo esteja conectado à rede Wi-Fi do servidor da máquina, é possível ajustar temperatura e velocidade, visualizar gráficos e relatórios de qualquer data, e acompanhar a produção em tempo real por visão computacional — tudo remotamente."
+  }
+]

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Receitas{% endblock %}
+
+{% block content %}
+<style>
+    .rc-h3 { font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }
+    .rc-grade { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 720px) { .rc-grade { grid-template-columns: 1fr 1fr; } }
+    .rc-nivel { border: 2px solid #e2e8f0; border-radius: 14px; padding: 12px; background: #fff; }
+    .rc-nivel.atual { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+    .rc-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .rc-gramas { font-size: 26px; font-weight: 900; color: #1e293b; }
+    .rc-tag { font-size: 10px; font-weight: 900; padding: 3px 9px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; }
+    .rc-campo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; font-weight: 700; }
+    .rc-campo:last-of-type { border-bottom: 0; }
+    .rc-campo input { width: 92px; border: 2px solid #e2e8f0; border-radius: 8px; padding: 6px 8px; font-size: 14px; text-align: right; background: #fff; }
+    .rc-campo input:disabled { background: #f1f5f9; color: #64748b; }
+    .rc-btn { border: 2px solid #1e293b; background: #fff; color: #1e293b; border-radius: 10px; padding: 9px 14px; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .rc-btn.azul { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .rc-btn:active { opacity: .8; }
+    .rc-dica { font-size: 11px; color: #64748b; line-height: 1.45; margin-top: 8px; }
+    .rc-oculto { display: none !important; }
+</style>
+
+<div class="flex flex-col gap-4 sm:gap-5 max-w-5xl mx-auto w-full">
+    <div class="card-painel">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="min-w-0">
+                <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Receitas por quantidade</h2>
+                <p class="text-[11px] text-slate-400">Cada nível (50, 100, 150, 200 g) guarda a velocidade da esteira e das selagens e as temperaturas. Os botões físicos MAIS e MENOS sobem e descem os níveis.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="rc-tag" id="rc-atual-txt">Nível atual: -</span>
+            </div>
+        </div>
+        <p class="rc-dica">Campo em branco = a receita não mexe nesse item. A receita só ajusta velocidades e temperaturas desejadas: ligar ou desligar os aquecimentos continua sendo feito por você.</p>
+    </div>
+
+    <div id="rc-niveis" class="rc-grade"></div>
+
+    <div class="card-painel rc-oculto" id="rc-admin">
+        <h3 class="rc-h3">Ajustes (Administrador e Dono)</h3>
+        <label class="flex items-center gap-2 text-sm font-bold text-slate-700" style="display:flex">
+            <input id="rc-botoes" type="checkbox" style="width:20px;height:20px"> Botões físicos MAIS/MENOS ligados
+        </label>
+        <div class="flex gap-2 mt-3 flex-wrap"><button id="rc-salvar" class="rc-btn azul">Salvar receitas</button></div>
+        <p class="rc-dica">Limites: temperatura da Selagem 1 até 165 °C e da Selagem 2 até 250 °C. Velocidades de 0 a 100%.</p>
+    </div>
+</div>
+
+<script>
+(function () {
+    const permissaoTotal = (window.__nivelUsuarioInicial || 3) <= 2;
+    const el = (id) => document.getElementById(id);
+    const ouvintes = [];
+    function ouvir(e, f) { globalSocket.on(e, f); ouvintes.push([e, f]); }
+    let dados = { niveis: [], atual: 0, botoesAtivos: true };
+
+    const CAMPOS = [
+        ['esteira', 'Velocidade da esteira', '%', 100], ['s1', 'Motores da Selagem 1', '%', 100], ['s2', 'Motor da Selagem 2', '%', 100],
+        ['temp1', 'Temperatura da Selagem 1', '°C', 1], ['temp2', 'Temperatura da Selagem 2', '°C', 1]
+    ];
+
+    function toast(msg, tipo) {
+        const d = document.createElement('div');
+        d.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[999996] px-4 py-3 rounded-xl shadow-lg text-sm font-bold text-white max-w-[90vw] text-center ' + (tipo === 'erro' ? 'bg-red-600' : 'bg-slate-800');
+        d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 3200);
+    }
+    async function api(url, metodo, corpo) {
+        try {
+            const r = await fetch(url, { method: metodo || 'GET', headers: corpo ? { 'Content-Type': 'application/json' } : undefined, body: corpo ? JSON.stringify(corpo) : undefined });
+            let d = {}; try { d = await r.json(); } catch (e) {}
+            return { ok: r.ok, dados: d };
+        } catch (e) { return { ok: false, dados: { erro: 'Sem conexão com o servidor.' } }; }
+    }
+
+    function render() {
+        const box = el('rc-niveis');
+        box.innerHTML = dados.niveis.map((n, i) => {
+            const campos = CAMPOS.map(c => {
+                const v = (n[c[0]] === null || n[c[0]] === undefined) ? '' : Math.round(n[c[0]] * c[3] * 10) / 10;
+                return '<div class="rc-campo"><span>' + c[1] + '</span><span><input data-i="' + i + '" data-k="' + c[0] + '" data-m="' + c[3] + '" type="number" step="1" value="' + v + '" placeholder="-"' + (permissaoTotal ? '' : ' disabled') + '> ' + c[2] + '</span></div>';
+            }).join('');
+            return '<div class="rc-nivel' + (i === dados.atual ? ' atual' : '') + '"><div class="rc-topo"><div class="rc-gramas">' +
+                '<input data-i="' + i + '" data-k="gramas" data-m="1" type="number" style="width:84px;font-size:22px;font-weight:900;border:0;background:transparent;text-align:left" value="' + n.gramas + '"' + (permissaoTotal ? '' : ' disabled') + '> g</div>' +
+                (i === dados.atual ? '<span class="rc-tag">EM USO</span>' : '') + '</div>' + campos +
+                '<div class="flex gap-2 mt-3"><button class="rc-btn azul" data-aplicar="' + i + '">Aplicar este nível</button></div></div>';
+        }).join('');
+        el('rc-atual-txt').textContent = 'Nível atual: ' + (dados.niveis[dados.atual] ? dados.niveis[dados.atual].gramas + ' g' : '-');
+        el('rc-botoes').checked = !!dados.botoesAtivos;
+        box.querySelectorAll('[data-aplicar]').forEach(b => b.addEventListener('click', async () => {
+            const r = await api('/api/receitas/aplicar', 'POST', { indice: Number(b.dataset.aplicar) });
+            if (r.ok) { toast('Receita de ' + dados.niveis[Number(b.dataset.aplicar)].gramas + ' g aplicada.'); } else toast(r.dados.erro || 'Não foi possível aplicar.', 'erro');
+        }));
+    }
+
+    function ler() {
+        const niveis = JSON.parse(JSON.stringify(dados.niveis));
+        document.querySelectorAll('#rc-niveis input[data-k]').forEach(inp => {
+            const i = Number(inp.dataset.i), k = inp.dataset.k, m = Number(inp.dataset.m);
+            if (k === 'gramas') { niveis[i].gramas = Number(inp.value) || niveis[i].gramas; return; }
+            niveis[i][k] = inp.value === '' ? null : Number(inp.value) / m;
+        });
+        return niveis;
+    }
+
+    async function salvar() {
+        const r = await api('/api/receitas', 'POST', { niveis: ler(), botoesAtivos: el('rc-botoes').checked });
+        if (r.ok) { dados = r.dados; render(); toast('Receitas salvas.'); } else toast(r.dados.erro || 'Não foi possível salvar.', 'erro');
+    }
+
+    async function carregar() { const r = await api('/api/receitas'); if (r.ok) { dados = r.dados; render(); } }
+
+    if (permissaoTotal) { el('rc-admin').classList.remove('rc-oculto'); el('rc-salvar').addEventListener('click', salvar); }
+    ouvir('receita_atual', (d) => { dados.atual = d.indice; if (d.niveis) dados.niveis = d.niveis; render(); });
+    carregar();
+    window.__cleanupPagina = function () { ouvintes.forEach(([e, f]) => globalSocket.off(e, f)); };
+})();
+</script>
+{% endblock %}

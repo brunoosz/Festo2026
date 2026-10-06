@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuração{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl space-y-4 sm:space-y-6">
+
+    <div class="card-painel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+            <h3 class="font-bold text-gray-800 text-base sm:text-lg">Aparência do Sistema</h3>
+            <p class="text-sm text-gray-500">Alterne entre o Modo Claro (Padrão) e o Modo Escuro Global.</p>
+        </div>
+        <button id="btn-tema" class="bg-gray-800 hover:bg-gray-900 active:bg-black text-white font-bold py-3 sm:py-2 px-6 rounded-lg transition shadow cursor-pointer w-full sm:w-auto">
+            Ativar Tema Escuro
+        </button>
+    </div>
+
+    <!-- NOVO: card de acessibilidade -->
+    <div class="card-painel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-2 border-blue-100">
+        <div>
+            <h3 class="font-bold text-gray-800 text-base sm:text-lg">Leitor de Tela (Acessibilidade)</h3>
+            <p class="text-sm text-gray-500">Quando ativado: o 1º clique em qualquer botão fala o que está escrito nele; o 2º clique confirma a ação. Funciona 100% offline.</p>
+        </div>
+        <button id="btn-acessibilidade" class="bg-gray-800 hover:bg-gray-900 active:bg-black text-white font-bold py-3 sm:py-2 px-6 rounded-lg transition shadow cursor-pointer w-full sm:w-auto shrink-0">
+            Ativar Leitor de Tela
+        </button>
+    </div>
+
+    <div class="card-painel">
+        <h3 class="font-bold text-gray-800 text-base sm:text-lg mb-4 border-b border-gray-200 pb-2">Credenciais de Acesso</h3>
+        
+        <form action="/mudar-senha" method="POST" class="space-y-4 max-w-md">
+            
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">Senha Atual</label>
+                <div class="relative">
+                    <input type="password" name="senha_antiga" id="senha_antiga" required class="w-full border-2 border-gray-200 rounded-md pl-4 pr-10 py-2.5 sm:py-2 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                    <button type="button" onclick="toggleSenhaConfig('senha_antiga')" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-blue-500 cursor-pointer focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-bold text-gray-600 mb-1">Nova Senha</label>
+                <div class="relative">
+                    <input type="password" name="senha_nova" id="senha_nova" required class="w-full border-2 border-gray-200 rounded-md pl-4 pr-10 py-2.5 sm:py-2 focus:outline-none focus:border-blue-500 bg-gray-50 text-gray-800">
+                    <button type="button" onclick="toggleSenhaConfig('senha_nova')" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-blue-500 cursor-pointer focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <button type="submit" class="bg-[#0ea5e9] hover:bg-[#0284c7] active:bg-[#0369a1] text-white font-bold py-3 sm:py-2.5 px-4 rounded-lg transition w-full shadow-md cursor-pointer mt-2">
+                Atualizar Senha
+            </button>
+
+            {% if erro %}
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded mt-4 text-sm font-bold">
+                {{ erro }}
+            </div>
+            {% endif %}
+            
+            {% if sucesso %}
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 rounded mt-4 text-sm font-bold">
+                {{ sucesso }}
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    const btnTema = document.getElementById('btn-tema');
+    const html = document.documentElement;
+
+    if (html.classList.contains('dark')) {
+        btnTema.innerText = "Ativar Tema Claro";
+        btnTema.className = "bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800 font-bold py-3 sm:py-2 px-6 rounded-lg transition shadow border border-gray-300 cursor-pointer w-full sm:w-auto";
+    }
+
+    btnTema.addEventListener('click', () => {
+        html.classList.toggle('dark');
+        
+        if (html.classList.contains('dark')) {
+            localStorage.setItem('tema_flowpack', 'escuro');
+            btnTema.innerText = "Ativar Tema Claro";
+            btnTema.className = "bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800 font-bold py-3 sm:py-2 px-6 rounded-lg transition shadow border border-gray-300 cursor-pointer w-full sm:w-auto";
+        } else {
+            localStorage.setItem('tema_flowpack', 'claro');
+            btnTema.innerText = "Ativar Tema Escuro";
+            btnTema.className = "bg-gray-800 hover:bg-gray-900 active:bg-black text-white font-bold py-3 sm:py-2 px-6 rounded-lg transition shadow cursor-pointer w-full sm:w-auto";
+        }
+    });
+
+    // NOVO: toggle de acessibilidade (leitor de tela)
+    const btnAcessibilidade = document.getElementById('btn-acessibilidade');
+
+    function atualizarVisualBotaoAcessibilidade(ativo) {
+        if (ativo) {
+            btnAcessibilidade.innerText = "Desativar Leitor de Tela";
+            btnAcessibilidade.className = "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 sm:py-2 px-6 rounded-lg transition shadow cursor-pointer w-full sm:w-auto shrink-0";
+        } else {
+            btnAcessibilidade.innerText = "Ativar Leitor de Tela";
+            btnAcessibilidade.className = "bg-gray-800 hover:bg-gray-900 active:bg-black text-white font-bold py-3 sm:py-2 px-6 rounded-lg transition shadow cursor-pointer w-full sm:w-auto shrink-0";
+        }
+    }
+
+    atualizarVisualBotaoAcessibilidade(window.__acessibilidadeAtivaInicial === true);
+
+    btnAcessibilidade.addEventListener('click', async () => {
+        const novoEstado = !(window.__acessibilidadeAtivaInicial === true);
+
+        try {
+            const resposta = await fetch('/api/usuario/acessibilidade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ativo: novoEstado })
+            });
+
+            if (resposta.ok) {
+                window.__acessibilidadeAtivaInicial = novoEstado;
+                atualizarVisualBotaoAcessibilidade(novoEstado);
+                if (typeof window.definirAcessibilidade === 'function') {
+                    window.definirAcessibilidade(novoEstado);
+                }
+                if (novoEstado) {
+                    // Confirma em voz que a leitura de tela foi ativada
+                    try {
+                        const fala = new SpeechSynthesisUtterance('Leitor de tela ativado.');
+                        fala.lang = 'pt-BR';
+                        window.speechSynthesis.speak(fala);
+                    } catch (e) {}
+                }
+            } else {
+                alert('Não foi possível atualizar essa configuração agora.');
+            }
+        } catch (erro) {
+            alert('Erro de conexão com o servidor.');
+        }
+    });
+
+    window.toggleSenhaConfig = function(idInput) {
+        const input = document.getElementById(idInput);
+        input.type = input.type === 'password' ? 'text' : 'password';
+    };
+})();
+</script>
+{% endblock %}

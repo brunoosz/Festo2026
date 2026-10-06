@@ -1,0 +1,52 @@
+[
+  {
+    "id": 301,
+    "pergunta": "Como a Flow Pack faz o corte e a selagem do plástico?",
+    "perguntas_alternativas": [
+      "como funciona a selagem da embalagem",
+      "onde acontece o corte do plástico",
+      "explica o processo de selagem"
+    ],
+    "resposta": "Essa parte física de corte e selagem da Flow Pack ainda está em desenvolvimento e não está integrada ao sistema de controle no momento. O foco atual do projeto é o controle da esteira de alimentação."
+  },
+  {
+    "id": 302,
+    "pergunta": "Como ajusto a temperatura no painel?",
+    "perguntas_alternativas": [
+      "onde fica o controle de temperatura",
+      "como eu mudo a temperatura da selagem",
+      "existe um slider de temperatura?"
+    ],
+    "resposta": "Na aba 'Operação', existe um card de 'Temperatura da Selagem' com um controle deslizante (0°C a 250°C). Atualmente esse controle está travado (desabilitado) de propósito, porque o módulo físico de selagem ainda não foi implementado."
+  },
+  {
+    "id": 303,
+    "pergunta": "Por que não consigo mudar a temperatura?",
+    "perguntas_alternativas": [
+      "o slider de temperatura está cinza e travado",
+      "não consigo mexer no controle de temperatura",
+      "a temperatura está bloqueada, por quê"
+    ],
+    "resposta": "O controle de temperatura está travado intencionalmente por enquanto — o módulo de selagem/mordaça da Flow Pack ainda está em fase de desenvolvimento e integração. Ele será liberado assim que essa parte física estiver pronta para operar com segurança."
+  },
+  {
+    "id": 304,
+    "pergunta": "O que significa a mensagem 'Aguardando Sensor'?",
+    "perguntas_alternativas": [
+      "por que o visor de temperatura mostra tracinhos",
+      "o que quer dizer aguardando sensor",
+      "por que não aparece a temperatura real"
+    ],
+    "resposta": "Significa que o painel web já está pronto para exibir a temperatura, mas o sensor físico de temperatura ainda não foi conectado ao ESP32 para enviar os dados reais de calor da selagem."
+  },
+  {
+    "id": 305,
+    "pergunta": "A selagem já está funcionando na máquina?",
+    "perguntas_alternativas": [
+      "o processo de selagem está pronto",
+      "quando a selagem vai funcionar",
+      "essa parte da máquina já foi implementada"
+    ],
+    "resposta": "Ainda não. No momento, o projeto está focado no controle da esteira de alimentação. O módulo de selagem (temperatura, corte, mordaças) está planejado como uma próxima etapa de desenvolvimento."
+  }
+]

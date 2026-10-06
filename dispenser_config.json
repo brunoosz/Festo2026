@@ -1,0 +1,40 @@
+{
+  "reservatorios": {
+    "A": {
+      "nome": "Teste1",
+      "motor": 1,
+      "gramasPorBolso": 50,
+      "pwm": 100,
+      "tempoQuartoMs": 250,
+      "pausaMs": 10,
+      "sentidoInvertido": false
+    },
+    "B": {
+      "nome": "Teste2",
+      "motor": 2,
+      "gramasPorBolso": 50,
+      "pwm": 100,
+      "tempoQuartoMs": 250,
+      "pausaMs": 10,
+      "sentidoInvertido": false
+    }
+  },
+  "doses": [
+    {
+      "gramas": 50,
+      "ativo": true
+    },
+    {
+      "gramas": 100,
+      "ativo": true
+    },
+    {
+      "gramas": 150,
+      "ativo": true
+    },
+    {
+      "gramas": 200,
+      "ativo": true
+    }
+  ]
+}

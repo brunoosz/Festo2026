@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Logs ao Vivo{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full min-h-[calc(100vh-130px)]">
+    <div class="bg-slate-50 border-2 border-slate-200 rounded-xl p-3 sm:p-4 flex flex-col flex-1 shadow-inner overflow-hidden min-h-[400px] relative">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-3 z-10 relative bg-slate-50">
+            <h3 class="font-bold text-[10px] sm:text-xs text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M4 17h16a2 2 0 002-2V5a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <span class="truncate">Terminal ao Vivo</span>
+            </h3>
+            <span class="text-[9px] sm:text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded font-mono font-bold border border-slate-300 shrink-0">LIVE</span>
+        </div>
+        <div class="flex-1 overflow-hidden relative">
+            <div id="log-container" class="absolute bottom-0 left-0 w-full flex flex-col space-y-1.5 pb-2 font-mono text-[11px] sm:text-xs overflow-x-hidden"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const logContainer = document.getElementById('log-container');
+    const LIMITE_LINHAS = 200;
+
+    const TIPOS_LOG = {
+        login:               { label: 'LOGIN',       badge: 'bg-blue-600',   texto: 'text-blue-700 font-bold' },
+        velocidade:          { label: 'VELOCIDADE',  badge: 'bg-sky-600',    texto: 'text-sky-700 font-bold' },
+        temperatura:         { label: 'TEMPERATURA', badge: 'bg-orange-600', texto: 'text-orange-700 font-bold' },
+        temperatura_critica: { label: 'CRÍTICO',      badge: 'bg-red-600',    texto: 'text-red-700 font-bold' },
+        emergencia:          { label: 'EMERGÊNCIA',   badge: 'bg-red-700',    texto: 'text-red-700 font-black' },
+        sistema:             { label: 'SISTEMA',      badge: 'bg-slate-500', texto: 'text-slate-700 font-medium' }
+    };
+
+    function inferirTipo(log) {
+        if (log.tipo && TIPOS_LOG[log.tipo]) return log.tipo;
+        const t = (log.texto || '').toLowerCase();
+        if (t.includes('login') || t.includes('logout')) return 'login';
+        if (t.includes('emergência') || t.includes('emergencia')) return 'emergencia';
+        if (t.includes('crítico') || t.includes('critico')) return 'temperatura_critica';
+        if (t.includes('temperatura') || t.includes('selagem')) return 'temperatura';
+        if (t.includes('velocidade') || t.includes('esteira') || t.includes('motor')) return 'velocidade';
+        return 'sistema';
+    }
+
+    function construirLinha(log) {
+        const info = TIPOS_LOG[inferirTipo(log)];
+        const div = document.createElement('div');
+        div.className = 'flex items-start gap-2 break-words';
+        div.innerHTML = `<span class="text-slate-400 shrink-0">[${log.hora}]</span><span class="${info.badge} text-white text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">${info.label}</span><span class="${info.texto}">${log.texto}</span>`;
+        return div;
+    }
+
+    // ALTERADO: sem sessionStorage — a tela sempre começa vazia e só mostra
+    // o que chega DAQUI EM DIANTE, ao vivo. Nada fica "salvo" entre visitas.
+    // ALTERADO: novo log entra no FINAL (embaixo), como um terminal de
+    // verdade — como o container fica ancorado na parte de baixo da tela,
+    // o mais recente sempre aparece visível, e o mais antigo "sobe e some"
+    // quando passa do limite.
+    function handlerLogServidor(log) {
+        logContainer.appendChild(construirLinha(log));
+        while (logContainer.children.length > LIMITE_LINHAS) {
+            logContainer.removeChild(logContainer.firstChild);
+        }
+    }
+    const CHAVE_BUFFER_LOGS = 'logs_buffer_sessao';
+    function carregarBufferInicial() {
+        const buffer = JSON.parse(sessionStorage.getItem(CHAVE_BUFFER_LOGS) || '[]');
+        buffer.forEach(log => handlerLogServidor(log));
+    }
+    carregarBufferInicial();
+
+    globalSocket.on('novo_log_servidor', handlerLogServidor);
+
+    window.__cleanupPagina = function() {
+        globalSocket.off('novo_log_servidor', handlerLogServidor);
+    };
+})();
+</script>
+{% endblock %}

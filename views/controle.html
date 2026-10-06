@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+
+{% block title %}Painel de Controle{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-4 sm:gap-6">
+
+    <!-- Barra de status: LEDs dos ESP32 + emergencia + recarregar -->
+    <div class="card-painel">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Painel de Controle</h2>
+                <p class="text-[11px] text-slate-400">Velocidades e temperaturas de toda a máquina. Os valores ficam salvos ao trocar de tela.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-painel-esteira" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[10px] font-bold text-slate-700">ESTEIRA</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-painel-selagem1" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[10px] font-bold text-slate-700">SEL. 1 AQUEC.</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-painel-selagem1motor" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[10px] font-bold text-slate-700">SEL. 1 MOTORES</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-painel-selagem2" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[10px] font-bold text-slate-700">SEL. 2 AQUEC.</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-painel-selagem2motor" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[10px] font-bold text-slate-700">SEL. 2 MOTOR</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-painel-emerg" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[10px] font-bold text-slate-700">EMERG.</span>
+                </div>
+                <button id="btn-painel-recarregar" title="Recarregar status recebido" class="w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm shrink-0">
+                    <svg id="icone-painel-recarregar" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <p id="aviso-painel-emergencia" class="hidden mt-3 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            EMERGÊNCIA ATIVA: todos os controles estão bloqueados. Desbloqueie pelo botão no topo da tela.
+        </p>
+    </div>
+
+    <div>
+        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Velocidades</h3>
+        <div id="grade-motores" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+    </div>
+
+    <div>
+        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Temperaturas</h3>
+        <div id="grade-temperaturas" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    const CLASSE_LED_ON = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] shrink-0";
+    const CLASSE_LED_OFF = "w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0";
+    const CLASSE_LED_EMERG = "w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)] shrink-0";
+
+    const btnEmergenciaGlobal = document.getElementById('btn-emergencia-global');
+    const ledEmerg = document.getElementById('led-painel-emerg');
+    const avisoEmergencia = document.getElementById('aviso-painel-emergencia');
+    const btnRecarregar = document.getElementById('btn-painel-recarregar');
+    const iconeRecarregar = document.getElementById('icone-painel-recarregar');
+
+    const ledsDispositivo = {
+        esteira: document.getElementById('led-painel-esteira'),
+        selagem1: document.getElementById('led-painel-selagem1'),
+        selagem1motor: document.getElementById('led-painel-selagem1motor'),
+        selagem2: document.getElementById('led-painel-selagem2'),
+        selagem2motor: document.getElementById('led-painel-selagem2motor')
+    };
+    const nomesDispositivo = { esteira: 'Esteira', selagem1: 'Selagem 1 (aquecimento)', selagem1motor: 'Selagem 1 (motores)', selagem2: 'Selagem 2 (aquecimento)', selagem2motor: 'Selagem 2 (motor)' };
+    const online = { esteira: false, selagem1: false, selagem1motor: false, selagem2: false, selagem2motor: false };
+    let emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
+
+    // Registro dos ouvintes do socket, pra limpar tudo ao sair da tela
+    const ouvintes = [];
+    function ouvir(evento, funcao) {
+        globalSocket.on(evento, funcao);
+        ouvintes.push([evento, funcao]);
+    }
+
+    function adicionarLog(mensagem, tipo) {
+        if (window.__tutorialAtivo) return;
+        const hora = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        globalSocket.emit('novo_log', { hora: hora, texto: mensagem, tipo: tipo || 'sistema' });
+    }
+
+    // ================================================================================
+    // MOTORES (Esteira + 3 motores das selagens)
+    // ================================================================================
+    const MOTORES = [
+        { id: 'esteira', titulo: 'Esteira', dispositivo: 'esteira', reiniciar: 'REINICIAR ESP32 DA ESTEIRA' },
+        { id: 's1m1', titulo: 'Selagem 1 - Motor 1', dispositivo: 'selagem1motor', reiniciar: 'REINICIAR ESP32 DOS MOTORES (1 e 2)' },
+        { id: 's1m2', titulo: 'Selagem 1 - Motor 2', dispositivo: 'selagem1motor' },
+        { id: 's2m', titulo: 'Selagem 2 - Motor', dispositivo: 'selagem2motor', reiniciar: 'REINICIAR ESP32 DO MOTOR' }
+    ];
+
+    function htmlCardMotor(m) {
+        return `
+        <div class="card-painel flex flex-col" data-motor="${m.id}">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                <h3 class="text-xs sm:text-sm uppercase font-bold text-slate-800">${m.titulo}</h3>
+                <span class="led ${CLASSE_LED_OFF}"></span>
+            </div>
+            <div class="text-center my-2">
+                <span class="visor text-4xl font-black text-slate-800">0%</span>
+                <p class="text-[10px] text-blue-500 uppercase font-bold mt-1">Potência do Motor</p>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0" class="slider range-slider w-full mb-3 cursor-pointer">
+            <p class="aviso hidden text-[11px] text-amber-600 font-bold mb-2">ESP32 desconectado da rede.</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button class="btn-iniciar w-full bg-[#10b981] hover:bg-[#059669] active:bg-[#047857] text-white font-bold py-2.5 rounded-lg shadow transition cursor-pointer text-xs">INICIAR</button>
+                <button class="btn-parar w-full bg-slate-500 hover:bg-slate-600 active:bg-slate-700 text-white font-bold py-2.5 rounded-lg shadow transition cursor-pointer text-xs">PARAR</button>
+            </div>
+            <div class="mt-3 flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-slate-500 uppercase">Sentido: <span class="texto-sentido text-blue-600">NORMAL</span></span>
+                <button class="btn-inverter bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-[10px] font-bold px-3 py-2 rounded-lg transition cursor-pointer">INVERTER</button>
+            </div>
+            ${m.reiniciar ? `<button class="btn-reiniciar mt-3 w-full bg-slate-700 hover:bg-slate-800 text-white text-[11px] font-bold py-2 rounded-lg transition cursor-pointer">${m.reiniciar}</button>` : ''}
+        </div>`;
+    }
+
+    const gradeMotores = document.getElementById('grade-motores');
+    gradeMotores.innerHTML = MOTORES.map(htmlCardMotor).join('');
+
+    const controlesMotor = {};
+
+    MOTORES.forEach(m => {
+        const card = gradeMotores.querySelector(`[data-motor="${m.id}"]`);
+        const ctrl = {
+            config: m,
+            led: card.querySelector('.led'),
+            visor: card.querySelector('.visor'),
+            slider: card.querySelector('.slider'),
+            aviso: card.querySelector('.aviso'),
+            textoSentido: card.querySelector('.texto-sentido'),
+            botoes: card.querySelectorAll('button'),
+            arrastando: false,
+            sentido: 'normal'
+        };
+        controlesMotor[m.id] = ctrl;
+
+        function enviarVelocidade(pct) {
+            if (emEmergencia) return;
+            const valor = (pct / 100).toFixed(2);
+            if (m.id === 'esteira') {
+                globalSocket.emit('comando_esteira', { acao: 'velocidade', valor: valor });
+            } else {
+                globalSocket.emit('comando_painel', { acao: 'motor_velocidade', id: m.id, valor: valor });
+            }
+            ctrl.slider.value = pct / 100;
+            ctrl.visor.innerText = pct + '%';
+            adicionarLog(`Velocidade de ${m.titulo} alterada para ${pct}% (Painel de Controle)`, 'velocidade');
+        }
+
+        ctrl.slider.addEventListener('input', (e) => {
+            ctrl.arrastando = true;
+            ctrl.visor.innerText = Math.round(e.target.value * 100) + '%';
+        });
+        ctrl.slider.addEventListener('change', (e) => {
+            ctrl.arrastando = false;
+            enviarVelocidade(Math.round(e.target.value * 100));
+        });
+        card.querySelector('.btn-iniciar').addEventListener('click', () => enviarVelocidade(50));
+        card.querySelector('.btn-parar').addEventListener('click', () => enviarVelocidade(0));
+
+        card.querySelector('.btn-inverter').addEventListener('click', () => {
+            if (emEmergencia) return;
+            const novo = ctrl.sentido === 'invertido' ? 'normal' : 'invertido';
+            if (!confirm(`Inverter o sentido de ${m.titulo} para ${novo.toUpperCase()}?`)) return;
+            if (m.id === 'esteira') {
+                globalSocket.emit('comando_painel', { acao: 'esteira_sentido', sentido: novo });
+            } else {
+                globalSocket.emit('comando_painel', { acao: 'motor_sentido', id: m.id, sentido: novo });
+            }
+            adicionarLog(`Sentido de ${m.titulo} alterado para ${novo.toUpperCase()}`, 'velocidade');
+        });
+
+        const btnReiniciar = card.querySelector('.btn-reiniciar');
+        if (btnReiniciar) {
+            btnReiniciar.addEventListener('click', () => reiniciarDispositivo(m.dispositivo));
+        }
+    });
+
+    function aplicarVelocidadeMotor(id, velocidade) {
+        const ctrl = controlesMotor[id];
+        if (!ctrl || ctrl.arrastando || velocidade === 'EMERGENCIA') return;
+        const v = parseFloat(velocidade);
+        if (isNaN(v)) return;
+        const fracao = v > 1 ? v / 100 : v;
+        ctrl.slider.value = fracao;
+        ctrl.visor.innerText = Math.round(fracao * 100) + '%';
+    }
+
+    function aplicarSentidoMotor(id, sentido) {
+        const ctrl = controlesMotor[id];
+        if (!ctrl || !sentido) return;
+        ctrl.sentido = sentido;
+        ctrl.textoSentido.innerText = sentido === 'invertido' ? 'INVERTIDO' : 'NORMAL';
+        ctrl.textoSentido.className = 'texto-sentido ' + (sentido === 'invertido' ? 'text-amber-600' : 'text-blue-600');
+    }
+
+    // ================================================================================
+    // TEMPERATURAS (Selagem 1 e Selagem 2)
+    // ================================================================================
+    const SELAGENS = [
+        { numero: 1, titulo: 'Temperatura da Selagem 1', dispositivo: 'selagem1', eventoDados: 'atualizar_temperatura', eventoComando: 'comando_selagem' },
+        { numero: 2, titulo: 'Temperatura da Selagem 2', dispositivo: 'selagem2', eventoDados: 'atualizar_temperatura2', eventoComando: 'comando_selagem2' }
+    ];
+
+    function htmlCardTemperatura(s) {
+        return `
+        <div class="card-painel flex flex-col" data-selagem="${s.numero}">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3 gap-2">
+                <h3 class="text-xs sm:text-sm uppercase font-bold text-slate-800">${s.titulo}</h3>
+                <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer select-none">
+                    <input type="checkbox" class="check-ignorar rounded border-slate-300 w-3.5 h-3.5">
+                    Ignorar aviso
+                </label>
+            </div>
+            <div class="flex items-center justify-between mb-2">
+                <span class="estado-aquecimento text-[10px] font-black px-2 py-1 rounded-full bg-slate-100 text-slate-500">AQUECIMENTO DESLIGADO</span>
+                <span class="potencia text-[10px] font-bold text-slate-400">Potência: 0%</span>
+            </div>
+            <div class="text-center my-2">
+                <span class="visor-temp text-4xl font-black text-slate-800">--°C</span>
+                <p class="text-[10px] text-slate-500 uppercase font-bold mt-1">Leitura em Tempo Real</p>
+            </div>
+            <div class="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                <span>Alvo:</span>
+                <span class="alvo-texto text-slate-500">0°C</span>
+            </div>
+            <input type="range" min="0" max="250" step="5" value="0" class="slider-temp range-slider w-full mb-2 cursor-pointer">
+            <p class="aviso-temp hidden text-[11px] text-amber-600 font-bold mb-2"></p>
+            <div class="grid grid-cols-2 gap-2 mt-1">
+                <button class="btn-ligar w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-2.5 rounded-lg shadow transition cursor-pointer text-xs">LIGAR AQUECIMENTO</button>
+                <button class="btn-desligar w-full bg-slate-500 hover:bg-slate-600 active:bg-slate-700 text-white font-bold py-2.5 rounded-lg shadow transition cursor-pointer text-xs">DESLIGAR</button>
+            </div>
+            <button class="btn-resetar mt-2 w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold py-2 rounded-lg shadow transition cursor-pointer text-[11px]">RESETAR FALHA</button>
+            <button class="btn-reiniciar mt-3 w-full bg-slate-700 hover:bg-slate-800 text-white text-[11px] font-bold py-2 rounded-lg transition cursor-pointer">REINICIAR ESP32 DO AQUECIMENTO</button>
+        </div>`;
+    }
+
+    const gradeTemperaturas = document.getElementById('grade-temperaturas');
+    gradeTemperaturas.innerHTML = SELAGENS.map(htmlCardTemperatura).join('');
+
+    const controlesTemp = {};
+
+    SELAGENS.forEach(s => {
+        const card = gradeTemperaturas.querySelector(`[data-selagem="${s.numero}"]`);
+        const ctrl = {
+            config: s,
+            visor: card.querySelector('.visor-temp'),
+            alvo: card.querySelector('.alvo-texto'),
+            slider: card.querySelector('.slider-temp'),
+            aviso: card.querySelector('.aviso-temp'),
+            estado: card.querySelector('.estado-aquecimento'),
+            potencia: card.querySelector('.potencia'),
+            checkIgnorar: card.querySelector('.check-ignorar'),
+            botoes: card.querySelectorAll('button'),
+            arrastando: false,
+            ultimaSeguranca: 'ok',
+            ultimoHabilitado: false,
+            ultimoMotivo: ''
+        };
+        controlesTemp[s.numero] = ctrl;
+
+        ctrl.slider.addEventListener('input', (e) => {
+            ctrl.arrastando = true;
+            ctrl.alvo.innerText = e.target.value + '°C';
+        });
+        ctrl.slider.addEventListener('change', (e) => {
+            ctrl.arrastando = false;
+            if (emEmergencia) return;
+            globalSocket.emit(s.eventoComando, { acao: 'setpoint', valor: e.target.value });
+            adicionarLog(`Temperatura alvo da Selagem ${s.numero} ajustada para ${e.target.value}°C (Painel de Controle)`, 'temperatura');
+        });
+
+        card.querySelector('.btn-ligar').addEventListener('click', () => {
+            if (emEmergencia) return;
+            globalSocket.emit('comando_painel', { acao: 'aquecimento', numero: s.numero, valor: true });
+            adicionarLog(`Aquecimento da Selagem ${s.numero} LIGADO (Painel de Controle)`, 'temperatura');
+        });
+        card.querySelector('.btn-desligar').addEventListener('click', () => {
+            globalSocket.emit('comando_painel', { acao: 'aquecimento', numero: s.numero, valor: false });
+            adicionarLog(`Aquecimento da Selagem ${s.numero} DESLIGADO (Painel de Controle)`, 'temperatura');
+        });
+        card.querySelector('.btn-resetar').addEventListener('click', () => {
+            globalSocket.emit('comando_painel', { acao: 'resetar_falha', numero: s.numero });
+            adicionarLog(`Solicitado RESET de falha da Selagem ${s.numero} (Painel de Controle)`, 'temperatura');
+        });
+        ctrl.checkIgnorar.addEventListener('change', () => atualizarAvisoTemp(s.numero));
+        card.querySelector('.btn-reiniciar').addEventListener('click', () => reiniciarDispositivo(s.dispositivo));
+    });
+
+    function atualizarAvisoTemp(numero) {
+        const ctrl = controlesTemp[numero];
+        const disp = ctrl.config.dispositivo;
+        if (!online[disp]) {
+            ctrl.aviso.innerText = 'ESP32 desconectado da rede.';
+            ctrl.aviso.classList.remove('hidden');
+            return;
+        }
+        if (ctrl.checkIgnorar.checked || ctrl.ultimaSeguranca === 'ok') {
+            ctrl.aviso.classList.add('hidden');
+            return;
+        }
+        const base = ctrl.ultimaSeguranca === 'temperatura_alta'
+            ? 'AVISO: temperatura muito alta!'
+            : 'AVISO: falha no sensor de temperatura.';
+        const motivo = ctrl.ultimoMotivo ? ` (${ctrl.ultimoMotivo})` : '';
+        const situacao = ctrl.ultimoHabilitado
+            ? ' O aquecimento continua funcionando.'
+            : ' Aquecimento desligado: corrija o problema e clique em RESETAR FALHA.';
+        ctrl.aviso.innerText = base + motivo + situacao;
+        ctrl.aviso.classList.remove('hidden');
+    }
+
+    function aplicarDadosTemperatura(numero, dados) {
+        const ctrl = controlesTemp[numero];
+        if (!ctrl || !dados) return;
+        if (typeof dados.temperatura === 'number') ctrl.visor.innerText = dados.temperatura.toFixed(1) + '°C';
+        if (!ctrl.arrastando && typeof dados.setpoint === 'number') {
+            ctrl.slider.value = dados.setpoint;
+            ctrl.alvo.innerText = Math.round(dados.setpoint) + '°C';
+        }
+        if (typeof dados.potencia === 'number') ctrl.potencia.innerText = 'Potência: ' + Math.round(dados.potencia) + '%';
+        if (dados.habilitado) {
+            ctrl.estado.innerText = 'AQUECIMENTO LIGADO';
+            ctrl.estado.className = 'estado-aquecimento text-[10px] font-black px-2 py-1 rounded-full bg-orange-100 text-orange-600';
+        } else {
+            ctrl.estado.innerText = 'AQUECIMENTO DESLIGADO';
+            ctrl.estado.className = 'estado-aquecimento text-[10px] font-black px-2 py-1 rounded-full bg-slate-100 text-slate-500';
+        }
+        ctrl.ultimaSeguranca = dados.seguranca || 'ok';
+        ctrl.ultimoHabilitado = !!dados.habilitado;
+        ctrl.ultimoMotivo = dados.motivo || '';
+        atualizarAvisoTemp(numero);
+    }
+
+    // ================================================================================
+    // CONEXÃO, EMERGÊNCIA E REINÍCIO
+    // ================================================================================
+    function aplicarOnline(dispositivo, estaOnline) {
+        online[dispositivo] = !!estaOnline;
+        const classe = online[dispositivo] ? CLASSE_LED_ON : CLASSE_LED_OFF;
+        ledsDispositivo[dispositivo].className = classe;
+        MOTORES.forEach(m => {
+            if (m.dispositivo !== dispositivo) return;
+            const ctrl = controlesMotor[m.id];
+            ctrl.led.className = 'led ' + classe;
+            ctrl.aviso.classList.toggle('hidden', online[dispositivo]);
+        });
+        SELAGENS.forEach(s => { if (s.dispositivo === dispositivo) atualizarAvisoTemp(s.numero); });
+    }
+
+    function reiniciarDispositivo(dispositivo) {
+        if (!confirm(`Reiniciar o ESP32 da ${nomesDispositivo[dispositivo]}? Ele vai ficar fora do ar por alguns segundos e voltar PARADO.`)) return;
+        globalSocket.emit('comando_painel', { acao: 'reiniciar', dispositivo: dispositivo });
+        adicionarLog(`Solicitado reinício do ESP32 da ${nomesDispositivo[dispositivo]} (Painel de Controle)`, 'sistema');
+    }
+
+    function aplicarEmergencia() {
+        emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
+        ledEmerg.className = emEmergencia ? CLASSE_LED_EMERG : CLASSE_LED_OFF;
+        avisoEmergencia.classList.toggle('hidden', !emEmergencia);
+
+        const todos = [
+            ...Object.values(controlesMotor).flatMap(c => [c.slider, ...c.botoes]),
+            ...Object.values(controlesTemp).flatMap(c => [c.slider, ...c.botoes])
+        ];
+        todos.forEach(el => {
+            el.disabled = emEmergencia;
+            el.classList.toggle('opacity-50', emEmergencia);
+            el.classList.toggle('cursor-not-allowed', emEmergencia);
+        });
+    }
+
+    function handlerEmergencia() { setTimeout(aplicarEmergencia, 0); }
+    btnEmergenciaGlobal.addEventListener('click', handlerEmergencia);
+
+    // ================================================================================
+    // ESTADO INICIAL (valores salvos no servidor) + RECARREGAR
+    // ================================================================================
+    function buscarEstado() {
+        return fetch('/api/painel/estado')
+            .then(r => r.json())
+            .then(d => {
+                aplicarOnline('esteira', d.esteira.online);
+                aplicarOnline('selagem1', d.selagem1.online);
+                aplicarOnline('selagem2', d.selagem2.online);
+                aplicarOnline('selagem2motor', d.selagem2motor ? d.selagem2motor.online : false);
+                aplicarOnline('selagem1motor', d.selagem1motor ? d.selagem1motor.online : false);
+                aplicarVelocidadeMotor('esteira', d.esteira.velocidade);
+                aplicarSentidoMotor('esteira', d.esteira.sentido);
+                Object.entries(d.motores || {}).forEach(([id, m]) => {
+                    aplicarVelocidadeMotor(id, m.velocidade);
+                    aplicarSentidoMotor(id, m.sentido);
+                });
+                aplicarDadosTemperatura(1, d.selagem1.estado);
+                aplicarDadosTemperatura(2, d.selagem2.estado);
+            })
+            .catch(erro => console.error('Erro ao buscar o estado do painel:', erro));
+    }
+
+    btnRecarregar.addEventListener('click', () => {
+        iconeRecarregar.style.transform = 'rotate(360deg)';
+        buscarEstado().finally(() => {
+            setTimeout(() => { iconeRecarregar.style.transform = 'rotate(0deg)'; }, 500);
+        });
+    });
+
+    // Atualizações ao vivo
+    ouvir('status_esp32', (data) => aplicarOnline('esteira', data.online));
+    ouvir('status_selagem', (data) => aplicarOnline('selagem1', data.online));
+    ouvir('status_selagem2', (data) => aplicarOnline('selagem2', data.online));
+    ouvir('status_selagem2motor', (data) => aplicarOnline('selagem2motor', data.online));
+    ouvir('status_selagem1motor', (data) => aplicarOnline('selagem1motor', data.online));
+    ouvir('atualizar_velocidade', (data) => aplicarVelocidadeMotor('esteira', data.velocidade));
+    ouvir('sentido_esteira', (data) => aplicarSentidoMotor('esteira', data.sentido));
+    ouvir('motor_selagem_velocidade', (data) => aplicarVelocidadeMotor(data.id, data.velocidade));
+    ouvir('motor_selagem_sentido', (data) => aplicarSentidoMotor(data.id, data.sentido));
+    ouvir('atualizar_temperatura', (dados) => aplicarDadosTemperatura(1, dados));
+    ouvir('atualizar_temperatura2', (dados) => aplicarDadosTemperatura(2, dados));
+
+    buscarEstado();
+    aplicarEmergencia();
+
+    window.__cleanupPagina = function() {
+        ouvintes.forEach(([evento, funcao]) => globalSocket.off(evento, funcao));
+        btnEmergenciaGlobal.removeEventListener('click', handlerEmergencia);
+    };
+})();
+</script>
+{% endblock %}

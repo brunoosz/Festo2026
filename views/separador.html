@@ -1,0 +1,456 @@
+{% extends 'base.html' %}
+
+{% block title %}Separador{% endblock %}
+
+{% block content %}
+<style>
+    .sep-chip { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; padding: 6px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+    .sep-led { width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; flex-shrink: 0; }
+    .sep-led.on { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,.6); }
+    .sep-led.warn { background: #f59e0b; }
+    .sep-h3 { font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }
+    .sep-tela { position: relative; background: #0f172a; border-radius: 10px; overflow: hidden; }
+    .sep-tela canvas { display: block; width: 100%; height: auto; }
+    .sep-aviso-tela { position: absolute; left: 0; right: 0; top: 0; padding: 6px 10px; font-size: 12px; font-weight: 800; color: #fff; background: rgba(15,23,42,.75); text-align: center; }
+    .sep-medidor { height: 12px; border-radius: 6px; background: #e2e8f0; position: relative; overflow: hidden; }
+    .sep-medidor > div { height: 100%; width: 0%; background: #22c55e; transition: width .12s; }
+    .sep-medidor > i { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #1e293b; }
+    .sep-btn { border: 2px solid #1e293b; background: #fff; color: #1e293b; border-radius: 10px; padding: 9px 14px; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .sep-btn:active { background: #e2e8f0; }
+    .sep-btn.azul { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .sep-btn.verm { background: #dc2626; border-color: #dc2626; color: #fff; }
+    .sep-btn[disabled] { opacity: .45; cursor: not-allowed; }
+    .sep-campo { display: block; font-size: 11px; font-weight: 800; color: #475569; margin-top: 10px; }
+    .sep-campo input[type=text], .sep-campo input[type=number], .sep-campo select { margin-top: 4px; width: 100%; border: 2px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 14px; background: #fff; }
+    .sep-grade { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 700px) { .sep-grade.dois { grid-template-columns: 1fr 1fr; } }
+    .sep-evento { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; }
+    .sep-evento img { width: 56px; height: 40px; object-fit: cover; border-radius: 6px; background: #cbd5e1; flex-shrink: 0; }
+    .sep-tag { display: inline-block; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 999px; background: #e0e7ff; color: #3730a3; }
+    .sep-tag.verde { background: #dcfce7; color: #166534; } .sep-tag.cinza { background: #e2e8f0; color: #475569; } .sep-tag.ambar { background: #fef3c7; color: #92400e; }
+    .sep-classe { border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px; background: #fff; }
+    .sep-minis { display: flex; gap: 4px; margin: 6px 0; overflow-x: auto; }
+    .sep-minis img { width: 48px; height: 34px; object-fit: cover; border-radius: 5px; flex-shrink: 0; }
+    details.sep-det { border: 2px solid #1e293b; border-radius: 12px; background: #fff; }
+    details.sep-det > summary { cursor: pointer; padding: 12px 14px; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: #1e293b; list-style: none; }
+    details.sep-det > summary::-webkit-details-marker { display: none; }
+    details.sep-det[open] > summary { border-bottom: 1px solid #e2e8f0; }
+    .sep-corpo { padding: 12px 14px 16px; }
+    .sep-dica { font-size: 11px; color: #64748b; margin-top: 6px; line-height: 1.4; }
+    .sep-prog { height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden; margin-top: 8px; }
+    .sep-prog > div { height: 100%; width: 0; background: #2563eb; transition: width .2s; }
+    .sep-oculto { display: none !important; }
+    .sep-valor { color: #2563eb; font-weight: 900; }
+</style>
+
+<div class="flex flex-col gap-4 sm:gap-5 max-w-5xl mx-auto w-full">
+
+    <!-- Cabeçalho -->
+    <div class="card-painel">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="min-w-0">
+                <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Separador de Produtos</h2>
+                <p class="text-[11px] text-slate-400">A câmera conta e reconhece cada produto e o servo desvia para o lado certo.</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <div class="sep-chip"><span id="sep-led-cam" class="sep-led"></span><span class="text-[10px] font-bold text-slate-700">CÂMERA</span></div>
+                <div class="sep-chip"><span id="sep-led-servo" class="sep-led"></span><span class="text-[10px] font-bold text-slate-700">SERVO</span></div>
+                <div class="sep-chip"><span id="sep-led-motor" class="sep-led"></span><span class="text-[10px] font-bold text-slate-700">VISÃO LOCAL</span></div>
+            </div>
+        </div>
+        <p id="sep-aviso" class="sep-oculto mt-3 text-xs font-bold rounded-lg px-3 py-2"></p>
+    </div>
+
+    <!-- Câmera ao vivo -->
+    <div class="card-painel">
+        <h3 class="sep-h3">Câmera ao vivo</h3>
+        <div class="sep-tela">
+            <canvas id="sep-canvas" width="320" height="240"></canvas>
+            <div id="sep-aviso-tela" class="sep-aviso-tela sep-oculto"></div>
+        </div>
+        <div class="mt-3">
+            <div class="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
+                <span>Sinal do objeto na faixa</span><span id="sep-sinal-txt">0%</span>
+            </div>
+            <div class="sep-medidor"><div id="sep-sinal-barra"></div><i></i></div>
+            <p class="sep-dica">Com um saco na faixa a barra precisa passar do risco do meio. Com a esteira vazia ela deve ficar bem abaixo.</p>
+        </div>
+        <div class="flex gap-2 mt-3 flex-wrap sep-admin sep-oculto">
+            <button id="sep-btn-fundo" class="sep-btn">Aprender fundo (esteira vazia)</button>
+        </div>
+    </div>
+
+    <!-- Contagem -->
+    <div class="sep-grade dois">
+        <div class="card-painel">
+            <h3 class="sep-h3">Contagem de hoje</h3>
+            <div class="flex items-end gap-2"><span id="sep-total" class="text-4xl font-black text-slate-800">0</span><span class="text-xs font-bold text-slate-400 mb-1">produtos</span></div>
+            <div id="sep-por-produto" class="mt-3 flex flex-wrap gap-2"></div>
+        </div>
+        <div class="card-painel">
+            <h3 class="sep-h3">Últimos produtos</h3>
+            <div id="sep-eventos" class="flex flex-col gap-2"><p class="text-xs text-slate-400">Nenhum produto passou ainda.</p></div>
+        </div>
+    </div>
+
+    <!-- Treinar -->
+    <details class="sep-det sep-admin sep-oculto" id="sep-det-treino">
+        <summary>1 · Ensinar os produtos</summary>
+        <div class="sep-corpo">
+            <p class="sep-dica" style="margin-top:0">Escolha o nome, toque em TREINAR e passe os sacos <b>desse produto</b> pela esteira. Cada um que passar vira um exemplo (e não entra na contagem).</p>
+            <label class="sep-campo">Nome do produto
+                <input id="sep-treino-nome" type="text" maxlength="30" list="sep-lista-classes" placeholder="Ex.: Arroz">
+                <datalist id="sep-lista-classes"></datalist>
+            </label>
+            <label class="sep-campo">Quantos sacos vou passar
+                <input id="sep-treino-qtd" type="number" min="1" max="60" value="10">
+            </label>
+            <div class="flex gap-2 mt-3">
+                <button id="sep-treino-iniciar" class="sep-btn azul">TREINAR</button>
+                <button id="sep-treino-parar" class="sep-btn" disabled>Parar</button>
+            </div>
+            <div class="sep-prog"><div id="sep-treino-barra"></div></div>
+            <p id="sep-treino-txt" class="sep-dica">Nenhum treino em andamento.</p>
+            <div id="sep-classes" class="sep-grade dois" style="margin-top:12px"></div>
+        </div>
+    </details>
+
+    <!-- Detecção -->
+    <details class="sep-det sep-admin sep-oculto" id="sep-det-deteccao">
+        <summary>2 · Ajustar a detecção</summary>
+        <div class="sep-corpo">
+            <p class="sep-dica" style="margin-top:0">Ajuste olhando a imagem acima: a faixa azul é onde o produto é procurado e a linha é onde ele é contado.</p>
+            <label class="sep-campo">Direção da esteira na imagem
+                <select id="sep-eixo"><option value="x">Anda para os lados (esquerda ⇄ direita)</option><option value="y">Anda para cima/baixo</option></select>
+            </label>
+            <label class="sep-campo">Sentido que conta
+                <select id="sep-sentido"><option value="0">Qualquer sentido</option><option value="1">Esquerda → direita (ou cima → baixo)</option><option value="-1">Direita → esquerda (ou baixo → cima)</option></select>
+            </label>
+            <label class="sep-campo">Posição da linha de contagem: <span id="sep-linha-v" class="sep-valor">50%</span>
+                <input id="sep-linha" class="range-slider" type="range" min="10" max="90" step="1" value="50">
+            </label>
+            <label class="sep-campo">Faixa: começa em <span id="sep-zi-v" class="sep-valor">40%</span>
+                <input id="sep-zi" class="range-slider" type="range" min="0" max="90" step="1" value="40">
+            </label>
+            <label class="sep-campo">Faixa: termina em <span id="sep-zf-v" class="sep-valor">60%</span>
+                <input id="sep-zf" class="range-slider" type="range" min="5" max="100" step="1" value="60">
+            </label>
+            <label class="sep-campo">Sensibilidade (quanto menor, mais sensível): <span id="sep-limiar-v" class="sep-valor">28</span>
+                <input id="sep-limiar" class="range-slider" type="range" min="5" max="90" step="1" value="28">
+            </label>
+            <p class="sep-dica">Se o saco não faz a barra de sinal subir, diminua a sensibilidade. Se a esteira vazia faz a barra subir ou conta sozinho, aumente. Sacos claros em esteira clara e escuros em esteira escura são os mais difíceis: uma esteira ou fundo de cor diferente do produto ajuda muito.</p>
+            <div class="flex gap-2 mt-3 flex-wrap">
+                <button id="sep-det-salvar" class="sep-btn azul">Salvar ajustes</button>
+                <button id="sep-btn-fundo2" class="sep-btn">Aprender fundo de novo</button>
+            </div>
+        </div>
+    </details>
+
+    <!-- Servo -->
+    <details class="sep-det sep-admin sep-oculto" id="sep-det-servo">
+        <summary>3 · Servo separador</summary>
+        <div class="sep-corpo">
+            <label class="sep-campo flex items-center gap-2" style="display:flex">
+                <input id="sep-servo-ativo" type="checkbox" style="width:20px;height:20px"> <span>Servo ligado (desvia os produtos automaticamente)</span>
+            </label>
+            <p id="sep-servo-estado" class="sep-dica">Servo desconectado.</p>
+
+            <div class="flex gap-2 mt-3 flex-wrap">
+                <button id="sep-teste-e" class="sep-btn">Testar ESQUERDA</button>
+                <button id="sep-teste-c" class="sep-btn">CENTRO</button>
+                <button id="sep-teste-d" class="sep-btn">Testar DIREITA</button>
+            </div>
+
+            <label class="sep-campo">Ângulo da esquerda: <span id="sep-ang-esq-v" class="sep-valor">45°</span>
+                <input id="sep-ang-esq" class="range-slider" type="range" min="0" max="180" value="45">
+            </label>
+            <label class="sep-campo">Ângulo do centro: <span id="sep-ang-cen-v" class="sep-valor">90°</span>
+                <input id="sep-ang-cen" class="range-slider" type="range" min="0" max="180" value="90">
+            </label>
+            <label class="sep-campo">Ângulo da direita: <span id="sep-ang-dir-v" class="sep-valor">135°</span>
+                <input id="sep-ang-dir" class="range-slider" type="range" min="0" max="180" value="135">
+            </label>
+            <label class="sep-campo">Velocidade do servo: <span id="sep-vel-v" class="sep-valor">60%</span>
+                <input id="sep-vel" class="range-slider" type="range" min="1" max="100" value="60">
+            </label>
+            <label class="sep-campo">Tempo aberto (ms)
+                <input id="sep-aberto" type="number" min="100" max="5000" step="50" value="900">
+            </label>
+            <label class="sep-campo">Atraso entre a linha de contagem e o servo (ms)
+                <input id="sep-atraso" type="number" min="0" max="15000" step="50" value="1200">
+            </label>
+            <label class="sep-campo flex items-center gap-2" style="display:flex">
+                <input id="sep-compensar" type="checkbox" style="width:20px;height:20px" checked> <span>Ajustar o atraso pela velocidade da esteira</span>
+            </label>
+            <div class="flex gap-2 mt-2 flex-wrap items-center">
+                <button id="sep-vel-ref" class="sep-btn">Usar a velocidade atual da esteira como referência</button>
+                <span id="sep-vel-ref-txt" class="sep-dica">Referência: não definida</span>
+            </div>
+            <p class="sep-dica">Como acertar o atraso: ponha a esteira na velocidade da apresentação, passe um saco e veja se o servo abre cedo ou tarde demais; aumente ou diminua o atraso e toque em "usar a velocidade atual como referência".</p>
+
+            <h4 class="sep-h3" style="margin-top:16px">Para onde vai cada produto</h4>
+            <div id="sep-lados"></div>
+            <label class="sep-campo">Produto desconhecido
+                <select id="sep-lado-desc"><option value="C">Centro (não desvia)</option><option value="E">Esquerda</option><option value="D">Direita</option></select>
+            </label>
+            <div class="flex gap-2 mt-4"><button id="sep-servo-salvar" class="sep-btn azul">Salvar servo</button></div>
+        </div>
+    </details>
+</div>
+
+<script>
+(function () {
+    const permissaoTotal = (window.__nivelUsuarioInicial || 3) <= 2;
+    const el = (id) => document.getElementById(id);
+    const ouvintes = [];
+    function ouvir(evento, funcao) { globalSocket.on(evento, funcao); ouvintes.push([evento, funcao]); }
+
+    let ultimaImagem = null;       // Image do ultimo quadro
+    let overlay = null;            // ultimo overlay do motor
+    let config = null;
+    let servo = { online: false, estado: null };
+    let classes = [];
+    let recentes = [];
+    let velEsteira = 0;
+    const canvas = el('sep-canvas');
+    const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+
+    function toast(msg, tipo) {
+        const d = document.createElement('div');
+        d.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[999996] px-4 py-3 rounded-xl shadow-lg text-sm font-bold text-white max-w-[90vw] text-center ' + (tipo === 'erro' ? 'bg-red-600' : 'bg-slate-800');
+        d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 3200);
+    }
+    async function api(url, metodo, corpo) {
+        try {
+            const r = await fetch(url, { method: metodo || 'GET', headers: corpo ? { 'Content-Type': 'application/json' } : undefined, body: corpo ? JSON.stringify(corpo) : undefined });
+            let dados = {}; try { dados = await r.json(); } catch (e) {}
+            return { ok: r.ok, dados };
+        } catch (e) { return { ok: false, dados: { erro: 'Sem conexão com o servidor.' } }; }
+    }
+    function led(id, estado) { const e = el(id); if (e) e.className = 'sep-led' + (estado === true ? ' on' : (estado === 'warn' ? ' warn' : '')); }
+    function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+    const NOME_LADO = { E: 'esquerda', D: 'direita', C: 'centro' };
+
+    // ------------------------------------------------------------ desenho da camera
+    function desenhar() {
+        if (!ctx) return;
+        const w = ultimaImagem ? ultimaImagem.naturalWidth || ultimaImagem.width : 320;
+        const h = ultimaImagem ? ultimaImagem.naturalHeight || ultimaImagem.height : 240;
+        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+        if (ultimaImagem) ctx.drawImage(ultimaImagem, 0, 0, w, h); else { ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, w, h); }
+        if (!overlay) return;
+        const horizontal = overlay.eixo !== 'y';
+        const b0 = overlay.banda[0], b1 = overlay.banda[1];
+        ctx.save();
+        ctx.fillStyle = 'rgba(37,99,235,0.18)'; ctx.strokeStyle = 'rgba(37,99,235,0.9)'; ctx.lineWidth = 2;
+        if (horizontal) { ctx.fillRect(0, b0 * h, w, (b1 - b0) * h); ctx.strokeRect(0, b0 * h, w, (b1 - b0) * h); }
+        else { ctx.fillRect(b0 * w, 0, (b1 - b0) * w, h); ctx.strokeRect(b0 * w, 0, (b1 - b0) * w, h); }
+        ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath();
+        if (horizontal) { const x = overlay.linha * w; ctx.moveTo(x, Math.max(0, b0 * h - 14)); ctx.lineTo(x, Math.min(h, b1 * h + 14)); }
+        else { const y = overlay.linha * h; ctx.moveTo(Math.max(0, b0 * w - 14), y); ctx.lineTo(Math.min(w, b1 * w + 14), y); }
+        ctx.stroke(); ctx.setLineDash([]);
+        (overlay.segmentos || []).forEach(s => {
+            ctx.strokeStyle = s.contado ? '#22c55e' : '#facc15'; ctx.lineWidth = 3; ctx.fillStyle = ctx.strokeStyle; ctx.font = 'bold 13px sans-serif';
+            if (horizontal) { ctx.strokeRect(s.ini * w, b0 * h, (s.fim - s.ini) * w, (b1 - b0) * h); ctx.fillText('#' + s.id, s.ini * w + 4, b0 * h - 5); }
+            else { ctx.strokeRect(b0 * w, s.ini * h, (b1 - b0) * w, (s.fim - s.ini) * h); ctx.fillText('#' + s.id, b0 * w + 4, s.ini * h - 5); }
+        });
+        ctx.restore();
+    }
+
+    function atualizarMedidor() {
+        const s = overlay ? Math.max(0, Math.min(1, overlay.sinal || 0)) : 0;
+        el('sep-sinal-barra').style.width = Math.round(s * 100) + '%';
+        el('sep-sinal-barra').style.background = s >= 0.5 ? '#22c55e' : '#94a3b8';
+        el('sep-sinal-txt').textContent = Math.round(s * 100) + '%' + (s >= 0.5 ? ' · objeto detectado' : '');
+    }
+
+    function avisoTela(texto) {
+        const e = el('sep-aviso-tela');
+        if (texto) { e.textContent = texto; e.classList.remove('sep-oculto'); } else e.classList.add('sep-oculto');
+    }
+
+    // ------------------------------------------------------------ listas
+    function renderEventos() {
+        const box = el('sep-eventos');
+        if (!recentes.length) { box.innerHTML = '<p class="text-xs text-slate-400">Nenhum produto passou ainda.</p>'; return; }
+        box.innerHTML = recentes.slice(0, 8).map(e => {
+            const nome = e.classe ? esc(e.classe) : (e.motivo === 'desconhecido' ? 'Desconhecido' : 'Sem treino');
+            const conf = e.classe ? ' · ' + Math.round((e.confianca || 0) * 100) + '%' : '';
+            const qtd = e.quantidade > 1 ? ' <span class="sep-tag ambar">x' + e.quantidade + '</span>' : '';
+            const lado = (e.lado === 'E' || e.lado === 'D') ? ' <span class="sep-tag verde">servo → ' + NOME_LADO[e.lado] + '</span>' : '';
+            const img = e.miniatura ? '<img alt="" src="data:image/jpeg;base64,' + e.miniatura + '">' : '<img alt="">';
+            return '<div class="sep-evento">' + img + '<div class="min-w-0"><div class="text-sm font-black text-slate-800">' + nome + conf + qtd + '</div><div class="text-[11px] text-slate-400">' + esc(e.hora || '') + lado + '</div></div></div>';
+        }).join('');
+    }
+
+    function renderContagem(total, porProduto) {
+        el('sep-total').textContent = total;
+        const nomes = Object.keys(porProduto || {});
+        el('sep-por-produto').innerHTML = nomes.length ? nomes.map(n => '<span class="sep-tag">' + esc(n) + ': ' + porProduto[n] + '</span>').join('') : '<span class="text-xs text-slate-400">Sem contagem por produto ainda.</span>';
+    }
+
+    async function carregarContagem() {
+        const a = await api('/api/producao/visao/por-produto-hoje');
+        const b = await api('/api/visao/status');
+        renderContagem(b.ok ? (b.dados.contagemHoje || 0) : 0, a.ok ? a.dados : {});
+    }
+
+    function renderClasses() {
+        const lista = el('sep-lista-classes');
+        if (lista) lista.innerHTML = classes.map(c => '<option value="' + esc(c.nome) + '">').join('');
+        const box = el('sep-classes');
+        if (!box) return;
+        box.innerHTML = classes.length ? classes.map(c =>
+            '<div class="sep-classe"><div class="flex items-center justify-between"><b class="text-sm text-slate-800">' + esc(c.nome) + '</b><span class="sep-tag cinza">' + c.amostras + ' exemplos</span></div>' +
+            '<div class="sep-minis">' + (c.miniaturas || []).map(m => '<img alt="" src="data:image/jpeg;base64,' + m + '">').join('') + '</div>' +
+            '<button class="sep-btn verm" data-apagar="' + esc(c.nome) + '" style="padding:6px 10px">Apagar produto</button></div>').join('')
+            : '<p class="sep-dica">Nenhum produto treinado ainda.</p>';
+        box.querySelectorAll('[data-apagar]').forEach(b => b.addEventListener('click', async () => {
+            if (!confirm('Apagar "' + b.dataset.apagar + '" e todos os exemplos dele?')) return;
+            const r = await api('/api/separador/treino/' + encodeURIComponent(b.dataset.apagar), 'DELETE');
+            if (r.ok) { toast('Produto apagado.'); carregar(); } else toast(r.dados.erro || 'Não foi possível apagar.', 'erro');
+        }));
+        renderLados();
+    }
+
+    function renderLados() {
+        const box = el('sep-lados'); if (!box || !config) return;
+        box.innerHTML = classes.length ? classes.map(c => {
+            const v = (config.ladoPorClasse || {})[c.nome] || 'C';
+            return '<label class="sep-campo">' + esc(c.nome) + '<select data-lado="' + esc(c.nome) + '"><option value="C"' + (v === 'C' ? ' selected' : '') + '>Centro (não desvia)</option><option value="E"' + (v === 'E' ? ' selected' : '') + '>Esquerda</option><option value="D"' + (v === 'D' ? ' selected' : '') + '>Direita</option></select></label>';
+        }).join('') : '<p class="sep-dica">Treine os produtos primeiro (passo 1).</p>';
+    }
+
+    // ------------------------------------------------------------ formularios
+    function preencherConfig() {
+        if (!config) return;
+        el('sep-eixo').value = config.eixo; el('sep-sentido').value = String(config.sentido);
+        const pc = (id, v) => { el(id).value = v; };
+        pc('sep-linha', Math.round(config.linha * 100)); pc('sep-limiar', Math.round(config.limiarFundo));
+        pc('sep-zi', Math.round((config.camera ? config.camera.zonaInicio : 0.4) * 100)); pc('sep-zf', Math.round((config.camera ? config.camera.zonaFim : 0.6) * 100));
+        pc('sep-ang-esq', config.anguloEsq); pc('sep-ang-cen', config.anguloCentro); pc('sep-ang-dir', config.anguloDir); pc('sep-vel', config.velocidadeServo);
+        pc('sep-aberto', config.tempoAbertoMs); pc('sep-atraso', Math.round(config.atrasoBaseMs));
+        el('sep-compensar').checked = !!config.compensarVelocidade; el('sep-servo-ativo').checked = !!config.servoAtivo; el('sep-lado-desc').value = config.ladoDesconhecido || 'C';
+        el('sep-vel-ref-txt').textContent = config.velRefEsteira > 0 ? 'Referência: esteira em ' + Math.round(config.velRefEsteira * 100) + '%' : 'Referência: não definida';
+        rotulos();
+        renderLados();
+    }
+    function rotulos() {
+        el('sep-linha-v').textContent = el('sep-linha').value + '%'; el('sep-zi-v').textContent = el('sep-zi').value + '%'; el('sep-zf-v').textContent = el('sep-zf').value + '%';
+        el('sep-limiar-v').textContent = el('sep-limiar').value;
+        el('sep-ang-esq-v').textContent = el('sep-ang-esq').value + '°'; el('sep-ang-cen-v').textContent = el('sep-ang-cen').value + '°'; el('sep-ang-dir-v').textContent = el('sep-ang-dir').value + '°'; el('sep-vel-v').textContent = el('sep-vel').value + '%';
+    }
+    ['sep-linha', 'sep-zi', 'sep-zf', 'sep-limiar', 'sep-ang-esq', 'sep-ang-cen', 'sep-ang-dir', 'sep-vel'].forEach(id => el(id).addEventListener('input', rotulos));
+
+    function atualizarServoTexto() {
+        const e = servo.estado;
+        el('sep-servo-estado').textContent = servo.online ? ('Servo conectado' + (e ? ' · ' + (e.lado === 'C' ? 'no centro' : 'aberto para a ' + NOME_LADO[e.lado]) + ' · ' + Math.round(e.angulo) + '° · fila ' + e.fila : '')) : 'Servo desconectado (ESP32 do separador sem sinal).';
+        led('sep-led-servo', servo.online);
+    }
+
+    function atualizarTreino(t) {
+        if (!t) return;
+        const barra = el('sep-treino-barra'), txt = el('sep-treino-txt');
+        if (t.ativo) {
+            const feitos = (t.total || 0) - (t.restante || 0);
+            barra.style.width = Math.round((feitos / Math.max(1, t.total)) * 100) + '%';
+            txt.textContent = 'Treinando "' + t.classe + '": ' + feitos + ' de ' + t.total + '. Passe os sacos desse produto.';
+            el('sep-treino-iniciar').disabled = true; el('sep-treino-parar').disabled = false;
+        } else {
+            barra.style.width = (t.classe && t.total ? '100%' : '0%');
+            txt.textContent = t.classe ? 'Treino de "' + t.classe + '" concluído.' : 'Nenhum treino em andamento.';
+            el('sep-treino-iniciar').disabled = false; el('sep-treino-parar').disabled = true;
+            if (t.classe) carregar();
+        }
+    }
+
+    // ------------------------------------------------------------ carregar tudo
+    function aplicarEstado(d) {
+        servo = d.servo || servo; classes = d.classes || classes; recentes = d.recentes || recentes; velEsteira = d.velEsteira || 0;
+        led('sep-led-cam', !!(d.camera && d.camera.online)); led('sep-led-motor', d.motor && d.motor.aprendendoFundo ? 'warn' : !!(d.motor && d.config ? d.config.motorLocal : (d.motorLocal !== false)));
+        if (d.config) { config = d.config; preencherConfig(); }
+        if (d.motor) atualizarTreino(d.motor.treino);
+        atualizarServoTexto(); renderEventos(); renderClasses(); renderContagem(d.contagemHoje || 0, d.porProduto || {});
+    }
+    async function carregar() {
+        const r = await api('/api/separador/estado');
+        if (r.ok) aplicarEstado(r.dados);
+        if (permissaoTotal) { const t = await api('/api/separador/treino'); if (t.ok) { classes = t.dados; renderClasses(); } }
+    }
+
+    // ------------------------------------------------------------ acoes (admin)
+    function lerLados() { const o = {}; document.querySelectorAll('[data-lado]').forEach(s => { o[s.dataset.lado] = s.value; }); return o; }
+    async function salvarDeteccao() {
+        const zi = Number(el('sep-zi').value) / 100, zf = Number(el('sep-zf').value) / 100;
+        if (zf <= zi + 0.02) { toast('A faixa precisa ter início menor que o fim.', 'erro'); return; }
+        const r = await api('/api/separador/config', 'POST', {
+            eixo: el('sep-eixo').value, sentido: Number(el('sep-sentido').value), linha: Number(el('sep-linha').value) / 100,
+            limiarFundo: Number(el('sep-limiar').value), camera: { zonaInicio: zi, zonaFim: zf }
+        });
+        if (r.ok) { toast('Ajustes salvos.'); carregar(); } else toast(r.dados.erro || 'Não foi possível salvar.', 'erro');
+    }
+    async function salvarServo() {
+        const r = await api('/api/separador/config', 'POST', {
+            servoAtivo: el('sep-servo-ativo').checked, anguloEsq: Number(el('sep-ang-esq').value), anguloCentro: Number(el('sep-ang-cen').value), anguloDir: Number(el('sep-ang-dir').value),
+            velocidadeServo: Number(el('sep-vel').value), tempoAbertoMs: Number(el('sep-aberto').value), atrasoBaseMs: Number(el('sep-atraso').value),
+            compensarVelocidade: el('sep-compensar').checked, ladoDesconhecido: el('sep-lado-desc').value, ladoPorClasse: lerLados()
+        });
+        if (r.ok) { toast('Servo salvo.'); carregar(); } else toast(r.dados.erro || 'Não foi possível salvar.', 'erro');
+    }
+    async function aprenderFundo() {
+        const r = await api('/api/separador/fundo', 'POST', {});
+        toast(r.ok ? 'Aprendendo o fundo: deixe a esteira vazia por 2 segundos.' : (r.dados.erro || 'Erro.'), r.ok ? undefined : 'erro');
+    }
+    async function iniciarTreino() {
+        const nome = el('sep-treino-nome').value.trim();
+        if (!nome) { toast('Digite o nome do produto.', 'erro'); return; }
+        const r = await api('/api/separador/treino/iniciar', 'POST', { classe: nome, quantidade: Number(el('sep-treino-qtd').value) || 10 });
+        if (!r.ok) toast(r.dados.erro || 'Não foi possível iniciar.', 'erro');
+    }
+    async function testar(lado) {
+        const r = await api('/api/separador/servo/teste', 'POST', { lado });
+        if (!r.ok) toast(r.dados.erro || 'Não foi possível testar.', 'erro');
+    }
+    async function referenciaVelocidade() {
+        const r = await api('/api/separador/servo/ref-velocidade', 'POST', {});
+        if (r.ok) { toast('Referência: esteira em ' + Math.round((r.dados.velRefEsteira || 0) * 100) + '%.'); carregar(); } else toast(r.dados.erro || 'Ligue a esteira antes.', 'erro');
+    }
+
+    if (permissaoTotal) {
+        document.querySelectorAll('.sep-admin').forEach(e => e.classList.remove('sep-oculto'));
+        el('sep-btn-fundo').addEventListener('click', aprenderFundo); el('sep-btn-fundo2').addEventListener('click', aprenderFundo);
+        el('sep-det-salvar').addEventListener('click', salvarDeteccao); el('sep-servo-salvar').addEventListener('click', salvarServo);
+        el('sep-treino-iniciar').addEventListener('click', iniciarTreino);
+        el('sep-treino-parar').addEventListener('click', async () => { await api('/api/separador/treino/parar', 'POST', {}); });
+        el('sep-teste-e').addEventListener('click', () => testar('E')); el('sep-teste-c').addEventListener('click', () => testar('C')); el('sep-teste-d').addEventListener('click', () => testar('D'));
+        el('sep-vel-ref').addEventListener('click', referenciaVelocidade);
+    }
+
+    // ------------------------------------------------------------ eventos ao vivo
+    ouvir('visao_frame', (d) => {
+        const img = new Image();
+        img.onload = () => { ultimaImagem = img; desenhar(); };
+        img.src = 'data:image/jpeg;base64,' + d.imagem;
+    });
+    ouvir('visao_status', (d) => { led('sep-led-cam', !!d.online); avisoTela(d.online ? '' : 'Câmera sem sinal' + (d.motivo ? ': ' + d.motivo : '')); });
+    ouvir('separador_overlay', (d) => {
+        overlay = d.sobreposicao; atualizarMedidor(); desenhar();
+        led('sep-led-motor', d.aprendendoFundo ? 'warn' : true);
+        avisoTela(d.aprendendoFundo ? 'Aprendendo o fundo... deixe a esteira vazia (' + d.framesFaltando + ')' : '');
+    });
+    ouvir('separador_evento', (e) => { recentes.unshift(e); recentes = recentes.slice(0, 20); renderEventos(); carregarContagem(); });
+    ouvir('separador_servo', (s) => { servo = s; atualizarServoTexto(); });
+    ouvir('separador_treino', (t) => atualizarTreino(t));
+    ouvir('separador_treino_amostra', (a) => { if (a && a.classe) toast('Exemplo gravado: ' + a.classe + (a.restante > 0 ? ' (faltam ' + a.restante + ')' : '')); });
+    ouvir('visao_produto_contado', () => carregarContagem());
+
+    desenhar(); atualizarMedidor(); carregar(); carregarContagem();
+    const timer = setInterval(carregarContagem, 15000);
+
+    window.__cleanupPagina = function () {
+        ouvintes.forEach(([evento, funcao]) => globalSocket.off(evento, funcao));
+        clearInterval(timer);
+    };
+})();
+</script>
+{% endblock %}

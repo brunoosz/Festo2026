@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "ask-sdk-core": "^2.14.0",
+    "ask-sdk-express-adapter": "^2.14.0",
+    "ask-sdk-model": "^1.86.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "jimp": "^0.22.12",
+    "mqtt": "^5.15.1",
+    "multer": "^1.4.5-lts.1",
+    "nunjucks": "^3.2.4",
+    "socket.io": "^4.8.3"
+  }
+}

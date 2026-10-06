@@ -1,0 +1,54 @@
+{
+  "admin": {
+    "salt": "8dc4a5572b09ca600f4d96d8b21e752d",
+    "hash": "34e3e12fe2fe241955b2a2503b27af66c0e6fe50662ec09cf92332504b1d465494f3453f6760da7a16ec05faf20a4ecb37065f65c98cb90e3cf7d51e8a9552d9",
+    "acessibilidade": false,
+    "nivel": 2,
+    "tutorialVisto": true
+  },
+  "MatheusH": {
+    "salt": "254750de78556b4090271ab43836d142",
+    "hash": "d5cdec3895fcfed0b5e386404d407c266ad660381693e5fe230a6495768bbf11467c6417bfc210fae7e4e1c990e3776aa0fe82745d0752d7ba8b2d2fa1039edd",
+    "nivel": 2,
+    "tutorialVisto": true
+  },
+  "Rodrigo": {
+    "salt": "d941901eef49c3c3a35a898598d723fa",
+    "hash": "931e48aa95bc6b37e89381e02b3e082bd5172ac31501ad8b240b3c344974f7d208496f64881487decacc315707a55c12f667b1f43457fc6945064e9b8ac5de82",
+    "nivel": 2,
+    "tutorialVisto": true
+  },
+  "Rene": {
+    "salt": "6d898bdaec72781be730d692bc1a9052",
+    "hash": "f299986111536122547b2d5c05c021856239cddaa31705d88a7cb8ef14dcebf458e7edbeb381535de4480d3556d80796ee52aecbc5fbb798dd695476f39f398b",
+    "nivel": 2,
+    "tutorialVisto": true
+  },
+  "Bruno": {
+    "salt": "b3aa845c1e3e546ba5d8a1046000a56c",
+    "hash": "4fd2daf82abc3c86fd810f42896ea2a21e49fdbb15e16f9fe70ae978f71c85486d8dc7a18f503c7e63937d5813d3496fe0f78e3c24fd1e832a0c9e9230b9cebf",
+    "nivel": 1,
+    "acessibilidade": false,
+    "tutorialVisto": true
+  },
+  "Davi": {
+    "salt": "73689a434b91f31ffcb616409fe9f171",
+    "hash": "02be1db802f89e40b22853bf32a77caef2c29f2f2168bba32c9ffbebf2f107b9a625602a84a12be68ae6416a1da818820cc3de990b0b18d674140ce594f95281",
+    "nivel": 2,
+    "tutorialVisto": true
+  },
+  "bruno2": {
+    "salt": "881f5e2345eba3a7bb8e3e12a972381d",
+    "hash": "69c0ad62dbcb08833ba39770f45f521cde2a69c2b02da67ddaf087dbec58940bea007cbe9adc08182a7c64cc285e3cf8db15fcdc9468502b3c0ed1978b9e3472",
+    "nivel": 3,
+    "acessibilidade": false,
+    "tutorialVisto": true
+  },
+  "Diego": {
+    "salt": "37dc3b2bd3f72d7c59fcacf3eee8bf0f",
+    "hash": "03dbef2ee58c37165e9f19663e037ea9bfa43425eb37318bfe01cd727a51e6b2dbd6ae94572d33e6b759cb22d6c9f0b2014cc9d6cdf27b760ec5f01d494eec91",
+    "nivel": 2,
+    "acessibilidade": false,
+    "tutorialVisto": false
+  }
+}

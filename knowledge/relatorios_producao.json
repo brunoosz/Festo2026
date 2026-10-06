@@ -1,0 +1,91 @@
+[
+  {
+    "id": 801,
+    "pergunta": "O que o gráfico de produção mostra?",
+    "perguntas_alternativas": [
+      "como funciona o gráfico da aba produção",
+      "o que significa o gráfico ao vivo",
+      "de onde vem os dados do gráfico"
+    ],
+    "resposta": "O gráfico mostra a produção estimada de pacotes ao longo do dia, calculada em tempo real a partir da velocidade que o ESP32 está informando. Quanto maior a velocidade da esteira, mais pacotes o sistema estima serem produzidos por minuto, de forma proporcional e sem nenhuma simulação aleatória."
+  },
+  {
+    "id": 802,
+    "pergunta": "Como a produção de pacotes é calculada?",
+    "perguntas_alternativas": [
+      "qual a fórmula usada pra calcular pacotes",
+      "de onde vem o número de pacotes",
+      "como o sistema sabe quantos pacotes foram feitos"
+    ],
+    "resposta": "O cálculo é direto: existe uma capacidade máxima configurada (pacotes por minuto quando a esteira está a 100%), e a produção de cada ciclo é essa capacidade multiplicada pela velocidade atual da esteira. Por exemplo, com capacidade de 120 pacotes/minuto e a esteira a 50%, o sistema estima 60 pacotes por minuto."
+  },
+  {
+    "id": 803,
+    "pergunta": "O que é o 'Ritmo de Produção' no card verde?",
+    "perguntas_alternativas": [
+      "o que significa aquele número em pacotes por minuto",
+      "pra que serve o indicador de ritmo"
+    ],
+    "resposta": "É a taxa instantânea de produção, em pacotes por minuto, calculada com base na velocidade atual da esteira. Ele muda em tempo real conforme você acelera ou desacelera o motor."
+  },
+  {
+    "id": 804,
+    "pergunta": "O que é o alerta de velocidade na tela de produção?",
+    "perguntas_alternativas": [
+      "o card fica vermelho, o que significa",
+      "por que aparece um aviso de velocidade alta",
+      "o que quer dizer risco de travamento"
+    ],
+    "resposta": "É um indicador visual de segurança: fica verde em operação normal (até 70% de velocidade), amarelo em velocidade elevada (71% a 90%, pedindo atenção), e vermelho piscando acima de 90%, alertando sobre risco de travamento ou desgaste do equipamento em velocidades muito altas."
+  },
+  {
+    "id": 805,
+    "pergunta": "Como baixar os relatórios de erros?",
+    "perguntas_alternativas": [
+      "como exporto o relatório em pdf",
+      "onde eu baixo o histórico da máquina",
+      "como gero um pdf com os eventos"
+    ],
+    "resposta": "Acesse a aba 'Relatórios', selecione a data desejada no filtro de calendário e clique no botão 'Baixar PDF'. O sistema gera um arquivo com o histórico completo de eventos daquele dia, incluindo o usuário responsável por cada ação."
+  },
+  {
+    "id": 806,
+    "pergunta": "O relatório em PDF mostra quem fez cada ação?",
+    "perguntas_alternativas": [
+      "dá pra saber quem mexeu na esteira",
+      "o pdf identifica o operador responsável",
+      "aparece o nome do usuário no relatório"
+    ],
+    "resposta": "Sim. Cada evento registrado no sistema (ligar, parar, mudar velocidade, acionar emergência) é vinculado ao usuário que estava logado no momento, e essa informação aparece tanto na tela de Relatórios quanto no PDF exportado."
+  },
+  {
+    "id": 807,
+    "pergunta": "O relatório em PDF tem gráfico?",
+    "perguntas_alternativas": [
+      "o pdf mostra o gráfico de produção também",
+      "consigo ver o gráfico do dia no relatório baixado",
+      "o pdf só tem tabela ou tem gráfico também"
+    ],
+    "resposta": "Sim. Além da tabela de eventos, o PDF gerado inclui uma página adicional com o gráfico de produção daquele dia específico e o total de pacotes produzidos, desenhado a partir dos dados reais registrados durante a operação."
+  },
+  {
+    "id": 808,
+    "pergunta": "Onde os logs da máquina ficam salvos?",
+    "perguntas_alternativas": [
+      "os dados ficam guardados onde",
+      "os registros são perdidos se desligar o site",
+      "onde fica o histórico de eventos"
+    ],
+    "resposta": "Todas as ações são gravadas em arquivos JSON dentro da pasta 'logs' no disco do Raspberry Pi, organizados por data. Eles não são perdidos se o site for reiniciado ou fechado, ficando disponíveis permanentemente para consulta e exportação."
+  },
+  {
+    "id": 809,
+    "pergunta": "Os dados de produção de dias anteriores ficam salvos?",
+    "perguntas_alternativas": [
+      "consigo ver a produção de ontem",
+      "o histórico de 7 dias e 30 dias é real?",
+      "os dados somem depois de um tempo?"
+    ],
+    "resposta": "Sim. O total de pacotes produzidos por dia é salvo permanentemente num arquivo de histórico no Raspberry Pi, e pode ser consultado nas visualizações de '7 Dias', '30 Dias' e '1 Ano' na aba de Produção, além de constar no relatório em PDF de cada data específica."
+  }
+]
