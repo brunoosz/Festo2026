@@ -1,4 +1,22 @@
+# Dependências
 node_modules/
+
+# Segredos e ambiente
 .env
+.env.*
+!.env.example
+
+# Dados gerados em execução
+logs/
+usuarios.json
+alexa_cert_cache.json
+
+# Logs e temporários
 *.log
+npm-debug.log*
+
+# Sistema operacional / editores
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/

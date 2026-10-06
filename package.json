@@ -1,4 +1,20 @@
-{
+﻿{
+  "name": "festo2026-flowpack",
+  "version": "1.0.0",
+  "description": "Sistema web de controle e monitoramento de uma máquina Flow Pack (Node.js, MQTT, ESP32, Alexa) - Dark Coders, Festo 2026",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:env": "node --env-file=.env server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brunoosz/Festo2026.git"
+  },
+  "keywords": ["flow-pack", "industrial", "iot", "mqtt", "esp32", "raspberry-pi", "socket.io", "alexa"],
+  "author": "Dark Coders",
+  "license": "MIT",
+  "engines": { "node": ">=20.6" },
   "dependencies": {
     "ask-sdk-core": "^2.14.0",
     "ask-sdk-express-adapter": "^2.14.0",
