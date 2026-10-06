@@ -104,6 +104,7 @@ cp .env.example .env
 | Variável | Descrição | Obrigatória |
 |---|---|---|
 | `NVIDIA_API_KEY` | Chave da API NVIDIA para o chat e a visão por IA. Sem ela, o sistema usa só a base local | Não |
+| `SESSION_SECRET` | Segredo das sessões e cookies. Sem ele, um segredo aleatório é gerado e guardado em `.session_secret` | Não |
 
 > O endereço do broker MQTT (`mqtt://192.168.4.1`) e a porta do servidor (`5000`) estão definidos no início de [`server.js`](server.js). Altere conforme a sua rede.
 
@@ -117,6 +118,32 @@ npm run start:env  # carrega as variáveis do arquivo .env
 Acesse **http://localhost:5000** (ou o IP do Raspberry Pi na rede local).
 
 Na primeira execução, se não existir `usuarios.json`, é criado o usuário **`admin`** com senha **`admin`**. **Troque a senha imediatamente** em Configurações.
+
+### Acesso pela internet (Tailscale Funnel)
+
+O site não precisa rodar só na rede local. Com o [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) o painel fica acessível por um endereço HTTPS público:
+
+```bash
+sudo tailscale funnel --bg 5000
+```
+
+Como qualquer pessoa que descobrir o endereço consegue abrir a tela de login, o servidor tem:
+
+- cookie de "lembrar de mim" assinado (não dá pra forjar)
+- segredo de sessão fora do código
+- bloqueio de 15 minutos depois de 8 tentativas de login erradas pelo mesmo IP
+
+Troque a senha `admin` antes de expor o site.
+
+### Atualizando o Raspberry
+
+Um comando baixa a versão nova do GitHub, mantém `usuarios.json`, receitas, fotos de referência, configurações e logs, instala as dependências e reinicia o site:
+
+```bash
+cd ~/Festo2026 && git fetch origin main && git checkout origin/main -- atualizar.sh && bash atualizar.sh
+```
+
+Para atualizar de outra branch: `bash atualizar.sh nome-da-branch`. Uma cópia dos dados fica em `../festo2026_backup/`.
 
 ## Níveis de acesso
 
