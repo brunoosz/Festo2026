@@ -51,6 +51,38 @@ function nivelValido(nivel) {
     return nivel === NIVEL_DONO || nivel === NIVEL_ADM || nivel === NIVEL_OPERARIO;
 }
 
+// Telas que o Dono/Administrador pode liberar ou bloquear por usuário Operário.
+// (Dono e Administrador sempre acessam todas. Dashboard e Configuração são
+// sempre liberados, assim todo usuário tem pelo menos uma tela inicial.)
+const PAGINAS_CONFIGURAVEIS = {
+    dispenser: 'Dispenser',
+    separador: 'Separador',
+    receitas: 'Receitas',
+    graficos: 'Produção',
+    relatorios: 'Relatórios',
+    visao: 'Visão Computacional',
+    chat: 'Dark Coders AI',
+    logs: 'Logs ao Vivo'
+};
+
+// Padrão de um Operário que ainda não teve permissões personalizadas.
+const PERMISSOES_PADRAO_OPERARIO = {
+    dispenser: true, separador: true, receitas: false, graficos: true,
+    relatorios: true, visao: true, chat: true, logs: true
+};
+
+function permissoesEfetivas(usuario) {
+    const efetivas = {};
+    const ehOperario = usuario.nivel === NIVEL_OPERARIO;
+    Object.keys(PAGINAS_CONFIGURAVEIS).forEach(pagina => {
+        if (!ehOperario) { efetivas[pagina] = true; return; }
+        const salva = usuario.permissoes && typeof usuario.permissoes[pagina] === 'boolean'
+            ? usuario.permissoes[pagina] : PERMISSOES_PADRAO_OPERARIO[pagina];
+        efetivas[pagina] = salva;
+    });
+    return efetivas;
+}
+
 const arquivoUsuarios = path.join(__dirname, 'usuarios.json');
 
 function gerarHashSenha(senha) {
@@ -2183,7 +2215,17 @@ function loginObrigatorio(req, res, next) {
     res.locals.isAdmin = dadosUsuario.nivel === NIVEL_DONO || dadosUsuario.nivel === NIVEL_ADM;
     res.locals.acessibilidadeAtiva = !!dadosUsuario.acessibilidade;
     res.locals.tutorialObrigatorio = !dadosUsuario.tutorialVisto;
+    res.locals.permissoes = permissoesEfetivas(dadosUsuario);
     next();
+}
+
+// Bloqueia a tela (ou a API da tela) se o usuário não tiver essa permissão.
+function paginaPermitida(pagina) {
+    return (req, res, next) => {
+        if (res.locals.permissoes && res.locals.permissoes[pagina]) return next();
+        if (req.path.startsWith('/api/')) return res.status(403).json({ erro: 'Você não tem permissão para acessar esta área.' });
+        return res.status(403).send('Acesso negado. Você não tem permissão para acessar esta tela. Fale com um administrador.');
+    };
 }
 
 function adminObrigatorio(req, res, next) {
@@ -2243,14 +2285,14 @@ app.post('/mudar-senha', loginObrigatorio, (req, res) => {
 });
 
 app.get('/dashboard', loginObrigatorio, (req, res) => res.render('dashboard.html'));
-app.get('/graficos', loginObrigatorio, (req, res) => res.render('graficos.html'));
-app.get('/relatorios', loginObrigatorio, (req, res) => res.render('relatorios.html'));
+app.get('/graficos', loginObrigatorio, paginaPermitida('graficos'), (req, res) => res.render('graficos.html'));
+app.get('/relatorios', loginObrigatorio, paginaPermitida('relatorios'), (req, res) => res.render('relatorios.html'));
 app.get('/configuracoes', loginObrigatorio, (req, res) => res.render('configuracoes.html'));
-app.get('/chat', loginObrigatorio, (req, res) => res.render('chat.html'));
+app.get('/chat', loginObrigatorio, paginaPermitida('chat'), (req, res) => res.render('chat.html'));
 app.get('/controle', loginObrigatorio, adminObrigatorio, (req, res) => res.render('controle.html'));
-app.get('/logs', loginObrigatorio, (req, res) => res.render('logs.html'));
+app.get('/logs', loginObrigatorio, paginaPermitida('logs'), (req, res) => res.render('logs.html'));
 app.get('/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => res.render('usuarios.html'));
-app.get('/visao', loginObrigatorio, (req, res) => res.render('visao.html'));
+app.get('/visao', loginObrigatorio, paginaPermitida('visao'), (req, res) => res.render('visao.html'));
 
 app.get('/logout', (req, res) => {
     const usuarioQueSaiu = req.session.usuario || req.cookies.lembrar_usuario;
@@ -2271,9 +2313,31 @@ app.get('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
         usuario: nome,
         nivel: usuarios[nome].nivel,
         nomeNivel: nomeNivel(usuarios[nome].nivel),
-        acessibilidade: !!usuarios[nome].acessibilidade
+        acessibilidade: !!usuarios[nome].acessibilidade,
+        permissoes: permissoesEfetivas(usuarios[nome])
     }));
-    res.json(lista);
+    res.json({ usuarios: lista, paginas: PAGINAS_CONFIGURAVEIS });
+});
+
+// Define quais telas um Operário pode acessar (Dono ou Administrador).
+app.post('/api/usuarios/:usuario/permissoes', loginObrigatorio, adminObrigatorio, (req, res) => {
+    const usuarios = carregarUsuarios();
+    const alvo = usuarios[req.params.usuario];
+
+    if (!alvo) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+    if (alvo.nivel !== NIVEL_OPERARIO) {
+        return res.status(400).json({ erro: 'Só é possível restringir telas de usuários Operário.' });
+    }
+
+    const recebidas = (req.body && req.body.permissoes) || {};
+    const novas = {};
+    Object.keys(PAGINAS_CONFIGURAVEIS).forEach(pagina => {
+        novas[pagina] = typeof recebidas[pagina] === 'boolean' ? recebidas[pagina] : permissoesEfetivas(alvo)[pagina];
+    });
+
+    alvo.permissoes = novas;
+    salvarUsuarios(usuarios);
+    res.json({ sucesso: true, permissoes: novas });
 });
 
 app.post('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
@@ -2403,7 +2467,7 @@ app.post('/api/usuario/tutorial-visto', loginObrigatorio, (req, res) => {
 });
 
 // --- API DO CHAT ---
-app.get('/api/chat/historico', loginObrigatorio, (req, res) => {
+app.get('/api/chat/historico', loginObrigatorio, paginaPermitida('chat'), (req, res) => {
     const usuario = res.locals.usuarioLogado;
     res.json(historicosChat[usuario] || []);
 });
@@ -2424,7 +2488,7 @@ function respostaQuandoApiFalha(pergunta) {
     return local;
 }
 
-app.post('/api/chat', loginObrigatorio, async (req, res) => {
+app.post('/api/chat', loginObrigatorio, paginaPermitida('chat'), async (req, res) => {
     const usuario = res.locals.usuarioLogado;
     const perguntaRecebida = (req.body.pergunta || '').trim();
     if (!historicosChat[usuario]) historicosChat[usuario] = [];
@@ -2461,7 +2525,7 @@ app.post('/api/chat', loginObrigatorio, async (req, res) => {
     res.json({ resposta: respostaFinal, parId, hora });
 });
 
-app.delete('/api/chat/mensagem/:parId', loginObrigatorio, (req, res) => {
+app.delete('/api/chat/mensagem/:parId', loginObrigatorio, paginaPermitida('chat'), (req, res) => {
     const usuario = res.locals.usuarioLogado;
     if (!historicosChat[usuario]) return res.json({ sucesso: true });
 
@@ -2469,7 +2533,7 @@ app.delete('/api/chat/mensagem/:parId', loginObrigatorio, (req, res) => {
     res.json({ sucesso: true });
 });
 
-app.delete('/api/chat/limpar', loginObrigatorio, (req, res) => {
+app.delete('/api/chat/limpar', loginObrigatorio, paginaPermitida('chat'), (req, res) => {
     const usuario = res.locals.usuarioLogado;
     historicosChat[usuario] = [];
     res.json({ sucesso: true });
@@ -2602,7 +2666,7 @@ setInterval(() => {
     }
 }, 3000);
 
-app.get('/dispenser', loginObrigatorio, (req, res) => res.render('dispenser.html'));
+app.get('/dispenser', loginObrigatorio, paginaPermitida('dispenser'), (req, res) => res.render('dispenser.html'));
 
 // ================================================================================
 // RECEITAS (niveis de 50/100/150/200 g) + BOTOES FISICOS + MODELO 3D
@@ -2685,15 +2749,15 @@ function receitasTratarBotao(valor) {
     if (valor === 'menos') receitasAplicar(Math.max(0, receitas.atual - 1), 'botao MENOS');
 }
 
-app.get('/receitas', loginObrigatorio, (req, res) => res.render('receitas.html'));
-app.get('/api/receitas', loginObrigatorio, (req, res) => res.json(receitas));
-app.post('/api/receitas', loginObrigatorio, adminObrigatorio, (req, res) => {
+app.get('/receitas', loginObrigatorio, paginaPermitida('receitas'), (req, res) => res.render('receitas.html'));
+app.get('/api/receitas', loginObrigatorio, paginaPermitida('receitas'), (req, res) => res.json(receitas));
+app.post('/api/receitas', loginObrigatorio, adminObrigatorio, paginaPermitida('receitas'), (req, res) => {
     receitas = receitasNormalizar(Object.assign({}, receitas, req.body || {}, { atual: receitas.atual }));
     receitasSalvar();
     io.emit('receita_atual', { indice: receitas.atual, niveis: receitas.niveis, origem: 'edicao' });
     res.json(receitas);
 });
-app.post('/api/receitas/aplicar', loginObrigatorio, (req, res) => {
+app.post('/api/receitas/aplicar', loginObrigatorio, paginaPermitida('receitas'), (req, res) => {
     const i = parseInt(req.body && req.body.indice, 10);
     if (!receitasAplicar(i, 'site')) return res.status(400).json({ erro: 'Nivel invalido.' });
     res.json({ sucesso: true, atual: receitas.atual });
@@ -2712,7 +2776,7 @@ app.get('/api/modelo3d', loginObrigatorio, (req, res) => {
 // ================================================================================
 // SEPARADOR (fase 2) - paginas e API
 // ================================================================================
-app.get('/separador', loginObrigatorio, (req, res) => res.render('separador.html'));
+app.get('/separador', loginObrigatorio, paginaPermitida('separador'), (req, res) => res.render('separador.html'));
 
 function separadorConfigCompleta() {
     return Object.assign({}, separadorMotor.getConfig(), {

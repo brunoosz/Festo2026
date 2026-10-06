@@ -134,6 +134,22 @@
     </div>
 </div>
 
+<div id="modal-telas-usuario" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 sm:p-6">
+        <h3 class="font-bold text-gray-800 text-lg mb-1">Telas liberadas</h3>
+        <p class="text-sm text-slate-500 mb-4">Marque as telas que <strong id="texto-usuario-telas"></strong> pode acessar.</p>
+
+        <div id="lista-telas-usuario" class="space-y-2 mb-4"></div>
+
+        <div id="msg-telas-usuario" class="hidden p-3 rounded text-sm font-bold mb-3"></div>
+
+        <div class="flex gap-3">
+            <button type="button" id="btn-cancelar-telas" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg transition cursor-pointer">Cancelar</button>
+            <button type="button" id="btn-salvar-telas" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-md cursor-pointer">Salvar</button>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     const souDono = {{ 'true' if isDono else 'false' }};
@@ -144,6 +160,7 @@
     const filtroNivel = document.getElementById('filtro-nivel');
 
     let listaCompletaUsuarios = [];
+    let paginasConfiguraveis = {};
 
     function badgeNivel(nivel, nomeNivelTexto) {
         let classes = "text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ";
@@ -162,6 +179,10 @@
         tr.className = "border-b border-slate-100 last:border-0";
 
         let botoesAcao = '';
+
+        if (u.nivel === 3) {
+            botoesAcao += `<button data-usuario="${u.usuario}" class="btn-telas-usuario text-emerald-600 hover:text-emerald-800 text-xs font-bold mr-3 cursor-pointer">Telas</button>`;
+        }
 
         if (possoAlterarSenhaDe(u.nivel)) {
             botoesAcao += `<button data-usuario="${u.usuario}" class="btn-trocar-senha text-blue-600 hover:text-blue-800 text-xs font-bold mr-3 cursor-pointer">Senha</button>`;
@@ -212,6 +233,9 @@
         document.querySelectorAll('.btn-trocar-senha').forEach(botao => {
             botao.addEventListener('click', () => abrirModalSenha(botao.dataset.usuario));
         });
+        document.querySelectorAll('.btn-telas-usuario').forEach(botao => {
+            botao.addEventListener('click', () => abrirModalTelas(botao.dataset.usuario));
+        });
         document.querySelectorAll('.btn-apagar-usuario').forEach(botao => {
             botao.addEventListener('click', () => apagarUsuario(botao.dataset.usuario));
         });
@@ -225,7 +249,9 @@
     async function carregarUsuarios() {
         try {
             const resposta = await fetch('/api/usuarios');
-            listaCompletaUsuarios = await resposta.json();
+            const dados = await resposta.json();
+            listaCompletaUsuarios = dados.usuarios;
+            paginasConfiguraveis = dados.paginas;
             renderizarComFiltro();
         } catch (erro) {
             corpoTabela.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-red-500 text-xs">Erro ao carregar usuários.</td></tr>';
@@ -371,6 +397,56 @@
         }
     }
     formSenhaUsuario.addEventListener('submit', handlerSalvarSenha);
+
+    const modalTelas = document.getElementById('modal-telas-usuario');
+    const listaTelas = document.getElementById('lista-telas-usuario');
+    const msgTelas = document.getElementById('msg-telas-usuario');
+    let usuarioAlvoTelas = null;
+
+    function abrirModalTelas(usuario) {
+        const alvo = listaCompletaUsuarios.find(u => u.usuario === usuario);
+        if (!alvo) return;
+        usuarioAlvoTelas = usuario;
+        document.getElementById('texto-usuario-telas').innerText = usuario;
+        msgTelas.classList.add('hidden');
+        listaTelas.innerHTML = '';
+        Object.keys(paginasConfiguraveis).forEach(pagina => {
+            const label = document.createElement('label');
+            label.className = 'flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3 cursor-pointer';
+            const marcado = alvo.permissoes[pagina] ? 'checked' : '';
+            label.innerHTML = `<input type="checkbox" data-pagina="${pagina}" ${marcado} class="rounded border-gray-300 text-blue-500 w-5 h-5 shrink-0"><span class="text-sm font-bold text-slate-700">${paginasConfiguraveis[pagina]}</span>`;
+            listaTelas.appendChild(label);
+        });
+        modalTelas.classList.remove('hidden');
+    }
+    function fecharModalTelas() { modalTelas.classList.add('hidden'); }
+
+    document.getElementById('btn-cancelar-telas').addEventListener('click', fecharModalTelas);
+    modalTelas.addEventListener('click', (e) => { if (e.target === modalTelas) fecharModalTelas(); });
+    document.getElementById('btn-salvar-telas').addEventListener('click', async () => {
+        const permissoes = {};
+        listaTelas.querySelectorAll('input[data-pagina]').forEach(c => { permissoes[c.dataset.pagina] = c.checked; });
+        try {
+            const resposta = await fetch('/api/usuarios/' + encodeURIComponent(usuarioAlvoTelas) + '/permissoes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ permissoes })
+            });
+            const dados = await resposta.json();
+            if (resposta.ok) {
+                fecharModalTelas();
+                carregarUsuarios();
+            } else {
+                msgTelas.classList.remove('hidden');
+                msgTelas.className = 'p-3 rounded text-sm font-bold mb-3 bg-red-100 text-red-700';
+                msgTelas.innerText = dados.erro || 'Não foi possível salvar.';
+            }
+        } catch (erro) {
+            msgTelas.classList.remove('hidden');
+            msgTelas.className = 'p-3 rounded text-sm font-bold mb-3 bg-red-100 text-red-700';
+            msgTelas.innerText = 'Erro de conexão com o servidor.';
+        }
+    });
 
     window.__cleanupPagina = function() {};
 })();

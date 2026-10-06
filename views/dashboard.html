@@ -3,8 +3,42 @@
 {% block title %}Operação{% endblock %}
 
 {% block content %}
-<!-- dash3d-card: modelo 3D leve no Dashboard -->
-<div id="dash3d-card" class="card-painel" style="margin-bottom:14px">
+
+
+<div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6">
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1">
+
+        <div class="flex flex-col gap-3 sm:gap-4">
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-esteira" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">ESTEIRA</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-emerg" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">EMERG.</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-selagem" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">SELAGEM 1</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-selagem2" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">SELAGEM 2</span>
+                </div>
+
+                <!-- NOVO: botão de recarregar status — força reconsultar os
+                     endpoints e refletir a realidade, útil quando algo
+                     ficou "preso" como online sem estar de verdade -->
+                <button id="btn-recarregar-status" title="Recarregar status recebido" class="ml-auto w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm shrink-0">
+                    <svg id="icone-recarregar-status" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                </button>
+            </div>
+
+<div id="dash3d-card" class="card-painel flex-1 flex flex-col">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
     <h3 style="font-size:12px;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.1em;margin:0">Máquina em 3D</h3>
     <div style="display:flex;gap:6px">
@@ -13,7 +47,7 @@
       <button id="d3-tela" type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Tela cheia</button>
     </div>
   </div>
-  <div id="d3-area" style="position:relative;width:100%;height:42vh;min-height:240px;border-radius:10px;overflow:hidden;background:linear-gradient(#cbd5e1,#f8fafc);touch-action:none">
+  <div id="d3-area" style="position:relative;width:100%;flex:1;height:auto;min-height:320px;border-radius:10px;overflow:hidden;background:linear-gradient(#cbd5e1,#f8fafc);touch-action:none">
     <div id="d3-msg" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:13px;font-weight:700;color:#475569">Carregando o modelo 3D...</div>
   </div>
 </div>
@@ -58,46 +92,6 @@
   window.__cleanupPagina = function () { parado = true; cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); if (renderer) renderer.dispose(); if (typeof window.__cleanupPaginaDash3d === 'function') window.__cleanupPaginaDash3d(); };
 })();
 </script>
-
-
-<div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6">
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1">
-
-        <div class="flex flex-col gap-3 sm:gap-4">
-            <div class="flex flex-wrap items-center gap-2">
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
-                    <span id="led-esteira" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">ESTEIRA</span>
-                </div>
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
-                    <span id="led-emerg" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">EMERG.</span>
-                </div>
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
-                    <span id="led-selagem" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">SELAGEM 1</span>
-                </div>
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
-                    <span id="led-selagem2" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">SELAGEM 2</span>
-                </div>
-
-                <!-- NOVO: botão de recarregar status — força reconsultar os
-                     endpoints e refletir a realidade, útil quando algo
-                     ficou "preso" como online sem estar de verdade -->
-                <button id="btn-recarregar-status" title="Recarregar status recebido" class="ml-auto w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm shrink-0">
-                    <svg id="icone-recarregar-status" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                    </svg>
-                </button>
-            </div>
-
-            <div class="card-painel flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 bg-slate-50">
-                <svg class="w-14 h-14 text-slate-300 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"></path></svg>
-                <p class="text-base font-bold text-slate-400">Modelo 3D da Máquina</p>
-                <p class="text-xs text-slate-300 mt-1">Em breve nesta área</p>
-            </div>
         </div>
 
         <div class="flex flex-col gap-4 sm:gap-6 h-full">

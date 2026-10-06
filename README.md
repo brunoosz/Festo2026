@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 <img src="public/logo.png" alt="Dark Coders" width="140" />
 
@@ -124,7 +124,11 @@ Na primeira execução, se não existir `usuarios.json`, é criado o usuário **
 |---|---|---|
 | 1 | **Dono** | Tudo, incluindo promover/remover usuários |
 | 2 | **Administrador** | Controlar a máquina, criar usuários e alterar senhas |
-| 3 | **Operário** | Visualizar dashboard, gráficos, relatórios e usar o chat |
+| 3 | **Operário** | Telas liberadas pelo Dono/Administrador (veja abaixo) |
+
+### Telas por usuário
+
+Para cada **Operário**, o Dono ou o Administrador escolhe quais telas ele acessa em **Usuários → Telas**: Dispenser, Separador, Receitas, Produção, Relatórios, Visão Computacional, Dark Coders AI e Logs. Por padrão, o Operário vê tudo, **exceto Receitas**. O Dashboard e a Configuração ficam sempre liberados. O bloqueio vale no menu e também no servidor, então o acesso direto pela URL é negado.
 
 ## Integração com a Alexa
 
