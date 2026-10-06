@@ -35,7 +35,7 @@ A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço
 | Receitas | Níveis de 50, 100, 150 e 200 g com velocidade e temperatura predefinidas. |
 | Produção e Relatórios | Gráficos por hora e por dia e exportação de relatórios em PDF. |
 | Dark Coders AI | Assistente com base de conhecimento local e IA online opcional. Aceita comandos por texto e por voz. |
-| Alexa | Skill própria para comandos (velocidade, temperatura, emergência) e perguntas. |
+| Alexa | Skill própria com cinco comandos: ligar com a receita de 50, 100, 150 ou 200 g e parada de emergência. |
 | Logs ao Vivo | Registro em tempo real de tudo o que acontece, com usuário e origem (site, assistente ou Alexa). |
 | Status do Sistema | Internet, Raspberry (temperatura, memória, alimentação) e conexão de cada dispositivo. |
 | Usuários | Três níveis de acesso e permissão de telas por usuário. |
@@ -163,7 +163,22 @@ Em **Usuários**, o Dono ou o Administrador define, para cada Operário, quais t
 
 ## Integração com a Alexa
 
-A skill **Dark Coders** envia os pedidos para `POST /alexa`. Antes de executar qualquer comando, o servidor valida a assinatura e o certificado da Amazon e confere o ID da skill. O endereço precisa ser público e usar HTTPS, o que o Tailscale Funnel atende.
+A skill tem cinco comandos. Depois de cada um ela se fecha sozinha, então é preciso abrir de novo para dar outro.
+
+| Você diz | O que acontece |
+|---|---|
+| "Alexa, abrir controle máquina" (ou "ligar") | A Alexa pergunta com qual pré-definição ligar. |
+| "50 gramas" | Aplica a receita de 50 g, liga a esteira, os motores e os dois aquecimentos, e fecha a skill. |
+| "100 gramas" | Igual, com a receita de 100 g. |
+| "150 gramas" | Igual, com a receita de 150 g. |
+| "200 gramas" | Igual, com a receita de 200 g. |
+| "emergência" | Aciona a Parada de Emergência em todos os módulos e fecha a skill. |
+
+As pré-definições são as receitas da tela **Receitas**, então os valores de cada uma (velocidade, motores e temperaturas) são os que estiverem cadastrados lá.
+
+Os pedidos chegam em `POST /alexa`. Antes de executar qualquer comando, o servidor valida a assinatura e o certificado da Amazon e confere o ID da skill. O endereço precisa ser público e usar HTTPS, o que o Tailscale Funnel atende.
+
+O modelo de interação da skill está em [`alexa/modelo_de_interacao.json`](alexa/modelo_de_interacao.json). Para aplicar no console da Alexa, siga o [`alexa/LEIA-ME.md`](alexa/LEIA-ME.md).
 
 ## Estrutura do repositório
 
@@ -172,6 +187,7 @@ A skill **Dark Coders** envia os pedidos para `POST /alexa`. Antes de executar q
 ├── server.js              Servidor: rotas, MQTT, Socket.IO, Alexa e IA
 ├── separador_engine.js    Contagem e desvio de produtos do separador
 ├── atualizar.sh           Atualização do Raspberry Pi
+├── alexa/                 Modelo de interação da skill da Alexa
 ├── views/                 Telas (templates Nunjucks)
 ├── public/                Arquivos estáticos, bibliotecas e modelo 3D
 ├── knowledge/             Base de conhecimento do assistente

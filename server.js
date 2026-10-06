@@ -1586,13 +1586,74 @@ const PREFIXOS_INTENCOES = {
 
 const FRASE_CONTINUAR = ' Mais alguma coisa?';
 
+// a skill tem 5 comandos: ligar com 50, 100, 150 ou 200 g (receitas) e emergencia
+const ALEXA_LIGAR_AQUECIMENTO = true;
+
+function listaDePredefinicoesFalada() {
+    const g = receitas.niveis.map(n => n.gramas);
+    return g.length > 1 ? `${g.slice(0, -1).join(', ')} ou ${g[g.length - 1]} gramas` : `${g[0]} gramas`;
+}
+
+function perguntarPredefinicao(h, abertura) {
+    const pergunta = `Com qual pré-definição você deseja ligar? Diga ${listaDePredefinicoesFalada()}. Ou diga emergência.`;
+    return h.responseBuilder
+        .speak(abertura ? `${abertura} ${pergunta}` : pergunta)
+        .reprompt(`Qual pré-definição? ${listaDePredefinicoesFalada()}.`)
+        .getResponse();
+}
+
 const AlexaAbrirHandler = {
     canHandle(h) { return Alexa.getRequestType(h.requestEnvelope) === 'LaunchRequest'; },
     handle(h) {
         registrarLogDaAlexa('Skill Dark Coders aberta na Alexa.', 'sistema');
+        return perguntarPredefinicao(h, 'Dark Coders pronto.');
+    }
+};
+
+const AlexaLigarMaquinaHandler = {
+    canHandle(h) {
+        return Alexa.getRequestType(h.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(h.requestEnvelope) === 'LigarMaquinaIntent';
+    },
+    handle(h) { return perguntarPredefinicao(h); }
+};
+
+const AlexaPredefinicaoHandler = {
+    canHandle(h) {
+        return Alexa.getRequestType(h.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(h.requestEnvelope) === 'PredefinicaoIntent';
+    },
+    handle(h) {
+        const gramas = parseInt(Alexa.getSlotValue(h.requestEnvelope, 'gramas'), 10);
+        if (!gramas) return perguntarPredefinicao(h);
+
+        const indice = receitas.niveis.findIndex(n => n.gramas === gramas);
+        if (indice < 0) {
+            return h.responseBuilder
+                .speak(`Não tenho a pré-definição de ${gramas} gramas. Diga ${listaDePredefinicoesFalada()}.`)
+                .reprompt(`Qual pré-definição? ${listaDePredefinicoesFalada()}.`)
+                .getResponse();
+        }
+
+        receitasAplicar(indice, 'Alexa');
+        if (ALEXA_LIGAR_AQUECIMENTO) { definirAquecimentoServidor(1, true); definirAquecimentoServidor(2, true); }
+        registrarLogDaAlexa(`Máquina ligada pela Alexa com a pré-definição de ${gramas} g.`, 'sistema');
         return h.responseBuilder
-            .speak('Dark Coders pronto. O que você precisa?')
-            .reprompt('Pode falar um comando, por exemplo: mude a velocidade para 50 por cento.')
+            .speak(`Pronto, máquina ligada com a pré-definição de ${gramas} gramas.`)
+            .withShouldEndSession(true)
+            .getResponse();
+    }
+};
+
+const AlexaEmergenciaHandler = {
+    canHandle(h) {
+        return Alexa.getRequestType(h.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(h.requestEnvelope) === 'EmergenciaIntent';
+    },
+    handle(h) {
+        return h.responseBuilder
+            .speak(executarComandoServidor({ tipo: 'emergencia' }))
+            .withShouldEndSession(true)
             .getResponse();
     }
 };
@@ -1630,10 +1691,9 @@ const AlexaAjudaHandler = {
             && Alexa.getIntentName(h.requestEnvelope) === 'AMAZON.HelpIntent';
     },
     handle(h) {
-        const fala = 'Você pode dizer, por exemplo: mude a velocidade para 60 por cento, ligue o aquecimento da selagem 1, '
-            + 'mude a temperatura da selagem 2 para 150 graus, desligue tudo, ou emergência. '
-            + 'Também pode me perguntar qual a temperatura agora. O que você quer fazer?';
-        return h.responseBuilder.speak(fala).reprompt('O que você quer fazer?').getResponse();
+        const fala = `Você pode dizer ligar, e depois escolher a pré-definição: ${listaDePredefinicoesFalada()}. `
+            + 'Para parar tudo, diga emergência. Qual pré-definição você quer?';
+        return h.responseBuilder.speak(fala).reprompt(`Qual pré-definição? ${listaDePredefinicoesFalada()}.`).getResponse();
     }
 };
 
@@ -1654,8 +1714,8 @@ const AlexaNaoEntendiHandler = {
     },
     handle(h) {
         return h.responseBuilder
-            .speak('Não entendi. Tente dizer, por exemplo: mude a velocidade para 50 por cento.')
-            .reprompt('O que você quer fazer?')
+            .speak(`Não entendi. Diga ${listaDePredefinicoesFalada()}, ou emergência.`)
+            .reprompt(`Qual pré-definição? ${listaDePredefinicoesFalada()}.`)
             .getResponse();
     }
 };
@@ -1677,7 +1737,7 @@ const AlexaErroHandler = {
 };
 
 const construtorSkillAlexa = Alexa.SkillBuilders.custom()
-    .addRequestHandlers(AlexaAbrirHandler, AlexaPedidoHandler, AlexaAjudaHandler, AlexaSairHandler, AlexaNaoEntendiHandler, AlexaFimDeSessaoHandler)
+    .addRequestHandlers(AlexaAbrirHandler, AlexaLigarMaquinaHandler, AlexaPredefinicaoHandler, AlexaEmergenciaHandler, AlexaPedidoHandler, AlexaAjudaHandler, AlexaSairHandler, AlexaNaoEntendiHandler, AlexaFimDeSessaoHandler)
     .addErrorHandlers(AlexaErroHandler);
 if (ALEXA_SKILL_ID) construtorSkillAlexa.withSkillId(ALEXA_SKILL_ID);
 
