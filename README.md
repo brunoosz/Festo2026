@@ -104,7 +104,7 @@ cp .env.example .env
 npm start
 ```
 
-A aplicação fica disponível em `http://localhost:5000`. O endereço do broker (`mqtt://192.168.4.1`) e a porta estão definidos no início do [`server.js`](server.js).
+A aplicação fica disponível em `http://localhost:5000`. A porta está definida no início do [`server.js`](server.js) e o endereço do broker pode ser trocado pela variável `MQTT_BROKER`.
 
 Na primeira execução, caso não exista `usuarios.json`, é criado o usuário `admin` com senha `admin`. **Altere a senha em Configuração antes de qualquer uso real.**
 
@@ -114,6 +114,7 @@ Na primeira execução, caso não exista `usuarios.json`, é criado o usuário `
 |---|---|---|
 | `NVIDIA_API_KEY` | Chave da API NVIDIA para o chat e a visão por IA. Sem ela, o chat responde apenas com a base local. | Não |
 | `SESSION_SECRET` | Segredo das sessões e dos cookies. Se ausente, é gerado e salvo em `.session_secret`. | Não |
+| `MQTT_BROKER` | Endereço do broker MQTT. Padrão: `mqtt://192.168.4.1`. | Não |
 
 Para que o Node leia o `.env` automaticamente, use `npm run start:env`.
 

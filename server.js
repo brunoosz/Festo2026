@@ -1193,7 +1193,7 @@ function registrarLogDeAcesso(nomeUsuario, tipoEvento) {
 }
 
 // configurações do servidor
-const MQTT_BROKER = 'mqtt://192.168.4.1'; 
+const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://192.168.4.1'; 
 const MQTT_TOPIC_ATUAL = 'esteira/velocidade/atual';
 const MQTT_TOPIC_SET = 'esteira/velocidade/set';
 const MQTT_TOPIC_STATUS = 'esteira/status';
