@@ -126,7 +126,7 @@
                 {% endif %}
                 {% if isAdmin %}
                 <a href="/usuarios" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-usuarios">
-                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-3.13a4 4 0 100-8 4 4 0 000 8zm6 3c1.657 0 3 1.567 3 3.5S22.657 20 21 20m-9-7c1.657 0 3-1.567 3-3.5S13.657 6 12 6s-3 1.567-3 3.5S10.343 13 12 13z"></path></svg>
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.2A6.5 6.5 0 0121.5 20"/></svg>
                     Usuários
                 </a>
                 {% endif %}
@@ -176,8 +176,8 @@
                 </div>
                 <span id="pi-dot-mobile" class="sm:hidden w-2.5 h-2.5 rounded-full bg-green-500 shrink-0"></span>
                 <button id="btn-emergencia-global" class="bg-[#ff0000] hover:bg-[#cc0000] active:bg-[#aa0000] text-white font-bold px-3 sm:px-6 py-2.5 sm:py-2 rounded-lg border-2 border-[#990000] shadow-md flex items-center gap-2 transition cursor-pointer manter-cor shrink-0">
-                    <span id="icone-emergencia" class="bg-[#990000] text-white rounded-full w-5 h-5 flex items-center justify-center border border-[#ff6666] shrink-0">
-                        <svg id="svg-icone-emergencia" class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <span id="icone-emergencia" class="text-white w-6 h-6 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3L8.3 3z"/><path d="M12 7.5v5.5M12 16.4h.01" stroke-width="2.6"/></svg>
                     </span>
                     <div class="hidden sm:flex flex-col text-left leading-none">
                         <span id="texto-parada" class="text-[10px] text-red-100">PARADA DE</span>
@@ -235,14 +235,14 @@
             function atualizarVisualBotao() {
                 if (emergenciaAtivada) {
                     btnEmergencia.className = 'bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white font-bold px-3 sm:px-6 py-2.5 sm:py-2 rounded-lg border-2 border-yellow-700 shadow-md flex items-center gap-2 transition cursor-pointer manter-cor shrink-0';
-                    iconeEmergencia.className = 'bg-yellow-700 text-white rounded-full w-5 h-5 flex items-center justify-center border border-yellow-300 shrink-0';
-                    iconeEmergencia.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>`;
+                    iconeEmergencia.className = 'text-white w-6 h-6 flex items-center justify-center shrink-0';
+                    iconeEmergencia.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>`;
                     textoParada.innerText = 'SISTEMA TRAVADO'; textoParada.className = 'text-[10px] text-yellow-100';
                     textoEmergencia.innerText = 'DESBLOQUEAR';
                 } else {
                     btnEmergencia.className = 'bg-[#ff0000] hover:bg-[#cc0000] active:bg-[#aa0000] text-white font-bold px-3 sm:px-6 py-2.5 sm:py-2 rounded-lg border-2 border-[#990000] shadow-md flex items-center gap-2 transition cursor-pointer manter-cor shrink-0';
-                    iconeEmergencia.className = 'bg-[#990000] text-white rounded-full w-5 h-5 flex items-center justify-center border border-[#ff6666] shrink-0';
-                    iconeEmergencia.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                    iconeEmergencia.className = 'text-white w-6 h-6 flex items-center justify-center shrink-0';
+                    iconeEmergencia.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3L8.3 3z"/><path d="M12 7.5v5.5M12 16.4h.01" stroke-width="2.6"/></svg>`;
                     textoParada.innerText = 'PARADA DE'; textoParada.className = 'text-[10px] text-red-100';
                     textoEmergencia.innerText = 'EMERGÊNCIA';
                 }

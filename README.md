@@ -1,183 +1,147 @@
-<div align="center">
+<p align="center">
+  <img src="public/logo.png" alt="Dark Coders" width="120">
+</p>
 
-<img src="public/logo.png" alt="Dark Coders" width="140" />
+# Festo 2026 - Flow Pack
 
-# Festo 2026 — Sistema de Controle Flow Pack
+Site que controla a nossa máquina de embalagem Flow Pack. A gente fez esse projeto na FIAP, em parceria com a Festo, e ele roda num Raspberry Pi 3B+ ligado às placas ESP32 da máquina por MQTT.
 
-**Plataforma web industrial para operar, monitorar e analisar uma máquina de embalagem Flow Pack em tempo real.**
+A máquina embala em sequência: esteira, bobina de plástico, dispenser, braço formador, selagem horizontal, selagem final e separador de itens. Pelo navegador dá pra ligar a esteira, ajustar temperatura das selagens, dosar, ver gráficos de produção e até mandar comando por voz pela Alexa.
 
-![Node.js](https://img.shields.io/badge/Node.js-Express_5-339933?logo=nodedotjs&logoColor=white)
-![MQTT](https://img.shields.io/badge/MQTT-ESP32-660066?logo=mqtt&logoColor=white)
-![Socket.IO](https://img.shields.io/badge/Socket.IO-tempo_real-010101?logo=socketdotio&logoColor=white)
-![Raspberry Pi](https://img.shields.io/badge/Raspberry_Pi-3B+-C51A4A?logo=raspberrypi&logoColor=white)
-![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)
+![Dashboard](docs/img/dashboard.png)
 
-Desenvolvido pela equipe **Dark Coders** para a **Festo 2026**.
+## O que tem no site
 
-</div>
+- **Operação:** velocidade da esteira, temperatura das duas selagens, status de cada placa e o modelo 3D da máquina.
+- **Painel de Controle:** motores e aquecimento de cada selagem (só Dono e Administrador).
+- **Dispenser:** escolhe o grão e a quantidade (1/4, 1/2, 3/4 ou 1 volta) e doza.
+- **Separador:** câmera ESP32-CAM que conta e reconhece os produtos, e um servo que desvia cada um pro lado certo.
+- **Visão Computacional:** zona de detecção, produtos de referência e confirmação por IA.
+- **Receitas:** níveis de 50, 100, 150 e 200 g com velocidade e temperatura prontas.
+- **Produção e Relatórios:** gráficos por hora e por dia, com PDF.
+- **Dark Coders AI:** chat com base de conhecimento local e, se tiver chave, IA online (NVIDIA). Aceita comando por texto e por voz.
+- **Alexa:** skill própria que manda comando (velocidade, temperatura, emergência) e responde perguntas.
+- **Logs ao Vivo, Status do Sistema, Usuários, Manuais em PDF** e o botão de **Parada de Emergência** em todas as telas.
 
----
+<table>
+  <tr>
+    <td><img src="docs/img/painel-controle.png" alt="Painel de Controle"></td>
+    <td><img src="docs/img/dispenser.png" alt="Dispenser"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/producao.png" alt="Produção"></td>
+    <td><img src="docs/img/relatorios.png" alt="Relatórios"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/img/chat.png" alt="Dark Coders AI"></td>
+    <td><img src="docs/img/status-sistema.png" alt="Status do Sistema"></td>
+  </tr>
+</table>
 
-## Sobre o projeto
+### Modelo 3D
 
-A Flow Pack é uma máquina que embala produtos em filme plástico em cinco estágios: **esteira → bobina de filme → dispenser → selagem horizontal → selagem vertical e corte**.
+O modelo da máquina é um arquivo `.glb` em `public/modelo/`. Dá pra girar, aproximar e ver em modo estrutura. Se trocar o arquivo, o site já usa o novo.
 
-Este sistema roda em um **Raspberry Pi** e se comunica via **MQTT** com os **ESP32** de cada módulo da máquina. Pelo navegador, o operador controla velocidade, temperatura e dosagem, acompanha gráficos e relatórios de produção, usa visão computacional para contar e identificar produtos e até comanda a máquina por voz com a **Alexa**.
+![Modelo 3D](docs/img/modelo-3d.png)
 
-## Funcionalidades
-
-| Módulo | O que faz |
-|---|---|
-| **Dashboard** | Visão geral em tempo real: velocidade, temperatura, status dos ESP32 e produção |
-| **Controle** | Velocidade da esteira e dos motores, temperatura das duas selagens, parada de emergência |
-| **Dispenser** | Dosagem por reservatório (gramas por dose, PWM, tempos) |
-| **Separador** | Desvio automático de produtos com servo, treinamento por classe e calibração de fundo |
-| **Visão computacional** | Câmera ESP32-CAM com detecção por zona e identificação de produto por IA |
-| **Receitas** | Presets de velocidade e temperatura aplicáveis com um clique |
-| **Gráficos e Relatórios** | Histórico de produção por dia, exportação em PDF |
-| **Modelo 3D** | Visualização interativa da máquina (Three.js) |
-| **Chat Dark Coders AI** | Assistente técnico com base de conhecimento local e IA online opcional (NVIDIA) |
-| **Alexa** | Skill de voz para comandos (velocidade, temperatura, emergência) e perguntas |
-| **Usuários e permissões** | 3 níveis: Dono, Administrador e Operário, com senhas protegidas por scrypt |
-| **Logs** | Registro de todas as ações, inclusive as feitas por voz |
-| **Manuais** | PDFs de cada módulo da máquina em [`manuais/`](manuais) |
-
-## Arquitetura
-
-```
-┌──────────────┐   HTTP / WebSocket   ┌─────────────────────────┐    MQTT     ┌────────────────┐
-│  Navegador   │ ◄──────────────────► │  Raspberry Pi           │ ◄─────────► │  ESP32 (esteira,│
-│  (operador)  │                      │  Node.js + Express      │  broker     │  selagem, dispe-│
-└──────────────┘                      │  Socket.IO + Nunjucks   │  Mosquitto  │  nser, separador)│
-┌──────────────┐   HTTPS (webhook)    │                         │             └────────────────┘
-│  Alexa Skill │ ◄──────────────────► │  /alexa                 │   HTTP      ┌────────────────┐
-└──────────────┘                      │                         │ ◄─────────► │  ESP32-CAM      │
-                                      └─────────────────────────┘             └────────────────┘
-```
-
-- **Back-end:** Node.js, Express 5, Socket.IO, Nunjucks, sessões com `express-session`
-- **Front-end:** HTML, JavaScript e Tailwind CSS, Chart.js, jsPDF, Three.js
-- **Comunicação com hardware:** MQTT (broker no próprio Raspberry Pi)
-- **Persistência:** arquivos JSON em disco (sem banco de dados externo, ideal para o Pi 3B+)
-- **IA:** busca por similaridade em base local (`knowledge/`) e, opcionalmente, modelos NVIDIA
-
-## Estrutura do repositório
+## Como funciona
 
 ```
-.
-├── server.js               # Servidor: rotas, MQTT, Socket.IO, Alexa, IA
-├── separador_engine.js     # Lógica do separador de produtos
-├── views/                  # Páginas (templates Nunjucks)
-├── public/                 # Arquivos estáticos (JS, imagens, modelo 3D)
-├── knowledge/              # Base de conhecimento do chat (JSON)
-├── manuais/                # Manuais em PDF de cada módulo
-├── dispenser_config.json   # Configuração do dispenser
-├── config_visao.json       # Configuração da câmera / visão
-├── .env.example            # Modelo de variáveis de ambiente
-└── package.json
+Navegador  <-- HTTP / WebSocket -->  Raspberry Pi (Node.js)  <-- MQTT -->  ESP32 de cada módulo
+Alexa      <--     HTTPS      -->   /alexa                   <-- HTTP -->  ESP32-CAM
 ```
 
-## Como executar
+- Back-end em Node.js com Express 5, Socket.IO e Nunjucks.
+- Front-end em HTML e JavaScript puro, com Tailwind, Chart.js, jsPDF e Three.js (tudo local, funciona sem internet).
+- O broker MQTT (Mosquitto) roda no próprio Raspberry.
+- Não tem banco de dados: usuários, receitas, configurações e histórico ficam em arquivos JSON e na pasta `logs/`.
 
-### Pré-requisitos
+## Rodando
 
-- [Node.js](https://nodejs.org) 20.6 ou superior
-- Um broker MQTT (ex.: [Mosquitto](https://mosquitto.org)) acessível na rede
-- ESP32 dos módulos da máquina (opcional para apenas ver a interface)
-
-### Instalação
+Precisa de Node 20.6 ou mais novo e de um broker MQTT. Pra só ver a interface, nem as placas são necessárias.
 
 ```bash
 git clone https://github.com/brunoosz/Festo2026.git
 cd Festo2026
 npm install
-```
-
-### Configuração
-
-Copie o modelo de variáveis de ambiente e preencha o que precisar:
-
-```bash
 cp .env.example .env
+npm start
 ```
 
-| Variável | Descrição | Obrigatória |
-|---|---|---|
-| `NVIDIA_API_KEY` | Chave da API NVIDIA para o chat e a visão por IA. Sem ela, o sistema usa só a base local | Não |
-| `SESSION_SECRET` | Segredo das sessões e cookies. Sem ele, um segredo aleatório é gerado e guardado em `.session_secret` | Não |
+O site abre em `http://localhost:5000`. O endereço do broker (`mqtt://192.168.4.1`) e a porta estão no começo do `server.js`.
 
-> O endereço do broker MQTT (`mqtt://192.168.4.1`) e a porta do servidor (`5000`) estão definidos no início de [`server.js`](server.js). Altere conforme a sua rede.
+Na primeira vez, se não existir `usuarios.json`, o sistema cria o usuário `admin` com senha `admin`. Troque essa senha logo em **Configuração**.
 
-### Iniciando
+Variáveis do `.env` (todas opcionais):
+
+| Variável | Pra que serve |
+|---|---|
+| `NVIDIA_API_KEY` | IA online do chat e da visão. Sem ela, o chat responde só com a base local. |
+| `SESSION_SECRET` | Segredo das sessões. Sem ele, o servidor gera um e guarda em `.session_secret`. |
+
+Use `npm run start:env` se quiser que o Node leia o `.env` sozinho.
+
+## No Raspberry
+
+### Atualizar
+
+O `atualizar.sh` baixa a versão nova do GitHub e mantém o que é da máquina: `usuarios.json`, receitas, fotos de referência, configurações, `.env` e logs. Depois instala as dependências e reinicia o site (pm2 ou systemd).
 
 ```bash
-npm start          # sem variáveis de ambiente
-npm run start:env  # carrega as variáveis do arquivo .env
+cd ~/site_esteira && git fetch origin main && git checkout origin/main -- atualizar.sh && bash atualizar.sh
 ```
 
-Acesse **http://localhost:5000** (ou o IP do Raspberry Pi na rede local).
+Antes de mexer em qualquer coisa ele guarda uma cópia dos dados em `../festo2026_backup/`. Pra atualizar de outra branch: `bash atualizar.sh nome-da-branch`.
 
-Na primeira execução, se não existir `usuarios.json`, é criado o usuário **`admin`** com senha **`admin`**. **Troque a senha imediatamente** em Configurações.
+### Acesso de fora (Tailscale Funnel)
 
-### Acesso pela internet (Tailscale Funnel)
-
-O site não precisa rodar só na rede local. Com o [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) o painel fica acessível por um endereço HTTPS público:
+O site não precisa ficar só na rede local. A gente usa o Tailscale Funnel pra abrir ele por um endereço HTTPS público:
 
 ```bash
 sudo tailscale funnel --bg 5000
 ```
 
-Como qualquer pessoa que descobrir o endereço consegue abrir a tela de login, o servidor tem:
+Como qualquer pessoa que achar o endereço vê a tela de login, o servidor já se protege:
 
-- cookie de "lembrar de mim" assinado (não dá pra forjar)
-- segredo de sessão fora do código
-- bloqueio de 15 minutos depois de 8 tentativas de login erradas pelo mesmo IP
+- o cookie de "lembrar de mim" é assinado, então não dá pra forjar;
+- o segredo da sessão não fica no código;
+- depois de 8 senhas erradas, o IP fica bloqueado por 15 minutos.
 
-Troque a senha `admin` antes de expor o site.
+Mesmo assim, troque a senha `admin` antes de abrir pra internet.
 
-### Atualizando o Raspberry
+## Usuários
 
-Um comando baixa a versão nova do GitHub, mantém `usuarios.json`, receitas, fotos de referência, configurações e logs, instala as dependências e reinicia o site:
+| Nível | Pode |
+|---|---|
+| Dono | Tudo, inclusive promover e apagar usuários. |
+| Administrador | Controlar a máquina, criar usuários e trocar senhas dos níveis abaixo. |
+| Operário | Só as telas que o Dono ou o Administrador liberarem. |
 
-```bash
-cd ~/Festo2026 && git fetch origin main && git checkout origin/main -- atualizar.sh && bash atualizar.sh
+Em **Usuários** dá pra escolher, pra cada Operário, quais telas ele vê. Por padrão ele vê tudo, menos Receitas. O Dashboard e a Configuração ficam sempre liberados. O bloqueio vale no menu e também no servidor, então digitar a URL direto não adianta.
+
+![Usuários](docs/img/usuarios.png)
+
+## Alexa
+
+A skill manda os pedidos pra `POST /alexa`. O servidor confere a assinatura e o certificado da Amazon e o ID da skill antes de executar qualquer coisa. Pra funcionar, o endereço precisa ser HTTPS público (o Funnel serve).
+
+## Pastas
+
+```
+server.js              servidor: rotas, MQTT, Socket.IO, Alexa, IA
+separador_engine.js    contagem e desvio de produtos do separador
+views/                 telas (Nunjucks)
+public/                JS, imagens e o modelo 3D
+knowledge/             base de conhecimento do chat
+manuais/               manuais em PDF de cada módulo
+docs/img/              prints usados aqui no README
+atualizar.sh           script de atualização do Raspberry
 ```
 
-Para atualizar de outra branch: `bash atualizar.sh nome-da-branch`. Uma cópia dos dados fica em `../festo2026_backup/`.
+## Mais
 
-## Níveis de acesso
+- Manuais de cada módulo em [`manuais/`](manuais).
+- Dicas de segurança pra uso real em [SECURITY.md](SECURITY.md).
+- Quer ajudar? Veja [CONTRIBUTING.md](CONTRIBUTING.md).
 
-| Nível | Papel | Pode |
-|---|---|---|
-| 1 | **Dono** | Tudo, incluindo promover/remover usuários |
-| 2 | **Administrador** | Controlar a máquina, criar usuários e alterar senhas |
-| 3 | **Operário** | Telas liberadas pelo Dono/Administrador (veja abaixo) |
-
-### Telas por usuário
-
-Para cada **Operário**, o Dono ou o Administrador escolhe quais telas ele acessa em **Usuários → Telas**: Dispenser, Separador, Receitas, Produção, Relatórios, Visão Computacional, Dark Coders AI e Logs. Por padrão, o Operário vê tudo, **exceto Receitas**. O Dashboard e a Configuração ficam sempre liberados. O bloqueio vale no menu e também no servidor, então o acesso direto pela URL é negado.
-
-## Integração com a Alexa
-
-A skill **Dark Coders** envia pedidos para `POST /alexa`. O servidor valida a assinatura e o certificado da Amazon e confere o ID da skill antes de executar qualquer comando. O endpoint precisa estar acessível por HTTPS público (ex.: via túnel).
-
-## Segurança
-
-- Senhas armazenadas com **scrypt + salt** único por usuário
-- Rotas protegidas por login e por nível de permissão
-- Webhook da Alexa com verificação de certificado e assinatura
-
-Recomendações para uso real em produção estão em [SECURITY.md](SECURITY.md).
-
-## Contribuindo
-
-Veja [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Equipe
-
-**Dark Coders** — Festo 2026
-
-## Licença
-
-Distribuído sob a licença MIT. Veja [LICENSE](LICENSE).
-
+Feito pela equipe Dark Coders. Licença MIT, está no arquivo [LICENSE](LICENSE).
