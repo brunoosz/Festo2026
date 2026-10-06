@@ -123,10 +123,6 @@
         areaMensagens.scrollTop = areaMensagens.scrollHeight;
     }
 
-    // ALTERADO: comandos com número (velocidade/temperatura) agora são
-    // "modelos" — clicar só PREENCHE o campo, com o cursor pronto pra você
-    // digitar o valor, e você quem manda. Os outros continuam enviando na
-    // hora, porque não precisam de nenhum número.
     function obterComandosSugeridos() {
         const temaAtual = localStorage.getItem('tema_flowpack');
         const rotuloTema = temaAtual === 'escuro' ? 'Muda o tema pra claro' : 'Muda o tema pra escuro';
@@ -145,8 +141,7 @@
         ];
     }
 
-    // NOVO: guarda referência dos chips de tema criados, pra atualizar o
-    // texto deles na hora, sem precisar recarregar a página
+    // guarda referência dos chips de tema criados
     let chipsTemaAtivos = [];
     function atualizarChipsDeTema() {
         const temaAtual = localStorage.getItem('tema_flowpack');
@@ -187,8 +182,6 @@
                     inputPergunta.focus();
                     inputPergunta.setSelectionRange(inputPergunta.value.length, inputPergunta.value.length);
                 } else {
-                    // ALTERADO: usa o texto ATUAL do chip (importante pro
-                    // chip de tema, que muda de rótulo dinamicamente)
                     inputPergunta.value = chip.innerText;
                     formChat.requestSubmit();
                 }
@@ -391,11 +384,7 @@
     }
     globalSocket.on('atualizar_temperatura2', handlerDadosTemp2);
 
-    // ================================================================================
-    // NOVO: PDF RÁPIDO — gera e baixa DIRETO, sem sair do chat. Versão
-    // simplificada: só a tabela de eventos do dia (sem os gráficos de
-    // produção que o PDF completo da tela de Relatórios tem).
-    // ================================================================================
+    // pdf rápido
     async function baixarRelatorioRapido() {
         if (!window.jspdf) return 'A ferramenta de PDF ainda não carregou, tenta de novo em alguns segundos.';
 
@@ -438,16 +427,12 @@
         }
     }
 
-    // ================================================================================
-    // INTÉRPRETE DE COMANDOS
-    // ================================================================================
+    // intérprete de comandos
     function normalizarTextoComando(texto) {
         return texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     }
 
-    // NOVO: converte números falados por extenso ("sessenta", "cento e
-    // cinquenta") em dígitos ("60", "150") — corrige o reconhecimento de
-    // voz não digitar o número quando o navegador transcreve por extenso
+    // converte números falados por extenso
     const NUMEROS_EXTENSO = {
         'zero': 0, 'dois': 2, 'duas': 2, 'tres': 3, 'quatro': 4, 'cinco': 5,
         'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10, 'onze': 11, 'doze': 12, 'treze': 13,
@@ -491,10 +476,10 @@
 
         if (/logs?/.test(t) && /(leia|\ble\b|mostra|mostre|ultimo|ultimos)/.test(t)) return { tipo: 'ler_logs' };
 
-        // Perguntas ("qual a temperatura?") vão para a IA responder com os dados ao vivo
+        // perguntas ("qual a temperatura?") vão para a IA responder com os dados ao
         const ehPergunta = /^(qual|quais|quanto|quanta|como|o que|por que|porque)\b/.test(t);
 
-        // Temperatura: tira o número da selagem antes de procurar o valor
+        // temperatura
         if (!ehPergunta && /selagem|temperatura/.test(t)) {
             const ehSelagem2 = /selagem\s*2\b/.test(t);
             const semNumeroSelagem = t.replace(/selagem\s*[12]\b/g, 'selagem');
@@ -502,7 +487,7 @@
             if (m) return { tipo: 'temperatura', numero: ehSelagem2 ? 2 : 1, valor: Math.min(250, Math.max(0, parseInt(m[1], 10))) };
         }
 
-        // Velocidade: o número tem prioridade ("para 60" não vira "parar")
+        // velocidade
         if (!ehPergunta && /velocidade|esteira|potencia|motor/.test(t)) {
             const m = t.match(/(\d{1,3})/);
             if (m) return { tipo: 'velocidade', valor: Math.min(100, Math.max(0, parseInt(m[1], 10))) };
@@ -580,9 +565,7 @@
         }
     }
 
-    // ================================================================================
-    // MODO VOZ
-    // ================================================================================
+    // modo voz
     const btnModoVoz = document.getElementById('btn-modo-voz');
     const btnFecharModoVoz = document.getElementById('btn-fechar-modo-voz');
     const areaModoVoz = document.getElementById('area-modo-voz');
@@ -631,11 +614,7 @@
         return COR_OLHO_IDLE;
     }
 
-    // ================================================================================
-    // SPRITES EM PIXEL ART: cada ícone é uma grade de texto. '.' é
-    // transparente e cada letra é uma cor da paleta. Para criar um novo,
-    // é só adicionar uma grade aqui e uma palavra-chave em PALAVRAS_ICONES.
-    // ================================================================================
+    // sprites em pixel art
     const SPRITES = {
         joinha: {
             paleta: { d: '#14532d', o: '#4ade80', l: '#bbf7d0' },
@@ -754,8 +733,7 @@
         ctxRosto.shadowBlur = 0;
     }
 
-    // Monta a lista de "gatilhos": em qual posição do texto cada ícone ou
-    // número deve aparecer. Eles só disparam quando a fala chega ali.
+    // monta a lista de "gatilhos"
     function prepararGatilhosVisuais(texto) {
         const gatilhos = [];
         for (const m of texto.matchAll(/(\d{1,3})\s*%/g)) {
@@ -787,8 +765,7 @@
         }
     }
 
-    // Mantido só para não quebrar chamadas antigas: agora quem cuida dos
-    // visuais é a própria fala, sincronizada palavra por palavra
+    // mantido só para não quebrar chamadas antigas
     function analisarRespostaParaVisor() {}
 
     function desenharRosto() {
@@ -1133,9 +1110,7 @@
         let intervaloEstimativa = null;
         let inicioFala = 0;
 
-        // Velocidade média da voz em pt-BR; usada quando o navegador não
-        // informa a palavra atual (voz do Google no Chrome). Ajuste se o
-        // ícone aparecer adiantado (diminua) ou atrasado (aumente).
+        // velocidade média da voz em pt-BR
         const CARACTERES_POR_SEGUNDO = 14;
 
         function avancarAte(indiceCaractere) {

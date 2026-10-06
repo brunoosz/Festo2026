@@ -5,7 +5,7 @@
 {% block content %}
 <div class="flex flex-col gap-4 sm:gap-5 max-w-5xl mx-auto w-full">
 
-    <!-- Cabeçalho -->
+    <!-- cabeçalho -->
     <div class="card-painel">
         <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
@@ -57,7 +57,7 @@
         </p>
     </div>
 
-    <!-- Última dosagem + contadores -->
+    <!-- última dosagem + contadores -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="card-painel">
             <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Última dosagem</h3>
@@ -70,7 +70,7 @@
     </div>
 </div>
 
-<!-- Configuração (Administrador / Dono) -->
+<!-- configuração (Administrador / Dono) -->
 <div id="disp-modal-config" class="hidden fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 overflow-y-auto">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-4 sm:p-6 my-4">
         <div class="flex items-center justify-between mb-1">
@@ -119,7 +119,7 @@
     const ouvintes = [];
     function ouvir(evento, funcao) { globalSocket.on(evento, funcao); ouvintes.push([evento, funcao]); }
 
-    // ---------------------------------------------------------------- utilidades
+    // utilidades
     function toast(msg, tipo) {
         const d = document.createElement('div');
         d.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[999996] px-4 py-3 rounded-xl shadow-lg text-sm font-bold text-white max-w-[90vw] text-center ' + (tipo === 'erro' ? 'bg-red-600' : 'bg-slate-800');
@@ -166,7 +166,7 @@
         return '<svg viewBox="0 0 40 40" class="w-9 h-9 shrink-0"><polygon points="5,6 35,6 25,28 15,28" fill="#e6c9a0" stroke="#b48f62" stroke-width="2"/><polygon points="8,11 32,11 24.5,27 15.5,27" fill="' + cor + '"/><rect x="17" y="28" width="6" height="8" rx="1" fill="#94a3b8"/></svg>';
     }
 
-    // ---------------------------------------------------------------- telas
+    // telas
     function renderReservatorios() {
         const caixa = el('disp-reservatorios');
         const nomeA = nomeReservatorio('A'), nomeB = nomeReservatorio('B');
@@ -282,7 +282,7 @@
         renderTudo();
     }
 
-    // ---------------------------------------------------------------- ações
+    // ações
     async function dosar() {
         if (!podeDosar()) return;
         const quartos = Math.round(escolha.gramas / 50);
@@ -304,7 +304,7 @@
     el('disp-btn-dosar').addEventListener('click', dosar);
     el('disp-btn-parar').addEventListener('click', pararDosagem);
 
-    // ---------------------------------------------------------------- configuração (Administrador / Dono)
+    // configuração (Administrador / Dono)
     const modal = el('disp-modal-config');
     let cfgEditavel = null;
 
@@ -415,7 +415,7 @@
     el('disp-cfg-salvar').addEventListener('click', salvarConfig);
     modal.addEventListener('click', (e) => { if (e.target === modal) fecharConfig(); });
 
-    // ---------------------------------------------------------------- estado ao vivo
+    // estado ao vivo
     async function carregar() {
         const r = await api('/api/dispenser/estado');
         if (r.ok) aplicarEstado(r.dados);

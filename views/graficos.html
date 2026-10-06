@@ -199,9 +199,6 @@
     let ultimaAmostraTimestamp = Date.now();
     let ultimoRegistroPorMudanca = 0;
 
-    // ALTERADO: reaproveita a conexão global já existente (globalSocket, do
-    // base.html) em vez de abrir uma conexão nova toda vez que essa página
-    // carrega — evita conexões acumuladas ao navegar de um lado pro outro.
     const socketGraficos = globalSocket;
 
     function handlerConnect() { console.log('[Gráficos] Conectado ao servidor via Socket.IO.'); }
@@ -504,9 +501,7 @@
         document.getElementById('aviso-grafico-indisponivel').classList.add('flex');
     }
 
-    // NOVO: limpeza ao sair desta página — remove os escutadores do socket
-    // compartilhado e para os dois intervalos, evitando duplicação/vazamento
-    // ao visitar Produção várias vezes seguidas.
+    // limpeza ao sair desta página
     window.__cleanupPagina = function() {
         clearInterval(intervaloProducao);
         clearInterval(intervaloVirouDia);

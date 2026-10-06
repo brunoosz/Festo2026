@@ -5,7 +5,7 @@
 {% block content %}
 <div class="flex flex-col gap-4 sm:gap-6">
 
-    <!-- Barra de status: LEDs dos ESP32 + emergencia + recarregar -->
+    <!-- barra de status -->
     <div class="card-painel">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -84,7 +84,7 @@
     const online = { esteira: false, selagem1: false, selagem1motor: false, selagem2: false, selagem2motor: false };
     let emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
 
-    // Registro dos ouvintes do socket, pra limpar tudo ao sair da tela
+    // registro dos ouvintes do socket, pra limpar tudo ao sair da tela
     const ouvintes = [];
     function ouvir(evento, funcao) {
         globalSocket.on(evento, funcao);
@@ -97,9 +97,7 @@
         globalSocket.emit('novo_log', { hora: hora, texto: mensagem, tipo: tipo || 'sistema' });
     }
 
-    // ================================================================================
-    // MOTORES (Esteira + 3 motores das selagens)
-    // ================================================================================
+    // motores (esteira + 3 motores das selagens)
     const MOTORES = [
         { id: 'esteira', titulo: 'Esteira', dispositivo: 'esteira', reiniciar: 'REINICIAR ESP32 DA ESTEIRA' },
         { id: 's1m1', titulo: 'Selagem 1 - Motor 1', dispositivo: 'selagem1motor', reiniciar: 'REINICIAR ESP32 DOS MOTORES (1 e 2)' },
@@ -212,9 +210,7 @@
         ctrl.textoSentido.className = 'texto-sentido ' + (sentido === 'invertido' ? 'text-amber-600' : 'text-blue-600');
     }
 
-    // ================================================================================
-    // TEMPERATURAS (Selagem 1 e Selagem 2)
-    // ================================================================================
+    // temperaturas (selagem 1 e selagem 2)
     const SELAGENS = [
         { numero: 1, titulo: 'Temperatura da Selagem 1', dispositivo: 'selagem1', eventoDados: 'atualizar_temperatura', eventoComando: 'comando_selagem' },
         { numero: 2, titulo: 'Temperatura da Selagem 2', dispositivo: 'selagem2', eventoDados: 'atualizar_temperatura2', eventoComando: 'comando_selagem2' }
@@ -350,9 +346,7 @@
         atualizarAvisoTemp(numero);
     }
 
-    // ================================================================================
-    // CONEXÃO, EMERGÊNCIA E REINÍCIO
-    // ================================================================================
+    // conexão, emergência e reinício
     function aplicarOnline(dispositivo, estaOnline) {
         online[dispositivo] = !!estaOnline;
         const classe = online[dispositivo] ? CLASSE_LED_ON : CLASSE_LED_OFF;
@@ -391,9 +385,7 @@
     function handlerEmergencia() { setTimeout(aplicarEmergencia, 0); }
     btnEmergenciaGlobal.addEventListener('click', handlerEmergencia);
 
-    // ================================================================================
-    // ESTADO INICIAL (valores salvos no servidor) + RECARREGAR
-    // ================================================================================
+    // estado inicial (valores salvos no servidor) + recarregar
     function buscarEstado() {
         return fetch('/api/painel/estado')
             .then(r => r.json())
@@ -422,7 +414,7 @@
         });
     });
 
-    // Atualizações ao vivo
+    // atualizações ao vivo
     ouvir('status_esp32', (data) => aplicarOnline('esteira', data.online));
     ouvir('status_selagem', (data) => aplicarOnline('selagem1', data.online));
     ouvir('status_selagem2', (data) => aplicarOnline('selagem2', data.online));

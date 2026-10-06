@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <title>Dark Coders - FIAP</title>
+    <link rel="icon" type="image/png" href="/logo.png">
     <script src="/tailwind.js"></script>
     <style>
         .range-slider { -webkit-appearance: none; width: 100%; height: 10px; border-radius: 5px; background: #cbd5e1; outline: none; touch-action: none; }
@@ -380,8 +381,7 @@
 
             window.definirAcessibilidade = function(ativo) { acessibilidadeAtiva = !!ativo; desarmarElemento(); if (!acessibilidadeAtiva) window.speechSynthesis.cancel(); };
 
-            // NOVO: alternar tema por comando (voz ou texto) — também
-            // reaproveitável em qualquer lugar do site
+            // alternar tema por comando (voz ou texto)
             window.iaAlternarTema = function(modo) {
                 let atual = localStorage.getItem('tema_flowpack');
                 let novo;
@@ -477,8 +477,7 @@
                 sessionStorage.setItem(CHAVE_BUFFER_LOGS, JSON.stringify(buffer));
             }
 
-            // Emergencia acionada fora do site (ex: pela Alexa): trava a tela
-            // de quem estiver com o site aberto, igual apertar o botao
+            // emergencia acionada fora do site
             globalSocket.on('emergencia_remota', () => {
                 if (!emergenciaAtivada) btnEmergencia.click();
             });
@@ -615,7 +614,7 @@
             if (window.__isAdminInicial) passos.push({ pagina: '/usuarios', titulo: 'Usuários', texto: 'Aqui você gerencia os níveis de acesso: Dono, Administrador e Operário, cada um com suas próprias permissões.' });
             passos.push({ pagina: '/configuracoes', titulo: 'Configurações', texto: 'Por fim, aqui você pode trocar sua senha, ativar o leitor de tela, e ajustar outras preferências.' });
             passos.push({ pagina: null, titulo: 'Tudo pronto!', texto: 'Esse foi o tour rápido pelo sistema. Você pode reabrir este tutorial a qualquer momento, aqui no Chat.' });
-            // Operario so ve no tutorial as telas que tem permissao de abrir
+            // operario so ve no tutorial as telas que tem permissao de abrir
             const permissoes = window.__permissoesIniciais || {};
             return passos.filter(p => !p.pagina || permissoes[p.pagina.slice(1)] !== false);
         }
@@ -741,13 +740,7 @@
         btnFecharTutorial.addEventListener('click', encerrarTutorial);
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlayTutorial.classList.contains('hidden')) encerrarTutorial(); });
 
-        // ================================================================================
-        // NOVO: sistema de comando da IA via NAVEGAÇÃO REAL (recarrega a
-        // página de verdade) — mesma técnica que corrigiu o travamento do
-        // tutorial. Chamado por chat.html quando um comando de voz/texto
-        // precisa mudar de tela. Guarda o que fazer no sessionStorage,
-        // navega de verdade, e RETOMA aqui embaixo quando a página volta.
-        // ================================================================================
+        // sistema de comando da ia via navegação real
         const rostoFlutuanteIA = document.getElementById('ia-rosto-flutuante');
 
         window.iaExecutarComandoComNavegacao = function(destino, seletorDestaque, textoFala, tempoTotalMs, seletorClique, retomarVoz) {
@@ -760,8 +753,7 @@
             window.location.href = destino;
         };
 
-        // Ao carregar QUALQUER página (recarregamento real), verifica se
-        // havia um comando da IA pendente e retoma a partir daqui
+        // ao carregar QUALQUER página (recarregamento real)
         (function retomarComandoIAAposNavegacao() {
             if (sessionStorage.getItem('ia_cmd_ativo') !== '1') return;
 
@@ -790,11 +782,6 @@
                     }
                 }, 500);
 
-                // ALTERADO: agora espera a FALA TERMINAR DE VERDADE (evento
-                // onend), em vez de um tempo fixo — corrige o áudio sendo
-                // cortado no meio quando a frase é mais longa que o previsto.
-                // Depois que termina de falar, ainda espera mais alguns
-                // segundos de "leitura" antes de voltar, dando tempo de olhar.
                 const TEMPO_LEITURA_EXTRA_MS = 4000;
 
                 function finalizarComandoENavegarDeVolta() {

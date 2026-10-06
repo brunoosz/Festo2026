@@ -45,7 +45,7 @@
 
 <div class="flex flex-col gap-4 sm:gap-5 max-w-5xl mx-auto w-full">
 
-    <!-- Cabeçalho -->
+    <!-- cabeçalho -->
     <div class="card-painel">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div class="min-w-0">
@@ -61,7 +61,7 @@
         <p id="sep-aviso" class="sep-oculto mt-3 text-xs font-bold rounded-lg px-3 py-2"></p>
     </div>
 
-    <!-- Câmera ao vivo -->
+    <!-- câmera ao vivo -->
     <div class="card-painel">
         <h3 class="sep-h3">Câmera ao vivo</h3>
         <div class="sep-tela">
@@ -80,7 +80,7 @@
         </div>
     </div>
 
-    <!-- Contagem -->
+    <!-- contagem -->
     <div class="sep-grade dois">
         <div class="card-painel">
             <h3 class="sep-h3">Contagem de hoje</h3>
@@ -93,7 +93,7 @@
         </div>
     </div>
 
-    <!-- Treinar -->
+    <!-- treinar -->
     <details class="sep-det sep-admin sep-oculto" id="sep-det-treino">
         <summary>1 · Ensinar os produtos</summary>
         <div class="sep-corpo">
@@ -115,7 +115,7 @@
         </div>
     </details>
 
-    <!-- Detecção -->
+    <!-- detecção -->
     <details class="sep-det sep-admin sep-oculto" id="sep-det-deteccao">
         <summary>2 · Ajustar a detecção</summary>
         <div class="sep-corpo">
@@ -146,7 +146,7 @@
         </div>
     </details>
 
-    <!-- Servo -->
+    <!-- servo -->
     <details class="sep-det sep-admin sep-oculto" id="sep-det-servo">
         <summary>3 · Servo separador</summary>
         <div class="sep-corpo">
@@ -205,7 +205,7 @@
     const ouvintes = [];
     function ouvir(evento, funcao) { globalSocket.on(evento, funcao); ouvintes.push([evento, funcao]); }
 
-    let ultimaImagem = null;       // Image do ultimo quadro
+    let ultimaImagem = null;       // image do ultimo quadro
     let overlay = null;            // ultimo overlay do motor
     let config = null;
     let servo = { online: false, estado: null };
@@ -231,7 +231,7 @@
     function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
     const NOME_LADO = { E: 'esquerda', D: 'direita', C: 'centro' };
 
-    // ------------------------------------------------------------ desenho da camera
+    // desenho da camera
     function desenhar() {
         if (!ctx) return;
         const w = ultimaImagem ? ultimaImagem.naturalWidth || ultimaImagem.width : 320;
@@ -269,7 +269,7 @@
         if (texto) { e.textContent = texto; e.classList.remove('sep-oculto'); } else e.classList.add('sep-oculto');
     }
 
-    // ------------------------------------------------------------ listas
+    // listas
     function renderEventos() {
         const box = el('sep-eventos');
         if (!recentes.length) { box.innerHTML = '<p class="text-xs text-slate-400">Nenhum produto passou ainda.</p>'; return; }
@@ -321,7 +321,7 @@
         }).join('') : '<p class="sep-dica">Treine os produtos primeiro (passo 1).</p>';
     }
 
-    // ------------------------------------------------------------ formularios
+    // formularios
     function preencherConfig() {
         if (!config) return;
         el('sep-eixo').value = config.eixo; el('sep-sentido').value = String(config.sentido);
@@ -364,7 +364,7 @@
         }
     }
 
-    // ------------------------------------------------------------ carregar tudo
+    // carregar tudo
     function aplicarEstado(d) {
         servo = d.servo || servo; classes = d.classes || classes; recentes = d.recentes || recentes; velEsteira = d.velEsteira || 0;
         led('sep-led-cam', !!(d.camera && d.camera.online)); led('sep-led-motor', d.motor && d.motor.aprendendoFundo ? 'warn' : !!(d.motor && d.config ? d.config.motorLocal : (d.motorLocal !== false)));
@@ -378,7 +378,7 @@
         if (permissaoTotal) { const t = await api('/api/separador/treino'); if (t.ok) { classes = t.dados; renderClasses(); } }
     }
 
-    // ------------------------------------------------------------ acoes (admin)
+    // acoes (admin)
     function lerLados() { const o = {}; document.querySelectorAll('[data-lado]').forEach(s => { o[s.dataset.lado] = s.value; }); return o; }
     async function salvarDeteccao() {
         const zi = Number(el('sep-zi').value) / 100, zf = Number(el('sep-zf').value) / 100;
@@ -426,7 +426,7 @@
         el('sep-vel-ref').addEventListener('click', referenciaVelocidade);
     }
 
-    // ------------------------------------------------------------ eventos ao vivo
+    // eventos ao vivo
     ouvir('visao_frame', (d) => {
         const img = new Image();
         img.onload = () => { ultimaImagem = img; desenhar(); };

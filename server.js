@@ -33,9 +33,7 @@ if (!fs.existsSync(pastaKnowledge)) {
     fs.writeFileSync(path.join(pastaKnowledge, 'sistema.json'), JSON.stringify(baseDefault, null, 2));
 }
 
-// ================================================================================
-// SISTEMA DE USUÁRIOS — 3 NÍVEIS: Dono (1) > Administrador (2) > Operário (3)
-// ================================================================================
+// sistema de usuários
 
 const NIVEL_DONO = 1;
 const NIVEL_ADM = 2;
@@ -51,9 +49,7 @@ function nivelValido(nivel) {
     return nivel === NIVEL_DONO || nivel === NIVEL_ADM || nivel === NIVEL_OPERARIO;
 }
 
-// Telas que o Dono/Administrador pode liberar ou bloquear por usuário Operário.
-// (Dono e Administrador sempre acessam todas. Dashboard e Configuração são
-// sempre liberados, assim todo usuário tem pelo menos uma tela inicial.)
+// telas que o Dono/Administrador pode liberar ou bloquear por usuário
 const PAGINAS_CONFIGURAVEIS = {
     dispenser: 'Dispenser',
     separador: 'Separador',
@@ -65,7 +61,7 @@ const PAGINAS_CONFIGURAVEIS = {
     logs: 'Logs ao Vivo'
 };
 
-// Padrão de um Operário que ainda não teve permissões personalizadas.
+// padrão de um Operário que ainda não teve permissões personalizadas
 const PERMISSOES_PADRAO_OPERARIO = {
     dispenser: true, separador: true, receitas: false, graficos: true,
     relatorios: true, visao: true, chat: true, logs: true
@@ -126,8 +122,7 @@ function carregarUsuarios() {
             delete usuario.admin;
             precisaMigrar = true;
         }
-        // Usuários que já existiam antes dessa funcionalidade não são
-        // forçados a ver o tutorial — só quem for criado daqui pra frente.
+        // usuários antigos não precisam ver o tutorial
         if (typeof usuario.tutorialVisto !== 'boolean') {
             usuario.tutorialVisto = true;
             precisaMigrar = true;
@@ -150,9 +145,7 @@ if (!fs.existsSync(arquivoUsuarios)) {
     salvarUsuarios(usuariosPadrao);
 }
 
-// ================================================================================
-// BASE DE CONHECIMENTO
-// ================================================================================
+// base de conhecimento
 
 const STOPWORDS = new Set([
     'o','a','os','as','um','uma','uns','umas','de','da','do','das','dos','em','no','na','nos','nas',
@@ -314,9 +307,7 @@ function montarContextoRAG(pergunta, maxItens = 4) {
     return ordenado.map(item => `- ${item.pergunta}: ${item.resposta}`).join('\n');
 }
 
-// ================================================================================
-// IA ONLINE (TEXTO) — NVIDIA API, com auto-descoberta de modelos + fallback local
-// ================================================================================
+// ia (texto)
 
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '';
 
@@ -366,7 +357,7 @@ async function atualizarModelosDinamicos() {
 
         console.log(`🔎 Descoberta automática de modelos NVIDIA: ${modelosDinamicosCache.length} candidatos de reserva encontrados.`);
     } catch (e) {
-        // Descoberta automática é só um bônus de segurança — se falhar, segue com a lista curada.
+        // descoberta automática é só um bônus de segurança
     }
 }
 
@@ -430,7 +421,7 @@ async function perguntarNvidia(promptSistema, perguntaUsuario, historico = []) {
         throw new Error('Chave da API NVIDIA não configurada (NVIDIA_API_KEY).');
     }
 
-    // Atualiza a lista em segundo plano, sem travar a resposta atual
+    // atualiza a lista em segundo plano, sem travar a resposta atual
     atualizarModelosDinamicos().catch(() => {});
 
     const listaTentativas = [];
@@ -525,15 +516,12 @@ if (NVIDIA_API_KEY) {
     io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'IA online (NVIDIA) inicializada e pronta.', tipo: 'sistema' });
 }
 
-// NOVO: eco ao vivo (não salvo em disco) — aparece em /logs assim que
-// alguém estiver com a tela aberta no momento em que o servidor iniciar
+// eco ao vivo (não salvo em disco)
 if (NVIDIA_API_KEY) {
     io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'IA online (NVIDIA) inicializada e pronta.', tipo: 'sistema' });
 }
 
-// ================================================================================
-// PRODUTOS DE REFERÊNCIA — fotos que a IA de visão usa pra comparar e reconhecer
-// ================================================================================
+// produtos de referência
 
 const pastaProdutosReferencia = path.join(__dirname, 'produtos_referencia');
 if (!fs.existsSync(pastaProdutosReferencia)) fs.mkdirSync(pastaProdutosReferencia);
@@ -602,9 +590,7 @@ function removerProdutoReferencia(id) {
     return existia;
 }
 
-// ================================================================================
-// IA ONLINE (VISÃO) — compara a câmera com os produtos de referência cadastrados
-// ================================================================================
+// ia (visão)
 
 const NVIDIA_MODELOS_VISAO = [
     'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
@@ -828,18 +814,14 @@ async function decidirContagemComIA(bufferImagemCandidata) {
     }
 }
 
-// ================================================================================
-// HISTÓRICO DE CHAT — NA MEMÓRIA, PRIVADO POR USUÁRIO
-// ================================================================================
+// histórico de chat
 let historicosChat = {};
 
 function gerarIdMensagem() {
     return crypto.randomBytes(6).toString('hex');
 }
 
-// ================================================================================
-// VISÃO COMPUTACIONAL — gatilho local (diferença de quadros) + confirmação por IA
-// ================================================================================
+// visão computacional
 
 const arquivoConfigVisao = path.join(__dirname, 'config_visao.json');
 
@@ -1023,7 +1005,7 @@ async function cicloPollingVisao() {
         }
 
         if (separadorMotor.getConfig().motorLocal) {
-            // motor local do Separador: conta, reconhece e aciona o servo sem depender de internet
+            // motor local do Separador
             io.emit('visao_frame', {
                 imagem: bufferImagem.toString('base64'),
                 contagemHoje: obterContagemHojeVisao()
@@ -1055,9 +1037,7 @@ async function cicloPollingVisao() {
     }
 }
 
-// ================================================================================
-// SEPARADOR (fase 2) - visao local + servo separador
-// ================================================================================
+// separador (fase 2)
 const { criarMotorSeparador } = require('./separador_engine');
 const separadorMotor = criarMotorSeparador({
     Jimp,
@@ -1085,7 +1065,7 @@ function separadorLadoPara(classe) {
     return (c.ladoPorClasse && c.ladoPorClasse[classe]) || 'C';
 }
 
-// atraso entre a linha de contagem e o servo (ajustado pela velocidade atual da esteira)
+// atraso entre a linha de contagem e o servo
 function separadorAtrasoMs() {
     const c = separadorMotor.getConfig();
     let atraso = c.atrasoBaseMs;
@@ -1097,7 +1077,7 @@ function separadorAtrasoMs() {
     return Math.round(Math.min(15000, Math.max(0, atraso)));
 }
 
-// o proximo quadro e pedido logo que o anterior termina (nao espera o intervalo inteiro)
+// o proximo quadro e pedido logo que o anterior termina
 function separadorProximoAtraso(inicioQuadro) {
     if (!separadorMotor.getConfig().motorLocal) return configVisao.intervaloMs || 400;
     return Math.max(20, 120 - (Date.now() - inicioQuadro));
@@ -1168,12 +1148,9 @@ setInterval(() => {
     }
 }, 2000);
 
-
 cicloPollingVisao();
 
-// ================================================================================
-// SELAGEM 1 — controle real de temperatura via MQTT
-// ================================================================================
+// selagem 1
 
 let selagemOnline = false;
 let ultimoEstadoSelagem = { temperatura: 0, setpoint: 0, potencia: 0, habilitado: false, seguranca: 'ok' };
@@ -1215,9 +1192,7 @@ function registrarLogDeAcesso(nomeUsuario, tipoEvento) {
     io.emit('novo_log_servidor', log);
 }
 
-// ================================================================================
-
-// --- CONFIGURAÇÕES DO SERVIDOR ---
+// configurações do servidor
 const MQTT_BROKER = 'mqtt://192.168.4.1'; 
 const MQTT_TOPIC_ATUAL = 'esteira/velocidade/atual';
 const MQTT_TOPIC_SET = 'esteira/velocidade/set';
@@ -1242,10 +1217,7 @@ let ultimaVelocidadeConhecida = "0.00";
 let esp32Online = false;
 let sentidoEsteira = 'normal';
 
-// ================================================================================
-// PAINEL DE CONTROLE: motores das selagens. O servidor guarda o ultimo valor
-// de cada um, pra tela mostrar o valor salvo ao recarregar ou trocar de tela.
-// ================================================================================
+// painel de controle
 const MOTORES_SELAGEM = {
     s1m1: {
         nome: 'Selagem 1 - Motor 1', dispositivo: 'selagem1motor',
@@ -1266,11 +1238,7 @@ const MOTORES_SELAGEM = {
         velocidade: '0.00', sentido: 'normal'
     }
 };
-// ================================================================================
-// DISPENSER: ESP32 proprio com 2 motores (driver L298N). O servidor guarda a
-// configuracao (velocidade, tempo de 1/4 de volta etc.) e manda os parametros
-// completos a cada dosagem, entao o ESP32 nao precisa guardar nada.
-// ================================================================================
+// dispenser
 const MQTT_TOPIC_DISP_STATUS = 'dispenser/status';
 const MQTT_TOPIC_DISP_ESTADO = 'dispenser/estado';
 const MQTT_TOPIC_DISP_CONCLUIDO = 'dispenser/concluido';
@@ -1302,8 +1270,7 @@ function limitarNumero(valor, minimo, maximo, padrao) {
     return Math.min(maximo, Math.max(minimo, n));
 }
 
-// Aceita qualquer objeto e devolve uma configuracao completa e valida
-// (valores fora da faixa sao corrigidos para o limite mais proximo)
+// aceita qualquer objeto e devolve uma configuracao completa e valida
 function normalizarConfigDispenser(entrada) {
     const base = JSON.parse(JSON.stringify(CONFIG_PADRAO_DISPENSER));
     const e = entrada && typeof entrada === 'object' ? entrada : {};
@@ -1395,7 +1362,7 @@ function liberarMotoresDispenser() {
 
 const TOPICOS_REINICIAR = { esteira: 'esteira/reiniciar', selagem1: 'selagem/reiniciar', selagem2: 'selagem2/reiniciar', selagem2motor: 'selagem2/motor/reiniciar', selagem1motor: 'selagem/motores/reiniciar' };
 
-// Selagem 2 agora tem 2 ESP32: um so para o aquecimento e outro so para o motor
+// selagem 2 agora tem 2 ESP32
 const MQTT_TOPIC_SELAGEM2_MOTOR_STATUS = 'selagem2/motor/status';
 let selagem2MotorOnline = false;
 let ultimaMsgSelagem2Motor = 0;
@@ -1411,18 +1378,11 @@ env.addGlobal('url_for', function(dir, file) {
 });
 
 app.set('view engine', 'html');
-// ================================================================================
-// ALEXA - skill "Dark Coders"
-// A Alexa manda o pedido falado pra ca. Se for um COMANDO (velocidade,
-// temperatura, ligar, desligar, emergencia), o servidor executa na hora.
-// Se for uma PERGUNTA, a mesma IA do site responde.
-// Esta rota fica ANTES do express.json de proposito: a Amazon exige que a
-// assinatura do pedido seja conferida com o corpo original.
-// ================================================================================
+// alexa - skill "dark coders"
 const Alexa = require('ask-sdk-core');
 const { ExpressAdapter } = require('ask-sdk-express-adapter');
 
-// Cole aqui o ID da sua skill (Alexa Developer Console > sua skill > "Copy Skill ID")
+// cole aqui o ID da sua skill
 const ALEXA_SKILL_ID = 'amzn1.ask.skill.588fe905-2c30-4573-9a32-30a4fe4bf076';
 
 const NUMEROS_POR_EXTENSO_VOZ = {
@@ -1455,7 +1415,7 @@ function normalizarPedidoVoz(texto) {
     return t.replace(/\s*por\s*cento/g, '%').replace(/\s+/g, ' ');
 }
 
-// Entende o pedido e devolve um comando, ou null se for pergunta
+// entende o pedido e devolve um comando, ou null se for pergunta
 function interpretarComandoServidor(textoOriginal) {
     const t = normalizarPedidoVoz(textoOriginal);
 
@@ -1469,10 +1429,10 @@ function interpretarComandoServidor(textoOriginal) {
     const ehDesligar = /\b(desliga|desligue|desligar|desative|desativa|pare|parar|zera|zere|zerar)\b/.test(t) || /^para\b/.test(t);
     const numeroSelagem = /selagem\s*2\b/.test(t) ? 2 : 1;
 
-    // Desligar tudo
+    // desligar tudo
     if (ehDesligar && /\b(tudo|maquina|todos)\b/.test(t)) return { tipo: 'desligar_tudo' };
 
-    // Motores das selagens
+    // motores das selagens
     if (/\bmotor\b/.test(t) && /selagem/.test(t)) {
         let id = 's1m1';
         if (numeroSelagem === 2) id = 's2m';
@@ -1482,7 +1442,7 @@ function interpretarComandoServidor(textoOriginal) {
         if (ehLigar) return { tipo: 'motor', id, valor: 50 };
     }
 
-    // Temperatura / aquecimento das selagens
+    // temperatura / aquecimento das selagens
     if (/temperatura|graus|aquec|esquent|resistencia|selagem/.test(t)) {
         if (numero !== null && /temperatura|graus|selagem/.test(t)) {
             return { tipo: 'temperatura', numero: numeroSelagem, valor: Math.min(250, numero) };
@@ -1491,7 +1451,7 @@ function interpretarComandoServidor(textoOriginal) {
         if (ehLigar) return { tipo: 'aquecimento', numero: numeroSelagem, valor: true };
     }
 
-    // Esteira / velocidade
+    // esteira / velocidade
     if (/velocidade|esteira|potencia/.test(t)) {
         if (numero !== null) return { tipo: 'velocidade', valor: Math.min(100, numero) };
         if (ehDesligar) return { tipo: 'velocidade', valor: 0 };
@@ -1535,7 +1495,7 @@ function definirAquecimentoServidor(numero, ligar) {
     mqttClient.publish(numero === 2 ? MQTT_TOPIC_SELAGEM2_ATIVAR : MQTT_TOPIC_SELAGEM_ATIVAR, ligar ? '1' : '0');
 }
 
-// Executa o comando e devolve a frase que a Alexa vai falar
+// executa o comando e devolve a frase que a Alexa vai falar
 function executarComandoServidor(cmd) {
     if (cmd.tipo === 'velocidade') {
         definirVelocidadeEsteiraServidor(cmd.valor);
@@ -1574,7 +1534,7 @@ function executarComandoServidor(cmd) {
         mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, '1');
         mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, '1');
         mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, '1');
-        mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1'); mqttClient.publish('separador/emergencia', '1'); // Alexa -> Dispenser
+        mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1'); mqttClient.publish('separador/emergencia', '1'); // alexa -> dispenser
         ultimaVelocidadeConhecida = '0.00';
         Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => {
             m.velocidade = '0.00';
@@ -1613,7 +1573,7 @@ async function responderPerguntaParaAlexa(pergunta) {
     return 'Essa demorou demais para eu pensar. Pode perguntar de novo?';
 }
 
-// Cada intencao da skill guarda a palavra inicial que a Alexa "come"
+// cada intencao da skill guarda a palavra inicial que a Alexa "come"
 const PREFIXOS_INTENCOES = {
     AjustarIntent: 'mude',
     LigarIntent: 'ligue',
@@ -1721,11 +1681,7 @@ const construtorSkillAlexa = Alexa.SkillBuilders.custom()
     .addErrorHandlers(AlexaErroHandler);
 if (ALEXA_SKILL_ID) construtorSkillAlexa.withSkillId(ALEXA_SKILL_ID);
 
-// ================================================================================
-// VERIFICACAO DE SEGURANCA DA ALEXA COM CERTIFICADO GUARDADO
-// O certificado da Amazon e baixado uma vez so e fica guardado (memoria + arquivo),
-// entao a conferencia de cada pedido leva milissegundos.
-// ================================================================================
+// verificacao de seguranca da alexa com certificado guardado
 const tls = require('tls');
 const https = require('https');
 const { X509Certificate } = crypto;
@@ -1841,8 +1797,7 @@ async function verificarPedidoAlexa(cabecalhos, corpoOriginal, envelope) {
 
 const skillAlexa = construtorSkillAlexa.create();
 
-// Deixa tudo pronto ao ligar: carrega as autoridades confiaveis e valida o
-// certificado guardado ANTES da Alexa chamar, pra nenhum pedido passar de 8s
+// deixa tudo pronto ao ligar
 setTimeout(() => {
     const inicioPreparo = Date.now();
     try { raizesConfiaveis = tls.rootCertificates.map(r => new X509Certificate(r)); } catch (e) {}
@@ -1875,9 +1830,29 @@ app.post('/alexa', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) 
 app.use(express.static(path.join(__dirname, 'public'))); 
 app.use(express.urlencoded({ extended: true })); 
 app.use(express.json({ limit: '5mb' }));
-app.use(cookieParser());
+// segredo da sessão: vem do .env ou fica guardado num arquivo local
+const arquivoSegredo = path.join(__dirname, '.session_secret');
+function carregarSegredoSessao() {
+    if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+    try {
+        const salvo = fs.readFileSync(arquivoSegredo, 'utf8').trim();
+        if (salvo.length >= 32) return salvo;
+    } catch (e) {}
+    const novo = crypto.randomBytes(48).toString('hex');
+    fs.writeFileSync(arquivoSegredo, novo, { mode: 0o600 });
+    return novo;
+}
+const SEGREDO_SESSAO = carregarSegredoSessao();
 
-const sessionMiddleware = session({ secret: 'flowpack_chave_secreta', resave: false, saveUninitialized: false });
+app.set('trust proxy', 'loopback');
+app.use(cookieParser(SEGREDO_SESSAO));
+
+const sessionMiddleware = session({
+    secret: SEGREDO_SESSAO,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'lax' }
+});
 app.use(sessionMiddleware);
 
 console.log(`🔌 Tentando conectar ao broker MQTT em: ${MQTT_BROKER} ...`);
@@ -1918,9 +1893,7 @@ mqttClient.on('offline', () => {
     io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'Cliente MQTT ficou OFFLINE.', tipo: 'sistema' });
 });
 
-// NOVO: guarda quando foi a ÚLTIMA vez que cada aparelho mandou
-// QUALQUER mensagem — usado pro watchdog abaixo detectar desconexão
-// física real, mesmo sem aviso educado do ESP32
+// guarda quando foi a ÚLTIMA vez que cada aparelho mandou QUALQUER mensagem
 let ultimaMsgEsteira = 0;
 let ultimaMsgSelagem1 = 0;
 let ultimaMsgSelagem2 = 0;
@@ -1929,7 +1902,7 @@ mqttClient.on('message', (topic, message) => {
     const valor = message.toString();
     if (topic === 'esteira/botao') receitasTratarBotao(valor);
     if (topic.startsWith('separador/')) separadorTratarMqtt(topic, valor);
-    // Dispenser (ESP32 proprio)
+    // dispenser (ESP32 proprio)
     if (topic === MQTT_TOPIC_DISP_STATUS || topic === MQTT_TOPIC_DISP_ESTADO || topic === MQTT_TOPIC_DISP_CONCLUIDO) ultimaMsgDispenser = Date.now();
     if (topic === MQTT_TOPIC_DISP_STATUS) {
         const novoStatus = (valor === 'online');
@@ -1962,8 +1935,7 @@ mqttClient.on('message', (topic, message) => {
         } catch (e) { /* ignora */ }
     }
 
-
-    // Painel de Controle: velocidade e sentido dos motores das selagens
+    // painel de controle
     for (const [id, m] of Object.entries(MOTORES_SELAGEM)) {
         if (topic === m.topicoAtual) {
             m.velocidade = valor;
@@ -2007,7 +1979,7 @@ mqttClient.on('message', (topic, message) => {
         io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'ESP32 do Motor da Selagem 2 voltou a responder (ONLINE).', tipo: 'sistema' });
     }
 
-    // Se o sinal de vida voltou depois de uma queda, volta a ficar online sozinho
+    // se o sinal de vida voltou depois de uma queda, volta a ficar online sozinho
     if (topic === MQTT_TOPIC_ATUAL && !esp32Online) {
         esp32Online = true;
         io.emit('status_esp32', { online: true });
@@ -2119,11 +2091,7 @@ mqttClient.on('message', (topic, message) => {
     }
 });
 
-// NOVO: WATCHDOG DE CONEXÃO REAL — a cada 3s, verifica se cada aparelho
-// ainda está "vivo" de verdade. Se nenhuma mensagem chegar dentro do
-// limite (mesmo que o status antigo ainda diga "online"), força offline
-// sozinho. Isso corrige o botão de recarregar mentir quando alguém
-// desliga a energia sem avisar educadamente antes.
+// watchdog de conexão real
 const LIMITE_ESTEIRA_MS = 8000;
 const LIMITE_SELAGEM_MS = 4000;
 
@@ -2147,18 +2115,17 @@ setInterval(() => {
     }
 }, 3000);
 
-// PAINEL DE CONTROLE: quando um ESP32 cai, os valores dele voltam pra 0
-// (ele reinicia parado). Enquanto estiver conectado, o ultimo valor fica salvo.
+// painel de controle
 let estadoOnlineAnterior = { esteira: false, selagem1: false, selagem2: false, selagem2motor: false, selagem1motor: false };
 setInterval(() => {
-    // Vigia do ESP32 dos motores da selagem 1: sem sinal de vida por 8s, fica offline
+    // vigia do ESP32 dos motores da selagem 1
     if (selagem1MotorOnline && (Date.now() - ultimaMsgSelagem1Motor) > 8000) {
         selagem1MotorOnline = false;
         io.emit('status_selagem1motor', { online: false });
         io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'ESP32 dos Motores da Selagem 1 parou de responder, marcado como OFFLINE.', tipo: 'sistema' });
     }
 
-    // Vigia do ESP32 do motor da selagem 2: sem sinal de vida por 8s, fica offline
+    // vigia do ESP32 do motor da selagem 2
     if (selagem2MotorOnline && (Date.now() - ultimaMsgSelagem2Motor) > 8000) {
         selagem2MotorOnline = false;
         io.emit('status_selagem2motor', { online: false });
@@ -2194,9 +2161,9 @@ setInterval(() => {
     estadoOnlineAnterior = agoraOnline;
 }, 1000);
 
-// --- MIDDLEWARES DE ACESSO ---
+// middlewares de acesso
 function loginObrigatorio(req, res, next) {
-    const usuarioAtivo = req.session.usuario || req.cookies.lembrar_usuario;
+    const usuarioAtivo = req.session.usuario || req.signedCookies.lembrar_usuario;
     if (!usuarioAtivo) return res.redirect('/');
 
     const usuarios = carregarUsuarios();
@@ -2219,7 +2186,7 @@ function loginObrigatorio(req, res, next) {
     next();
 }
 
-// Bloqueia a tela (ou a API da tela) se o usuário não tiver essa permissão.
+// bloqueia a tela (ou a API da tela) se o usuário não tiver essa permissão
 function paginaPermitida(pagina) {
     return (req, res, next) => {
         if (res.locals.permissoes && res.locals.permissoes[pagina]) return next();
@@ -2242,11 +2209,34 @@ function donoObrigatorio(req, res, next) {
     next();
 }
 
-// --- ROTAS ---
+// limite de tentativas de login por IP
+const tentativasLogin = new Map();
+const MAX_FALHAS_LOGIN = 8;
+const JANELA_LOGIN_MS = 15 * 60 * 1000;
+function loginBloqueado(ip) {
+    const t = tentativasLogin.get(ip);
+    if (!t) return false;
+    if (Date.now() > t.ate) { tentativasLogin.delete(ip); return false; }
+    return t.falhas >= MAX_FALHAS_LOGIN;
+}
+function registrarFalhaLogin(ip) {
+    const t = tentativasLogin.get(ip);
+    if (!t || Date.now() > t.ate) tentativasLogin.set(ip, { falhas: 1, ate: Date.now() + JANELA_LOGIN_MS });
+    else t.falhas++;
+}
+setInterval(() => {
+    const agora = Date.now();
+    for (const [ip, t] of tentativasLogin) if (agora > t.ate) tentativasLogin.delete(ip);
+}, 10 * 60 * 1000).unref();
+
+// rotas
 app.all('/', (req, res) => {
-    if (req.cookies.lembrar_usuario || req.session.logado) return res.redirect('/dashboard');
+    if (req.signedCookies.lembrar_usuario || req.session.logado) return res.redirect('/dashboard');
 
     if (req.method === 'POST') {
+        if (loginBloqueado(req.ip)) {
+            return res.status(429).render('login.html', { erro: 'Muitas tentativas. Espere uns 15 minutos e tente de novo.' });
+        }
         const usuarios = carregarUsuarios();
         const chaveEncontrada = encontrarChaveUsuarioIgnorandoCase(usuarios, req.body.username);
         const usuario = chaveEncontrada ? usuarios[chaveEncontrada] : null;
@@ -2256,13 +2246,15 @@ app.all('/', (req, res) => {
             req.session.usuario = chaveEncontrada;
 
             if (req.body.remember) {
-                res.cookie('lembrar_usuario', chaveEncontrada, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true });
+                res.cookie('lembrar_usuario', chaveEncontrada, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true, signed: true, sameSite: 'lax' });
             }
 
+            tentativasLogin.delete(req.ip);
             registrarLogDeAcesso(chaveEncontrada, 'login');
 
             return res.redirect('/dashboard');
         } else {
+            registrarFalhaLogin(req.ip);
             return res.render('login.html', { erro: 'Usuário ou senha incorretos!' });
         }
     }
@@ -2295,7 +2287,7 @@ app.get('/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => res.rende
 app.get('/visao', loginObrigatorio, paginaPermitida('visao'), (req, res) => res.render('visao.html'));
 
 app.get('/logout', (req, res) => {
-    const usuarioQueSaiu = req.session.usuario || req.cookies.lembrar_usuario;
+    const usuarioQueSaiu = req.session.usuario || req.signedCookies.lembrar_usuario;
 
     if (usuarioQueSaiu) {
         registrarLogDeAcesso(usuarioQueSaiu, 'logout');
@@ -2306,7 +2298,7 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-// --- API DE GERENCIAMENTO DE USUÁRIOS ---
+// api de gerenciamento de usuários
 app.get('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
     const lista = Object.keys(usuarios).map(nome => ({
@@ -2319,7 +2311,7 @@ app.get('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
     res.json({ usuarios: lista, paginas: PAGINAS_CONFIGURAVEIS });
 });
 
-// Define quais telas um Operário pode acessar (Dono ou Administrador).
+// define quais telas um Operário pode acessar (Dono ou Administrador)
 app.post('/api/usuarios/:usuario/permissoes', loginObrigatorio, adminObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
     const alvo = usuarios[req.params.usuario];
@@ -2367,8 +2359,7 @@ app.post('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
     }
 
     const { salt, hash } = gerarHashSenha(senha);
-    // Todo usuário recém-criado começa com tutorialVisto: false — no
-    // primeiro login dele, o tutorial abre sozinho, obrigatoriamente.
+    // usuário novo começa sem ter visto o tutorial
     usuarios[chave] = { salt, hash, nivel: nivelSolicitado, acessibilidade: !!acessibilidade, tutorialVisto: false };
     salvarUsuarios(usuarios);
 
@@ -2452,8 +2443,7 @@ app.post('/api/usuario/acessibilidade', loginObrigatorio, (req, res) => {
     res.json({ sucesso: true, ativo: usuario.acessibilidade });
 });
 
-// Marca que esse usuário já viu o tutorial — chamado automaticamente
-// quando o tutorial termina ou é pulado, pra nunca mais forçar de novo.
+// marca que esse usuário já viu o tutorial
 app.post('/api/usuario/tutorial-visto', loginObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
     const usuario = usuarios[res.locals.usuarioLogado];
@@ -2466,7 +2456,7 @@ app.post('/api/usuario/tutorial-visto', loginObrigatorio, (req, res) => {
     res.json({ sucesso: true });
 });
 
-// --- API DO CHAT ---
+// api do chat
 app.get('/api/chat/historico', loginObrigatorio, paginaPermitida('chat'), (req, res) => {
     const usuario = res.locals.usuarioLogado;
     res.json(historicosChat[usuario] || []);
@@ -2539,7 +2529,7 @@ app.delete('/api/chat/limpar', loginObrigatorio, paginaPermitida('chat'), (req, 
     res.json({ sucesso: true });
 });
 
-// --- API DA VISÃO COMPUTACIONAL ---
+// api da visão computacional
 app.get('/api/visao/config', loginObrigatorio, adminObrigatorio, (req, res) => {
     res.json(configVisao);
 });
@@ -2583,7 +2573,7 @@ app.get('/api/visao/verificacoes', loginObrigatorio, (req, res) => {
     res.json(historicoVerificacoesIA);
 });
 
-// --- API DOS PRODUTOS DE REFERÊNCIA ---
+// api dos produtos de referência
 app.get('/api/visao/produtos', loginObrigatorio, (req, res) => {
     res.json(produtosReferenciaCache.map(p => ({ id: p.id, nome: p.nome, imagem: p.base64 })));
 });
@@ -2636,7 +2626,7 @@ app.delete('/api/visao/produtos/:id', loginObrigatorio, adminObrigatorio, (req, 
     res.json({ sucesso: true });
 });
 
-// --- ROTA DOS LOGS E DA PRODUÇÃO ---
+// rota dos logs e da produção
 app.get('/api/logs/:data', loginObrigatorio, (req, res) => {
     const arquivo = path.join(pastaLogs, `${req.params.data}.json`);
     if (fs.existsSync(arquivo)) res.json(JSON.parse(fs.readFileSync(arquivo, 'utf-8')));
@@ -2654,9 +2644,7 @@ app.get('/api/producao/pontos/:data', loginObrigatorio, (req, res) => {
     else res.json([]);
 });
 
-// ================================================================================
-// DISPENSER: pagina, API e vigia de conexao
-// ================================================================================
+// dispenser
 setInterval(() => {
     if (dispenserOnline && (Date.now() - ultimaMsgDispenser) > 8000) {
         dispenserOnline = false;
@@ -2668,9 +2656,7 @@ setInterval(() => {
 
 app.get('/dispenser', loginObrigatorio, paginaPermitida('dispenser'), (req, res) => res.render('dispenser.html'));
 
-// ================================================================================
-// RECEITAS (niveis de 50/100/150/200 g) + BOTOES FISICOS + MODELO 3D
-// ================================================================================
+// receitas (niveis de 50/100/150/200 g) + botoes fisicos + modelo 3d
 const ARQ_RECEITAS = path.join(__dirname, 'receitas.json');
 const RECEITAS_PADRAO = {
     botoesAtivos: true,
@@ -2772,10 +2758,7 @@ app.get('/api/modelo3d', loginObrigatorio, (req, res) => {
     } catch (e) { res.json([]); }
 });
 
-
-// ================================================================================
-// SEPARADOR (fase 2) - paginas e API
-// ================================================================================
+// separador (fase 2)
 app.get('/separador', loginObrigatorio, paginaPermitida('separador'), (req, res) => res.render('separador.html'));
 
 function separadorConfigCompleta() {
@@ -2865,9 +2848,7 @@ app.post('/api/separador/servo/ref-velocidade', loginObrigatorio, adminObrigator
     res.json({ sucesso: true, velRefEsteira: v });
 });
 
-// ================================================================================
-// STATUS DO SISTEMA (internet, vigia, Raspberry e dispositivos)
-// ================================================================================
+// status do sistema (internet, vigia, raspberry e dispositivos)
 const { execFile: execFileSistema } = require('child_process');
 const osSistema = require('os');
 const ARQ_REDE_JSON = process.env.FLOWPACK_REDE_JSON || '/var/lib/flowpack/rede.json';
@@ -2962,7 +2943,6 @@ app.get('/api/sistema/status', loginObrigatorio, adminObrigatorio, (req, res) =>
 app.get('/api/sistema/log-rede', loginObrigatorio, adminObrigatorio, (req, res) => {
     res.type('text/plain').send(sistemaUltimasLinhas(ARQ_LOG_REDE, 150).join('\n') || '(sem registros ainda)');
 });
-
 
 app.get('/api/dispenser/estado', loginObrigatorio, (req, res) => {
     res.json(estadoDispenserParaTela(res.locals.isAdmin === true));
@@ -3059,9 +3039,7 @@ app.post('/api/dispenser/teste', loginObrigatorio, adminObrigatorio, (req, res) 
     res.json({ ok: true });
 });
 
-// ================================================================================
-// MANUAIS EM PDF: os arquivos ficam na pasta "manuais" (ao lado do server.js)
-// ================================================================================
+// manuais em pdf
 const PASTA_MANUAIS = path.join(__dirname, 'manuais');
 const LISTA_MANUAIS = [
     { id: 'maquina',   titulo: 'Manual da Máquina Completa', arquivo: 'Manual_Maquina_FlowPack.pdf',      descricao: 'Visão geral, segurança, operação e sistema de controle.' },
@@ -3090,7 +3068,7 @@ app.get('/manuais/baixar/:id', loginObrigatorio, (req, res) => {
     res.download(caminho, m.arquivo);
 });
 
-// --- API DO PAINEL DE CONTROLE ---
+// api do painel de controle
 app.get('/api/painel/estado', loginObrigatorio, adminObrigatorio, (req, res) => {
     const motores = {};
     Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => {
@@ -3106,32 +3084,32 @@ app.get('/api/painel/estado', loginObrigatorio, adminObrigatorio, (req, res) => 
     });
 });
 
-// --- API DA ESTEIRA ---
+// api da esteira
 app.get('/api/esteira/status', loginObrigatorio, (req, res) => {
     res.json({ online: esp32Online, velocidade: ultimaVelocidadeConhecida });
 });
 
-// --- API DA SELAGEM 1 ---
+// api da selagem 1
 app.get('/api/selagem/status', loginObrigatorio, (req, res) => {
     res.json({ online: selagemOnline, estado: ultimoEstadoSelagem });
 });
 
-// --- API DA SELAGEM 2 ---
+// api da selagem 2
 app.get('/api/selagem2/status', loginObrigatorio, (req, res) => {
     res.json({ online: selagem2Online, estado: ultimoEstadoSelagem2 });
 });
 
-// --- SOCKET.IO ---
+// socket.io
 function envolverMiddleware(middleware) {
     return (socket, next) => middleware(socket.request, {}, next);
 }
 
-io.use(envolverMiddleware(cookieParser()));
+io.use(envolverMiddleware(cookieParser(SEGREDO_SESSAO)));
 io.use(envolverMiddleware(sessionMiddleware));
 
 io.use((socket, next) => {
     const req = socket.request;
-    const usuarioAtivo = (req.session && req.session.usuario) || (req.cookies && req.cookies.lembrar_usuario);
+    const usuarioAtivo = (req.session && req.session.usuario) || (req.signedCookies && req.signedCookies.lembrar_usuario);
     socket.data.usuario = usuarioAtivo || 'Desconhecido';
     next();
 });
@@ -3155,19 +3133,17 @@ io.on('connection', (socket) => {
 
     socket.on('comando_esteira', (data) => {
         if (data.acao === 'velocidade') {
-            // NOVO: grava o valor comandado na hora — não depende do ESP32
-            // ecoar de volta, então a tela nunca "esquece" o valor ao trocar
-            // de aba, mesmo sem hardware físico conectado
+            // grava o valor comandado na hora
             ultimaVelocidadeConhecida = data.valor.toString();
             io.emit('atualizar_velocidade', { velocidade: ultimaVelocidadeConhecida });
             mqttClient.publish(MQTT_TOPIC_SET, data.valor.toString());
         } else if (data.acao === 'emergencia') {
-            // Esteira: o proprio ESP32 gira ao contrario por 1s e para
+            // esteira: o proprio ESP32 gira ao contrario por 1s e para
             mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, "1");
             ultimaVelocidadeConhecida = "0.00";
             mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, "1");
             mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, "1");
-            mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, "1"); mqttClient.publish('separador/emergencia', '1'); // Site -> Dispenser
+            mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, "1"); mqttClient.publish('separador/emergencia', '1'); // site -> dispenser
             liberarMotoresDispenser();
             emitirEstadoDispenser(true);
             Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => {
@@ -3181,7 +3157,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // PAINEL DE CONTROLE: somente Admin e Dono
+    // painel de controle
     socket.on('comando_painel', (data) => {
         if (!data) return;
         const usuarios = carregarUsuarios();
@@ -3213,7 +3189,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Inverter sentido da esteira: somente o Dono
+    // inverter sentido da esteira
     socket.on('comando_sentido', (data) => {
         const usuarios = carregarUsuarios();
         const dadosUsuario = usuarios[socket.data.usuario];
@@ -3228,7 +3204,7 @@ io.on('connection', (socket) => {
             io.emit('atualizar_temperatura', ultimoEstadoSelagem);
             mqttClient.publish(MQTT_TOPIC_SELAGEM_SET, data.valor.toString());
         } else if (data.acao === 'ativar') {
-            // Ignorado: o aquecimento agora so liga/desliga pelo Painel de Controle (ou emergencia)
+            // aquecimento só liga pelo painel de controle
         } else if (data.acao === 'resetar_seguranca') {
             mqttClient.publish('selagem/resetar_seguranca', '1');
         }
@@ -3240,7 +3216,7 @@ io.on('connection', (socket) => {
             io.emit('atualizar_temperatura2', ultimoEstadoSelagem2);
             mqttClient.publish(MQTT_TOPIC_SELAGEM2_SET, data.valor.toString());
         } else if (data.acao === 'ativar') {
-            // Ignorado: o aquecimento agora so liga/desliga pelo Painel de Controle (ou emergencia) - selagem 2
+            // aquecimento só liga pelo painel de controle
         } else if (data.acao === 'resetar_seguranca') {
             mqttClient.publish('selagem2/resetar_seguranca', '1');
         }
