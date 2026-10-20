@@ -28,10 +28,10 @@ A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço
 | Módulo | Descrição |
 |---|---|
 | Operação | Velocidade da esteira, temperatura das selagens, estado dos módulos e modelo 3D da máquina. |
-| Painel de Controle | Motores e aquecimento de cada selagem, sentido da esteira, reinício e reset de cada placa. |
+| Painel de Controle | Motores e aquecimento de cada selagem, sentido da esteira, reinício e reset de cada placa. Tem também a seção **Separador (servo)**: estado da conexão, teste esquerda/centro/direita, ângulos, velocidade, tempo aberto e liga/desliga do servo (somente Administrador e Dono). |
 | Dispenser | Seleção do grão e da quantidade (1/4, 1/2, 3/4 ou 1 volta do rotor) e acionamento da dosagem. |
 | Separador | Contagem e reconhecimento de produtos por câmera, com servo que desvia cada item. Inclui treinamento por classe e calibração de fundo. |
-| Visão Computacional | Zona de detecção, produtos de referência e confirmação por IA. |
+| Visão Computacional | Zona de detecção, produtos de referência e confirmação por IA. A câmera mostra o que a IA lê, igual ao Separador: linha de contagem, caixas numeradas (amarela = acompanhando, verde = contada) e nome do produto com a confiança em %. |
 | Receitas | Níveis de 50, 100, 150 e 200 g com velocidade e temperatura predefinidas. |
 | Produção e Relatórios | Gráficos por hora e por dia e exportação de relatórios em PDF. |
 | Dark Coders AI | Assistente com base de conhecimento local e IA online opcional. Aceita comandos por texto e por voz. |
@@ -116,11 +116,11 @@ Não precisa do Raspberry nem das placas. Em dois terminais:
 
 ```bash
 npm install
-npm run mock   # broker MQTT de mentira com placas falsas
+npm run mock   # broker MQTT de mentira com placas falsas (inclui o servo do separador)
 npm run dev    # o site, em http://localhost:5000
 ```
 
-O `dev` usa a pasta `data-teste/` (nada do `usuarios.json` real é tocado) e cria os logins `dono`, `adm` e `operario`, todos com a senha `1234`. Para rodar os testes automáticos: `npm test`.
+O `dev` usa a pasta `data-teste/` (nada do `usuarios.json` real é tocado) e cria os logins `dono`, `adm`, `operario` e `visualizador`, todos com a senha `1234`. Para rodar os testes automáticos: `npm test`.
 
 ### Variáveis de ambiente
 
