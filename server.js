@@ -1606,16 +1606,24 @@ const AlexaAbrirHandler = {
     canHandle(h) { return Alexa.getRequestType(h.requestEnvelope) === 'LaunchRequest'; },
     handle(h) {
         registrarLogDaAlexa('Skill Dark Coders aberta na Alexa.', 'sistema');
+        if (emergenciaGlobal.ativa) return falarMaquinaTravada(h);
         return perguntarPredefinicao(h, 'Dark Coders pronto.');
     }
 };
+
+function falarMaquinaTravada(h) {
+    return h.responseBuilder
+        .speak('A máquina está travada por uma emergência. Libere no site antes de ligar.')
+        .withShouldEndSession(true)
+        .getResponse();
+}
 
 const AlexaLigarMaquinaHandler = {
     canHandle(h) {
         return Alexa.getRequestType(h.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(h.requestEnvelope) === 'LigarMaquinaIntent';
     },
-    handle(h) { return perguntarPredefinicao(h); }
+    handle(h) { return emergenciaGlobal.ativa ? falarMaquinaTravada(h) : perguntarPredefinicao(h); }
 };
 
 const AlexaPredefinicaoHandler = {
@@ -1624,6 +1632,7 @@ const AlexaPredefinicaoHandler = {
             && Alexa.getIntentName(h.requestEnvelope) === 'PredefinicaoIntent';
     },
     handle(h) {
+        if (emergenciaGlobal.ativa) return falarMaquinaTravada(h);
         const gramas = parseInt(Alexa.getSlotValue(h.requestEnvelope, 'gramas'), 10);
         if (!gramas) return perguntarPredefinicao(h);
 
