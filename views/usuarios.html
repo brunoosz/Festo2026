@@ -12,6 +12,8 @@
                 <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5">
                     {% if isDono %}
                         Você é o Dono do sistema — acesso total, pode criar, editar, promover/rebaixar e apagar qualquer usuário.
+                    {% elif somenteLeitura %}
+                        Modo visualização — você pode ver a lista de usuários, mas não pode alterar nada.
                     {% else %}
                         Você é Administrador — pode cadastrar novos Operários e trocar a senha deles. Apagar usuários é restrito ao Dono.
                     {% endif %}
@@ -19,11 +21,12 @@
             </div>
             <div class="flex flex-col sm:flex-row gap-2 shrink-0">
                 <!-- filtro por cargo -->
-                <select id="filtro-nivel" class="text-xs font-bold border-2 border-slate-200 rounded-lg px-3 py-2.5 bg-white text-slate-700 cursor-pointer focus:outline-none focus:border-blue-500">
+                <select id="filtro-nivel" data-leitura-ok class="text-xs font-bold border-2 border-slate-200 rounded-lg px-3 py-2.5 bg-white text-slate-700 cursor-pointer focus:outline-none focus:border-blue-500">
                     <option value="todos">Todos os cargos</option>
                     <option value="1">Somente Donos</option>
                     <option value="2">Somente Administradores</option>
                     <option value="3">Somente Operários</option>
+                    <option value="4">Somente Visualizadores</option>
                 </select>
                 <button id="btn-abrir-add-usuario" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
@@ -83,6 +86,9 @@
                     <option value="2">Administrador</option>
                     {% endif %}
                     <option value="3" selected>Operário</option>
+                    {% if isDono %}
+                    <option value="4">Visualizador (só olha, não controla)</option>
+                    {% endif %}
                 </select>
             </div>
 
@@ -161,11 +167,14 @@
 
     let listaCompletaUsuarios = [];
     let paginasConfiguraveis = {};
+    let telasVisualizador = {};
+    const soLeitura = window.__somenteLeitura === true;
 
     function badgeNivel(nivel, nomeNivelTexto) {
         let classes = "text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ";
         if (nivel === 1) classes += "bg-amber-100 text-amber-700";
         else if (nivel === 2) classes += "bg-blue-100 text-blue-700";
+        else if (nivel === 4) classes += "bg-violet-100 text-violet-700";
         else classes += "bg-slate-100 text-slate-600";
         return `<span class="${classes}">${nomeNivelTexto}</span>`;
     }
@@ -180,24 +189,31 @@
 
         let botoesAcao = '';
 
-        if (u.nivel === 3) {
+        if (soLeitura) {
+            // Visualizador só olha a lista
+        } else if (u.nivel === 4 && souDono) {
             botoesAcao += `<button data-usuario="${u.usuario}" class="btn-telas-usuario text-emerald-600 hover:text-emerald-800 text-xs font-bold mr-3 cursor-pointer">Telas</button>`;
         }
 
-        if (possoAlterarSenhaDe(u.nivel)) {
+        if (!soLeitura && u.nivel === 3) {
+            botoesAcao += `<button data-usuario="${u.usuario}" class="btn-telas-usuario text-emerald-600 hover:text-emerald-800 text-xs font-bold mr-3 cursor-pointer">Telas</button>`;
+        }
+
+        if (!soLeitura && possoAlterarSenhaDe(u.nivel)) {
             botoesAcao += `<button data-usuario="${u.usuario}" class="btn-trocar-senha text-blue-600 hover:text-blue-800 text-xs font-bold mr-3 cursor-pointer">Senha</button>`;
         }
 
-        if (possoMudarNivel() && u.usuario !== meuUsuario) {
+        if (!soLeitura && possoMudarNivel() && u.usuario !== meuUsuario) {
             botoesAcao += `
                 <select data-usuario="${u.usuario}" class="select-nivel-inline text-xs border border-slate-200 rounded px-1 py-0.5 mr-3 cursor-pointer">
                     <option value="1" ${u.nivel === 1 ? 'selected' : ''}>Dono</option>
                     <option value="2" ${u.nivel === 2 ? 'selected' : ''}>Administrador</option>
                     <option value="3" ${u.nivel === 3 ? 'selected' : ''}>Operário</option>
+                    <option value="4" ${u.nivel === 4 ? 'selected' : ''}>Visualizador</option>
                 </select>`;
         }
 
-        if (possoApagar() && u.usuario !== meuUsuario) {
+        if (!soLeitura && possoApagar() && u.usuario !== meuUsuario) {
             botoesAcao += `<button data-usuario="${u.usuario}" class="btn-apagar-usuario text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Apagar</button>`;
         }
 
@@ -251,6 +267,7 @@
             const dados = await resposta.json();
             listaCompletaUsuarios = dados.usuarios;
             paginasConfiguraveis = dados.paginas;
+            telasVisualizador = dados.telasVisualizador || {};
             renderizarComFiltro();
         } catch (erro) {
             corpoTabela.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-red-500 text-xs">Erro ao carregar usuários.</td></tr>';
@@ -307,6 +324,7 @@
     }
     function fecharModalAddUsuario() { modalAddUsuario.classList.add('hidden'); }
 
+    if (soLeitura) btnAbrirAddUsuario.classList.add('hidden');
     btnAbrirAddUsuario.addEventListener('click', abrirModalAddUsuario);
     btnCancelarAddUsuario.addEventListener('click', fecharModalAddUsuario);
     modalAddUsuario.addEventListener('click', (e) => { if (e.target === modalAddUsuario) fecharModalAddUsuario(); });
@@ -401,19 +419,23 @@
     const listaTelas = document.getElementById('lista-telas-usuario');
     const msgTelas = document.getElementById('msg-telas-usuario');
     let usuarioAlvoTelas = null;
+    let alvoEhVisualizador = false;
 
     function abrirModalTelas(usuario) {
         const alvo = listaCompletaUsuarios.find(u => u.usuario === usuario);
         if (!alvo) return;
         usuarioAlvoTelas = usuario;
+        alvoEhVisualizador = alvo.nivel === 4;
+        const catalogo = alvoEhVisualizador ? telasVisualizador : paginasConfiguraveis;
         document.getElementById('texto-usuario-telas').innerText = usuario;
         msgTelas.classList.add('hidden');
         listaTelas.innerHTML = '';
-        Object.keys(paginasConfiguraveis).forEach(pagina => {
+        Object.keys(catalogo).forEach(pagina => {
             const label = document.createElement('label');
             label.className = 'flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3 cursor-pointer';
-            const marcado = alvo.permissoes[pagina] ? 'checked' : '';
-            label.innerHTML = `<input type="checkbox" data-pagina="${pagina}" ${marcado} class="rounded border-gray-300 text-blue-500 w-5 h-5 shrink-0"><span class="text-sm font-bold text-slate-700">${paginasConfiguraveis[pagina]}</span>`;
+            const liberada = alvoEhVisualizador ? (alvo.telasPermitidas || []).includes(pagina) : alvo.permissoes[pagina];
+            const marcado = liberada ? 'checked' : '';
+            label.innerHTML = `<input type="checkbox" data-pagina="${pagina}" ${marcado} class="rounded border-gray-300 text-blue-500 w-5 h-5 shrink-0"><span class="text-sm font-bold text-slate-700">${catalogo[pagina]}</span>`;
             listaTelas.appendChild(label);
         });
         modalTelas.classList.remove('hidden');
@@ -424,12 +446,13 @@
     modalTelas.addEventListener('click', (e) => { if (e.target === modalTelas) fecharModalTelas(); });
     document.getElementById('btn-salvar-telas').addEventListener('click', async () => {
         const permissoes = {};
-        listaTelas.querySelectorAll('input[data-pagina]').forEach(c => { permissoes[c.dataset.pagina] = c.checked; });
+        const telas = [];
+        listaTelas.querySelectorAll('input[data-pagina]').forEach(c => { permissoes[c.dataset.pagina] = c.checked; if (c.checked) telas.push(c.dataset.pagina); });
         try {
-            const resposta = await fetch('/api/usuarios/' + encodeURIComponent(usuarioAlvoTelas) + '/permissoes', {
+            const resposta = await fetch('/api/usuarios/' + encodeURIComponent(usuarioAlvoTelas) + (alvoEhVisualizador ? '/telas' : '/permissoes'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ permissoes })
+                body: JSON.stringify(alvoEhVisualizador ? { telas } : { permissoes })
             });
             const dados = await resposta.json();
             if (resposta.ok) {

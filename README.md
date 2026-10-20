@@ -158,6 +158,7 @@ Como a tela de login passa a ficar pública, o servidor aplica as seguintes prot
 - cookie de "lembrar de mim" assinado, que não pode ser forjado;
 - segredo de sessão fora do código-fonte;
 - bloqueio por 15 minutos após 8 tentativas de login incorretas a partir do mesmo IP.
+- o canal em tempo real (socket) só aceita quem fez login.
 
 Recomendações adicionais estão em [SECURITY.md](SECURITY.md).
 
@@ -168,6 +169,9 @@ Recomendações adicionais estão em [SECURITY.md](SECURITY.md).
 | Dono | Acesso total, incluindo promover e apagar usuários. |
 | Administrador | Controla a máquina, cria usuários e altera senhas dos níveis abaixo do seu. |
 | Operário | Acessa apenas as telas liberadas pelo Dono ou pelo Administrador. |
+| Visualizador | Só olha: acompanha em tempo real as telas liberadas e conversa com a IA, mas não controla nada. |
+
+O **Visualizador** é pensado para quem só precisa acompanhar a máquina (professores, visitantes). Ele não aciona velocidade, temperatura, receitas, dosagem, servo, ajustes da visão nem a emergência (o botão fica escondido e aparece só um aviso "Máquina travada" quando há emergência), e não cria nem altera usuários. A IA responde perguntas para ele, mas não executa comandos. Só o Dono cria Visualizadores e escolhe, em **Usuários → Telas**, quais das 11 telas cada um enxerga (por padrão todas). A tela Usuários, quando liberada, é somente leitura. O bloqueio é feito no servidor (HTTP e socket), não só escondendo botões, e as tentativas bloqueadas ficam nos Logs.
 
 Em **Usuários**, o Dono ou o Administrador define, para cada Operário, quais telas ficam disponíveis: Dispenser, Separador, Receitas, Produção, Relatórios, Visão Computacional, Dark Coders AI e Logs. Por padrão, o Operário acessa todas, exceto Receitas. Dashboard e Configuração estão sempre liberados. A restrição é aplicada no menu e no servidor, portanto o acesso direto pela URL também é bloqueado.
 

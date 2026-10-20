@@ -17,6 +17,9 @@
         @media (max-width: 640px) { .card-painel { padding: 0.85rem; border-radius: 0.65rem; } .titulo-painel { font-size: 0.7rem; margin-bottom: 0.6rem; padding-bottom: 0.4rem; } }
         input, select, textarea { font-size: 16px; }
         @media (min-width: 640px) { input, select, textarea { font-size: 14px; } }
+        /* perfil Visualizador: controles ficam apagados (o bloqueio de verdade e no servidor) */
+        body.somente-leitura #btn-emergencia-global { display: none !important; }
+        body.somente-leitura #conteudo-pagina :is(button, input, select, textarea, [role="button"]):not([data-leitura-ok]):not([data-leitura-ok] *) { opacity: .5; cursor: not-allowed; }
         .leitor-tela-armado { outline: 3px solid #f59e0b !important; outline-offset: 2px; }
         .altura-tela-segura { height: 100vh; height: 100dvh; }
         .sidebar-recolhida-desktop { display: none !important; }
@@ -32,7 +35,7 @@
         if (window.innerWidth >= 768 && localStorage.getItem('sidebar_recolhida_pc') === '1') document.documentElement.classList.add('preparar-sidebar-recolhida');
     </script>
 </head>
-<body class="altura-tela-segura bg-[#f0f4f8] text-gray-800 font-sans flex overflow-hidden overscroll-none">
+<body class="altura-tela-segura bg-[#f0f4f8] text-gray-800 font-sans flex overflow-hidden overscroll-none{% if somenteLeitura %} somente-leitura{% endif %}">
 
     <div id="barra-carregamento" class="hidden fixed top-0 left-0 right-0 h-1 bg-blue-500 z-[60]"></div>
     <div id="overlay-sidebar" class="hidden fixed inset-0 bg-black/50 backdrop-blur-[1px] z-40 md:hidden transition-opacity"></div>
@@ -112,19 +115,19 @@
                     <span id="badge-notificacoes-menu" class="hidden ml-auto min-w-[26px] h-[26px] px-1.5 bg-blue-600 text-white text-[13px] font-black rounded-full flex items-center justify-center shadow-lg animate-pulse">0</span>
                 </a>
                 {% endif %}
-                {% if isAdmin %}
+                {% if permissoes.controle %}
                 <a href="/controle" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-controle">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"></path></svg>
                     Painel de Controle
                 </a>
                 {% endif %}
-                {% if isAdmin %}
+                {% if permissoes.sistema %}
                 <a href="/sistema" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-sistema">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
                     Status do Sistema
                 </a>
                 {% endif %}
-                {% if isAdmin %}
+                {% if permissoes.usuarios %}
                 <a href="/usuarios" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-usuarios">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.2A6.5 6.5 0 0121.5 20"/></svg>
                     Usuários
@@ -175,6 +178,7 @@
                     </div>
                 </div>
                 <span id="pi-dot-mobile" class="sm:hidden w-2.5 h-2.5 rounded-full bg-green-500 shrink-0"></span>
+                <div id="selo-travado" class="hidden items-center gap-2 bg-yellow-100 border border-yellow-400 text-yellow-800 text-[11px] sm:text-xs font-black uppercase tracking-wide px-3 py-2 rounded-lg shrink-0">Máquina travada</div>
                 <button id="btn-emergencia-global" class="bg-[#ff0000] hover:bg-[#cc0000] active:bg-[#aa0000] text-white font-bold px-3 sm:px-6 py-2.5 sm:py-2 rounded-lg border-2 border-[#990000] shadow-md flex items-center gap-2 transition cursor-pointer manter-cor shrink-0">
                     <span id="icone-emergencia" class="text-white w-6 h-6 flex items-center justify-center shrink-0">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3L8.3 3z"/><path d="M12 7.5v5.5M12 16.4h.01" stroke-width="2.6"/></svg>
@@ -233,6 +237,8 @@
             }
 
             function atualizarVisualBotao() {
+                const seloTravado = document.getElementById('selo-travado');
+                if (seloTravado && window.__somenteLeitura) { seloTravado.classList.toggle('hidden', !emergenciaAtivada); seloTravado.classList.toggle('flex', emergenciaAtivada); }
                 if (emergenciaAtivada) {
                     btnEmergencia.className = 'bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white font-bold px-3 sm:px-6 py-2.5 sm:py-2 rounded-lg border-2 border-yellow-700 shadow-md flex items-center gap-2 transition cursor-pointer manter-cor shrink-0';
                     iconeEmergencia.className = 'text-white w-6 h-6 flex items-center justify-center shrink-0';
@@ -322,7 +328,7 @@
                 mostrarBarraCarregamento();
                 try {
                     const resposta = await fetch(url);
-                    if (!resposta.ok) { window.location.href = url; return; }
+                    if (!resposta.ok || resposta.redirected) { window.location.href = resposta.redirected ? resposta.url : url; return; }
                     const texto = await resposta.text();
                     const { elemento, titulo } = extrairConteudoDePagina(texto);
                     if (!elemento) { window.location.href = url; return; }
@@ -503,12 +509,35 @@
         <script>
             window.__acessibilidadeAtivaInicial = {{ 'true' if acessibilidadeAtiva else 'false' }};
             window.__isAdminInicial = {{ 'true' if isAdmin else 'false' }};
+            window.__somenteLeitura = {{ 'true' if somenteLeitura else 'false' }};
         window.__permissoesIniciais = {{ permissoes | default({}) | dump | safe }};
             window.__nivelUsuarioInicial = {{ nivelUsuario | default(3) }};
             window.__tutorialObrigatorioInicial = {{ 'true' if tutorialObrigatorio else 'false' }};
             if (typeof acessibilidadeAtiva !== 'undefined') acessibilidadeAtiva = window.__acessibilidadeAtivaInicial === true;
         </script>
 
+        <script>
+            // perfil Visualizador: cliques, teclas e toques em controles da tela nao fazem nada
+            // (o que for so de olhar fica dentro de um elemento com data-leitura-ok)
+            if (window.__somenteLeitura) {
+                (function () {
+                    const INTERATIVO = 'button, input, select, textarea, label, summary, [role="button"], [onclick], [contenteditable="true"], .cursor-pointer';
+                    const bloqueado = (e) => {
+                        const t = e.target;
+                        if (!t || !t.closest || !t.closest('#conteudo-pagina') || t.closest('[data-leitura-ok]')) return false;
+                        if (e.type === 'submit') return true;
+                        if (t.closest('a[href]')) return false;
+                        return !!t.closest(INTERATIVO);
+                    };
+                    const travar = (e) => { if (bloqueado(e)) { e.preventDefault(); e.stopImmediatePropagation(); } };
+                    ['click', 'dblclick', 'mousedown', 'pointerdown', 'touchstart', 'keydown', 'submit', 'change', 'input'].forEach(nome => document.addEventListener(nome, travar, true));
+                })();
+            }
+        </script>
+
+        {% if somenteLeitura %}
+        <div class="bg-blue-50 border-b border-blue-200 text-blue-800 text-xs sm:text-sm font-semibold px-4 py-2 shrink-0">Modo visualização: você acompanha tudo em tempo real, mas não controla a máquina.</div>
+        {% endif %}
         <div id="conteudo-pagina" class="p-3 sm:p-6 flex-1 bg-[#f0f4f8] min-h-0 overflow-y-auto overflow-x-hidden" style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch;">
             {% block content %}{% endblock %}
         </div>

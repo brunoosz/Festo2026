@@ -8,7 +8,7 @@
 
 <div class="flex flex-col h-full min-h-0 w-full">
 
-    <div class="card-painel flex-1 flex flex-col shadow-sm overflow-hidden p-0 bg-slate-50 border-t-4 border-t-blue-500 relative min-h-0">
+    <div data-leitura-ok class="card-painel flex-1 flex flex-col shadow-sm overflow-hidden p-0 bg-slate-50 border-t-4 border-t-blue-500 relative min-h-0">
         
         <div class="bg-white p-3 sm:p-4 border-b border-slate-200 flex items-center justify-between z-10 shadow-sm shrink-0 gap-2">
             <div class="flex items-center gap-2.5 sm:gap-4 min-w-0">
@@ -460,7 +460,15 @@
         { padrao: /\blogs?\b/, url: '/logs', seletor: null, nome: 'Logs ao Vivo' }
     ];
 
+    // perfil Visualizador: a IA responde perguntas, mas nao executa comandos que mexem na maquina
     function interpretarComando(perguntaOriginal) {
+        const comando = interpretarComandoSemTrava(perguntaOriginal);
+        if (comando && window.__somenteLeitura && (comando.tipo === 'velocidade' || comando.tipo === 'temperatura')) return { tipo: 'sem_permissao' };
+        return comando;
+    }
+    const RESPOSTA_SEM_PERMISSAO = 'Seu perfil é de visualização, então não posso mudar velocidade nem temperatura. Posso responder perguntas e mostrar as telas.';
+
+    function interpretarComandoSemTrava(perguntaOriginal) {
         let t = normalizarTextoComando(perguntaOriginal);
         t = t.replace(/\bselagem (um|uma)\b/g, 'selagem 1')
              .replace(/\bprimeira selagem\b/g, 'selagem 1')
@@ -506,6 +514,11 @@
     }
 
     async function executarComandoTexto(comando, perguntaOriginal) {
+        if (comando.tipo === 'sem_permissao') {
+            areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), perguntaOriginal, RESPOSTA_SEM_PERMISSAO));
+            rolarParaBaixo();
+            return;
+        }
         if (comando.tipo === 'velocidade') {
             globalSocket.emit('comando_esteira', { acao: 'velocidade', valor: comando.valor / 100 });
             globalSocket.emit('novo_log', { hora: new Date().toLocaleTimeString('pt-BR'), texto: `Velocidade da esteira alterada pela IA para ${comando.valor}%`, tipo: 'velocidade' });
@@ -1007,6 +1020,11 @@
 
     async function processarPerguntaVoz(pergunta) {
         const comando = interpretarComando(pergunta);
+        if (comando && comando.tipo === 'sem_permissao') {
+            areaMensagens.appendChild(criarParMensagem('cmd-' + Date.now(), pergunta, RESPOSTA_SEM_PERMISSAO));
+            falarRespostaVoz(RESPOSTA_SEM_PERMISSAO);
+            return;
+        }
         if (comando) {
             definirEstadoVoz('pensando');
 

@@ -28,7 +28,7 @@
                 </div>
 
                 <!-- botão de recarregar status -->
-                <button id="btn-recarregar-status" title="Recarregar status recebido" class="ml-auto w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm shrink-0">
+                <button id="btn-recarregar-status" data-leitura-ok title="Recarregar status recebido" class="ml-auto w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm shrink-0">
                     <svg id="icone-recarregar-status" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                     </svg>
@@ -39,9 +39,9 @@
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
     <h3 style="font-size:12px;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.1em;margin:0">Máquina em 3D</h3>
     <div style="display:flex;gap:6px">
-      <button id="d3-girar" type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Girar</button>
-      <button id="d3-reset" type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Vista</button>
-      <button id="d3-tela" type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Tela cheia</button>
+      <button id="d3-girar" data-leitura-ok type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Girar</button>
+      <button id="d3-reset" data-leitura-ok type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Vista</button>
+      <button id="d3-tela" data-leitura-ok type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Tela cheia</button>
     </div>
   </div>
   <div id="d3-area" style="position:relative;width:100%;flex:1;height:auto;min-height:320px;border-radius:10px;overflow:hidden;background:linear-gradient(#0b1220,#1e293b);touch-action:none">

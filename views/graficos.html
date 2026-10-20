@@ -52,7 +52,7 @@
                 <p class="text-xs text-slate-400 mt-0.5">Visão macro de desempenho da Flow Pack</p>
             </div>
             
-            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-full">
+            <div data-leitura-ok class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-full">
                 <button onclick="mudarPeriodoGraficos('aovivo', this)" class="btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all bg-white text-blue-600 shadow-sm border border-slate-200 whitespace-nowrap">Ao Vivo</button>
                 <button onclick="mudarPeriodoGraficos('hoje', this)" class="btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-500 hover:text-slate-700 whitespace-nowrap">Hoje</button>
                 <button onclick="mudarPeriodoGraficos('7dias', this)" class="btn-filtro px-3 sm:px-4 py-1.5 text-xs font-bold rounded-md transition-all text-slate-500 hover:text-slate-700 whitespace-nowrap">7 Dias</button>
@@ -70,7 +70,7 @@
                 <p class="text-xs mt-1">Verifique se o arquivo /chart.js está na pasta public.</p>
             </div>
 
-            <div id="calendario-mensal" class="hidden absolute inset-0 flex-col bg-white overflow-y-auto">
+            <div id="calendario-mensal" data-leitura-ok class="hidden absolute inset-0 flex-col bg-white overflow-y-auto">
                 <div class="flex items-center justify-between mb-4 px-1">
                     <button onclick="mudarMesCalendarioGraficos(-1)" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg transition cursor-pointer">
                         &#8249;

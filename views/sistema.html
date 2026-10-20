@@ -29,8 +29,8 @@
                 <p class="text-[11px] text-slate-400">Internet, túnel, Raspberry e placas. Atualiza sozinho a cada 5 segundos.</p>
             </div>
             <div class="flex gap-2">
-                <button id="sis-copiar" class="sis-btn azul">Copiar relatório</button>
-                <button id="sis-atualizar" class="sis-btn">Atualizar</button>
+                <button id="sis-copiar" data-leitura-ok class="sis-btn azul">Copiar relatório</button>
+                <button id="sis-atualizar" data-leitura-ok class="sis-btn">Atualizar</button>
             </div>
         </div>
         <div id="sis-banner" class="sis-banner carregando" style="margin-top:12px">Carregando...</div>
@@ -59,7 +59,7 @@
     <div class="card-painel">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <h3 class="sis-h3" style="margin:0">Registro do guarda-rede</h3>
-            <button id="sis-ver-log" class="sis-btn">Ver últimas linhas</button>
+            <button id="sis-ver-log" data-leitura-ok class="sis-btn">Ver últimas linhas</button>
         </div>
         <pre id="sis-log" class="sis-log" style="display:none;margin-top:10px"></pre>
     </div>
