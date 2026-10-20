@@ -3010,7 +3010,7 @@ function separadorConfigCompleta() {
 }
 
 app.get('/api/separador/estado', loginObrigatorio, (req, res) => {
-    const admin = !!res.locals.isAdmin;
+    const admin = !!res.locals.isAdmin || !!res.locals.somenteLeitura;
     res.json({
         camera: { online: cameraOnline },
         servo: { online: separadorOnline, estado: separadorEstado },
