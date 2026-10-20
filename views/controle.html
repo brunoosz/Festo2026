@@ -34,6 +34,10 @@
                     <span class="text-[10px] font-bold text-slate-700">SEL. 2 MOTOR</span>
                 </div>
                 <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                    <span id="led-painel-servo" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[10px] font-bold text-slate-700">SERVO</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
                     <span id="led-painel-emerg" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
                     <span class="text-[10px] font-bold text-slate-700">EMERG.</span>
                 </div>
@@ -59,6 +63,45 @@
         <div id="grade-temperaturas" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
 
+    <div>
+        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Separador (servo)</h3>
+        <div id="card-servo" class="card-painel flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3 gap-3">
+                <h3 class="text-xs sm:text-sm uppercase font-bold text-slate-800">Servo do separador</h3>
+                <label class="flex items-center gap-2 text-[11px] font-bold text-slate-600 uppercase cursor-pointer select-none">
+                    <input type="checkbox" id="servo-ativo" class="rounded border-slate-300 w-4 h-4"> Servo ligado
+                </label>
+            </div>
+            <p id="servo-estado" class="text-xs text-slate-500 mb-2">Servo desconectado da rede.</p>
+            <p id="servo-aviso" class="hidden text-[11px] text-red-600 font-bold mb-3"></p>
+
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button id="servo-teste-e" class="w-full bg-slate-700 hover:bg-slate-800 active:bg-slate-900 text-white font-bold py-2.5 rounded-lg shadow transition cursor-pointer text-[11px]">TESTAR ESQUERDA</button>
+                <button id="servo-teste-c" class="w-full bg-slate-500 hover:bg-slate-600 active:bg-slate-700 text-white font-bold py-2.5 rounded-lg shadow transition cursor-pointer text-[11px]">CENTRO</button>
+                <button id="servo-teste-d" class="w-full bg-slate-700 hover:bg-slate-800 active:bg-slate-900 text-white font-bold py-2.5 rounded-lg shadow transition cursor-pointer text-[11px]">TESTAR DIREITA</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase">Ângulo da esquerda: <span id="servo-ang-esq-v" class="text-blue-600">45°</span>
+                    <input id="servo-ang-esq" type="range" min="0" max="180" value="45" class="range-slider w-full mt-2 cursor-pointer">
+                </label>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase">Ângulo do centro: <span id="servo-ang-cen-v" class="text-blue-600">90°</span>
+                    <input id="servo-ang-cen" type="range" min="0" max="180" value="90" class="range-slider w-full mt-2 cursor-pointer">
+                </label>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase">Ângulo da direita: <span id="servo-ang-dir-v" class="text-blue-600">135°</span>
+                    <input id="servo-ang-dir" type="range" min="0" max="180" value="135" class="range-slider w-full mt-2 cursor-pointer">
+                </label>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase">Velocidade do servo: <span id="servo-vel-v" class="text-blue-600">60%</span>
+                    <input id="servo-vel" type="range" min="1" max="100" value="60" class="range-slider w-full mt-2 cursor-pointer">
+                </label>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase">Tempo aberto (ms)
+                    <input id="servo-aberto" type="number" min="100" max="5000" step="50" value="900" class="mt-2 w-full border border-slate-300 rounded bg-slate-50 text-slate-700 px-3 py-2 text-sm">
+                </label>
+            </div>
+            <p id="servo-msg" class="hidden mt-3 text-xs font-bold rounded-lg px-3 py-2"></p>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -78,7 +121,8 @@
         selagem1: document.getElementById('led-painel-selagem1'),
         selagem1motor: document.getElementById('led-painel-selagem1motor'),
         selagem2: document.getElementById('led-painel-selagem2'),
-        selagem2motor: document.getElementById('led-painel-selagem2motor')
+        selagem2motor: document.getElementById('led-painel-selagem2motor'),
+        servo: document.getElementById('led-painel-servo')
     };
     const nomesDispositivo = { esteira: 'Esteira', selagem1: 'Selagem 1 (aquecimento)', selagem1motor: 'Selagem 1 (motores)', selagem2: 'Selagem 2 (aquecimento)', selagem2motor: 'Selagem 2 (motor)' };
     const online = { esteira: false, selagem1: false, selagem1motor: false, selagem2: false, selagem2motor: false };
@@ -96,6 +140,85 @@
         const hora = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
         globalSocket.emit('novo_log', { hora: hora, texto: mensagem, tipo: tipo || 'sistema' });
     }
+
+    // separador (servo): usa as mesmas rotas e eventos da tela Separador
+    const servoEl = id => document.getElementById(id);
+    const NOME_LADO_SERVO = { E: 'esquerda', D: 'direita', C: 'centro' };
+    const CAMPOS_SERVO = ['servo-ativo', 'servo-ang-esq', 'servo-ang-cen', 'servo-ang-dir', 'servo-vel', 'servo-aberto', 'servo-teste-e', 'servo-teste-c', 'servo-teste-d'];
+    let servoStatus = { online: false, estado: null };
+    let servoTravado = false;       // emergencia (423)
+    let servoTimerMsg = null;
+
+    function servoMensagem(texto, erro) {
+        const m = servoEl('servo-msg');
+        m.textContent = texto;
+        m.className = 'mt-3 text-xs font-bold rounded-lg px-3 py-2 ' + (erro ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700');
+        clearTimeout(servoTimerMsg);
+        servoTimerMsg = setTimeout(() => m.classList.add('hidden'), 2800);
+    }
+    function servoRotulos() {
+        servoEl('servo-ang-esq-v').textContent = servoEl('servo-ang-esq').value + '°';
+        servoEl('servo-ang-cen-v').textContent = servoEl('servo-ang-cen').value + '°';
+        servoEl('servo-ang-dir-v').textContent = servoEl('servo-ang-dir').value + '°';
+        servoEl('servo-vel-v').textContent = servoEl('servo-vel').value + '%';
+    }
+    function servoAtualizarEstado() {
+        const e = servoStatus.estado;
+        ledsDispositivo.servo.className = servoStatus.online ? CLASSE_LED_ON : CLASSE_LED_OFF;
+        servoEl('servo-estado').textContent = servoStatus.online
+            ? 'Servo conectado' + (e ? ' · ' + (e.lado === 'C' ? 'no centro' : 'aberto para a ' + (NOME_LADO_SERVO[e.lado] || '?')) + ' · ' + Math.round(e.angulo) + '° · fila ' + (e.fila !== undefined ? e.fila : 0) : '')
+            : 'Servo desconectado da rede.';
+    }
+    function servoPreencher(c) {
+        if (!c) return;
+        servoEl('servo-ativo').checked = !!c.servoAtivo;
+        servoEl('servo-ang-esq').value = c.anguloEsq; servoEl('servo-ang-cen').value = c.anguloCentro; servoEl('servo-ang-dir').value = c.anguloDir;
+        servoEl('servo-vel').value = c.velocidadeServo; servoEl('servo-aberto').value = c.tempoAbertoMs;
+        servoRotulos();
+    }
+    function servoCarregar() {
+        return fetch('/api/separador/estado').then(r => r.json()).then(d => {
+            servoStatus = d.servo || servoStatus;
+            servoAtualizarEstado();
+            servoPreencher(d.config);
+        }).catch(() => {});
+    }
+    function aplicarEmergenciaServo(ativa) {
+        servoTravado = ativa;
+        CAMPOS_SERVO.forEach(id => {
+            const c = servoEl(id);
+            c.disabled = ativa;
+            c.classList.toggle('opacity-50', ativa);
+            c.classList.toggle('cursor-not-allowed', ativa);
+        });
+        const aviso = servoEl('servo-aviso');
+        aviso.textContent = ativa ? 'Emergência ativa: o servo está travado. Desbloqueie pelo botão no topo da tela.' : '';
+        aviso.classList.toggle('hidden', !ativa);
+    }
+    async function servoEnviar(url, corpo, textoOk) {
+        try {
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+            let d = {}; try { d = await r.json(); } catch (e) {}
+            if (r.ok) { if (textoOk) servoMensagem(textoOk); return true; }
+            if (r.status === 423) { aplicarEmergenciaServo(true); servoMensagem(d.erro || 'Emergência ativa.', true); }
+            else servoMensagem(d.erro || 'Não foi possível aplicar.', true);
+        } catch (e) { servoMensagem('Sem conexão com o servidor.', true); }
+        return false;
+    }
+    function servoSalvar(corpo, textoOk) {
+        if (servoTravado) return;
+        servoEnviar('/api/separador/config', corpo, textoOk).then(ok => { if (!ok) servoCarregar(); });
+    }
+    ['servo-ang-esq', 'servo-ang-cen', 'servo-ang-dir', 'servo-vel'].forEach(id => servoEl(id).addEventListener('input', servoRotulos));
+    servoEl('servo-ang-esq').addEventListener('change', e => servoSalvar({ anguloEsq: Number(e.target.value) }, 'Ângulo da esquerda aplicado.'));
+    servoEl('servo-ang-cen').addEventListener('change', e => servoSalvar({ anguloCentro: Number(e.target.value) }, 'Ângulo do centro aplicado.'));
+    servoEl('servo-ang-dir').addEventListener('change', e => servoSalvar({ anguloDir: Number(e.target.value) }, 'Ângulo da direita aplicado.'));
+    servoEl('servo-vel').addEventListener('change', e => servoSalvar({ velocidadeServo: Number(e.target.value) }, 'Velocidade do servo aplicada.'));
+    servoEl('servo-aberto').addEventListener('change', e => servoSalvar({ tempoAbertoMs: Number(e.target.value) }, 'Tempo aberto aplicado.'));
+    servoEl('servo-ativo').addEventListener('change', e => servoSalvar({ servoAtivo: e.target.checked }, e.target.checked ? 'Servo ligado.' : 'Servo desligado.'));
+    [['servo-teste-e', 'E'], ['servo-teste-c', 'C'], ['servo-teste-d', 'D']].forEach(([id, lado]) => {
+        servoEl(id).addEventListener('click', () => { if (!servoTravado) servoEnviar('/api/separador/servo/teste', { lado }, 'Teste enviado: ' + NOME_LADO_SERVO[lado] + '.'); });
+    });
 
     // motores (esteira + 3 motores das selagens)
     const MOTORES = [
@@ -380,6 +503,7 @@
             el.classList.toggle('opacity-50', emEmergencia);
             el.classList.toggle('cursor-not-allowed', emEmergencia);
         });
+        aplicarEmergenciaServo(emEmergencia);
     }
 
     function handlerEmergencia() { setTimeout(aplicarEmergencia, 0); }
@@ -426,13 +550,18 @@
     ouvir('motor_selagem_sentido', (data) => aplicarSentidoMotor(data.id, data.sentido));
     ouvir('atualizar_temperatura', (dados) => aplicarDadosTemperatura(1, dados));
     ouvir('atualizar_temperatura2', (dados) => aplicarDadosTemperatura(2, dados));
+    ouvir('separador_servo', (s) => { servoStatus = s; servoAtualizarEstado(); });
+    ouvir('emergencia_estado', () => aplicarEmergencia());
+    btnRecarregar.addEventListener('click', servoCarregar);
 
     buscarEstado();
+    servoCarregar();
     aplicarEmergencia();
 
     window.__cleanupPagina = function() {
         ouvintes.forEach(([evento, funcao]) => globalSocket.off(evento, funcao));
         btnEmergenciaGlobal.removeEventListener('click', handlerEmergencia);
+        btnRecarregar.removeEventListener('click', servoCarregar);
     };
 })();
 </script>

@@ -20,11 +20,13 @@ function placasDeMentira() {
     const c = mqtt.connect(`mqtt://127.0.0.1:${PORTA}`);
     let velocidade = '0.00';
     let setpoint1 = 0, setpoint2 = 0, ligada1 = false, ligada2 = false, temp1 = 25, temp2 = 25;
+    let servo = { lado: 'C', fila: 0, angulos: { E: 45, C: 90, D: 135 } };
+    let voltaAoCentro = null;
     const pub = (t, v) => c.publish(t, typeof v === 'string' ? v : JSON.stringify(v));
 
     c.on('connect', () => {
-        c.subscribe(['esteira/velocidade/set', 'selagem/set_temperatura', 'selagem/ativar', 'selagem2/set_temperatura', 'selagem2/ativar']);
-        console.log('Placas de mentira ligadas: esteira, selagem 1, selagem 2, dispenser');
+        c.subscribe(['esteira/velocidade/set', 'selagem/set_temperatura', 'selagem/ativar', 'selagem2/set_temperatura', 'selagem2/ativar', 'separador/teste', 'separador/config']);
+        console.log('Placas de mentira ligadas: esteira, selagem 1, selagem 2, dispenser, servo do separador');
     });
     c.on('message', (t, m) => {
         const v = m.toString();
@@ -33,6 +35,11 @@ function placasDeMentira() {
         if (t === 'selagem/ativar') ligada1 = v === '1';
         if (t === 'selagem2/set_temperatura') setpoint2 = Number(v);
         if (t === 'selagem2/ativar') ligada2 = v === '1';
+        if (t === 'separador/config') { try { const j = JSON.parse(v); servo.angulos = { E: j.esq, C: j.centro, D: j.dir }; } catch (e) {} }
+        if (t === 'separador/teste' && servo.angulos[v] !== undefined) {
+            servo.lado = v; clearTimeout(voltaAoCentro);
+            if (v !== 'C') voltaAoCentro = setTimeout(() => { servo.lado = 'C'; }, 1500);
+        }
     });
 
     setInterval(() => {
@@ -48,6 +55,8 @@ function placasDeMentira() {
         pub('selagem/motores/status', 'online');
         pub('selagem2/motor/status', 'online');
         pub('dispenser/status', 'online');
+        pub('separador/status', 'online');
+        pub('separador/estado', { lado: servo.lado, angulo: servo.angulos[servo.lado], fila: servo.fila });
         pub('dispenser/estado', { m1: { ocupado: false, restantes: 0 }, m2: { ocupado: false, restantes: 0 } });
     }, 1000);
 }

@@ -9,7 +9,7 @@
     "dev": "node tools/dev.js",
     "mock": "node tools/mock_mqtt.js",
     "seed": "node tools/seed_teste.js",
-    "test": "node tools/testes/etapa1.js && node tools/testes/etapa2.js && node tools/testes/alexa.js"
+    "test": "node tools/testes/etapa1.js && node tools/testes/etapa2.js && node tools/testes/etapa3.js && node tools/testes/alexa.js"
   },
   "repository": {
     "type": "git",
