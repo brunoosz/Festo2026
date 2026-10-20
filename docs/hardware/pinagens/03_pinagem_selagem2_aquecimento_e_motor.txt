@@ -1,0 +1,45 @@
+PINAGEM - SELAGEM 2 (2 ESP32)
+
+==========================================================================
+3) ESP32 DA SELAGEM 2 - AQUECIMENTO  (fita NiCr + SSR-25DD + PID)
+==========================================================================
+Sensor GY-906 (MLX90614)   ESP32
+----------------------------------
+VIN                        3.3V
+GND                        GND
+SDA                        GPIO 21
+SCL                        GPIO 22
+
+SSR-25DD (entrada)         ESP32
+----------------------------------
+3 (+)                      GPIO 25
+4 (-)                      GND
+
+SSR-25DD (saida - tem polaridade!)
+----------------------------------
++ da fonte  -> fita de NiCr (um terminal)
+fita de NiCr (outro terminal) -> SSR terminal 1 (+)
+SSR terminal 2 (-) -> - da fonte
+
+Cuidados:
+- Corrente = tensao da fonte / resistencia da fita. Fique bem abaixo do
+  limite do SSR e da fonte. Use dissipador no SSR.
+- Se a fita girar junto, a energia precisa passar por um anel coletor
+  (slip ring).
+
+
+==========================================================================
+4) ESP32 DA SELAGEM 2 - MOTOR  (1x BTS7960, igual a esteira)
+==========================================================================
+BTS7960 (IBT-2)        ESP32
+----------------------------------
+RPWM                   GPIO 25
+LPWM                   GPIO 26
+R_EN + L_EN (juntos)   GPIO 27
+VCC                    3.3V
+GND                    GND
+
+Potencia do BTS7960:
+B+  -> fusivel -> + da fonte do motor
+B-  -> - da fonte do motor
+M+ / M- -> fios do motor

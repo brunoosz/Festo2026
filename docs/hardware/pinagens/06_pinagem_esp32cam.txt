@@ -1,0 +1,8 @@
+PINAGEM - ESP32-CAM (AI Thinker)  - a ligacao nao mudou
+=====================================================
+Alimentacao: 5 V estavel (minimo 1 A) nos pinos 5V e GND. Fonte fraca reinicia a camera.
+Gravar: com adaptador ESP32-CAM-MB (so conectar no USB) ou FTDI:
+   FTDI TX -> U0R | FTDI RX -> U0T | 5V -> 5V | GND -> GND | GPIO0 -> GND (so enquanto grava)
+   Depois de gravar, tire o fio do GPIO0 e aperte RESET.
+Placa no Arduino IDE: "AI Thinker ESP32-CAM"
+Enderecos (firmware opcional v2): /cam-lo.jpg  /travar  /auto  /status

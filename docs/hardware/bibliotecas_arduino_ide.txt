@@ -1,0 +1,33 @@
+BIBLIOTECAS E CONFIGURACAO DO ARDUINO IDE - FLOWPACK
+=====================================================
+
+1) PLACA
+   Arduino IDE 2.x > Ferramentas > Placa > Gerenciador de Placas > instale "esp32" (Espressif Systems).
+   Funciona com o pacote 2.x ou 3.x. Escolha a placa "ESP32 Dev Module"
+   (vale para ESP32 DevKit V1 e para a Arduino D1 R32).
+   Camera: placa "AI Thinker ESP32-CAM".
+   Velocidade do Monitor Serial: 115200, "Nova linha".
+
+2) BIBLIOTECAS (Ferramentas > Gerenciar Bibliotecas)
+   PubSubClient              Nick O'Leary            todos os firmwares
+   PID                       Brett Beauregard        Selagem 1 e Selagem 2 (aquecimento)
+   Adafruit MLX90614 Library Adafruit                Selagem 1 e Selagem 2 (aquecimento)
+   Adafruit BusIO            Adafruit                (instala junto; aceite as dependencias)
+   esp32cam                  yoursunny               so a camera (firmware opcional)
+
+3) JA VEM COM A PLACA ESP32 (nao precisa instalar)
+   WiFi, Wire, Preferences, WebServer, esp_camera
+
+4) QUAL FIRMWARE USA O QUE
+   01 esteira ............ WiFi, PubSubClient, Preferences
+   02 selagem 1 .......... WiFi, PubSubClient, Wire, Adafruit_MLX90614, PID_v1, Preferences
+   03 selagem 2 aquec. ... WiFi, PubSubClient, Wire, Adafruit_MLX90614, PID_v1
+   04 selagem 2 motor .... WiFi, PubSubClient, Preferences
+   05 dispenser .......... WiFi, PubSubClient, Preferences
+   06 separador (servo) .. WiFi, PubSubClient, Preferences
+   07 camera (opcional) .. WiFi, WebServer, esp32cam
+
+5) RASPBERRY (site) - pacotes npm (a pasta /root/site_esteira ja tem; so para referencia)
+   express  express-session  cookie-parser  socket.io  mqtt  multer  nunjucks  chokidar@3
+   jimp@0.22.12  ask-sdk-core  ask-sdk-model  ask-sdk-express-adapter
+   Instalar:  cd /root/site_esteira && npm install <pacote>

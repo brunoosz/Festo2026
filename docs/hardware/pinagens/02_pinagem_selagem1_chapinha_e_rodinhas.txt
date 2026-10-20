@@ -1,0 +1,79 @@
+PINAGEM - ESP32 DA SELAGEM 1 (aquecimento + rodinhas)
+Placa no Arduino IDE: ESP32 Dev Module
+=====================================================
+
+SENSOR GY-906              ESP32
+-----------------------------------
+VIN                        3.3V
+GND                        GND
+SDA                        GPIO 21
+SCL                        GPIO 22
+
+SSR FOTEK - CONTROLE
+-----------------------------------
+terminal 3 (+)             GPIO 23
+terminal 4 (-)             GND
+
+L298N - RODA A
+-----------------------------------
+ENA                        GPIO 25
+IN1                        GPIO 26
+IN2                        GPIO 27
+
+L298N - RODA B
+-----------------------------------
+ENB                        GPIO 32
+IN3                        GPIO 33
+IN4                        GPIO 13
+
+EQUIVALENCIA COM O TESTE NO ARDUINO
+-----------------------------------
+D5  = ENA = GPIO 25
+D7  = IN1 = GPIO 26
+D8  = IN2 = GPIO 27
+D6  = ENB = GPIO 32
+D9  = IN3 = GPIO 33
+D10 = IN4 = GPIO 13
+
+MOTORES E ALIMENTACAO
+-----------------------------------
+- Motor A em OUT1/OUT2 e motor B em OUT3/OUT4 do L298N.
+- Tirar os jumpers ENA e ENB do L298N.
+- Alimentacao igual ao teste: LM2596S em 5 V. O + vai na alimentacao do L298N
+  (no mesmo lugar do teste) e no VIN do ESP32.
+- GND do L298N, do ESP32 e do LM2596S todos juntos.
+
+SSR - LADO DA TOMADA (REDE ELETRICA - CUIDADO!)
+-----------------------------------
+terminal 1                 fase (fio vivo) da tomada
+terminal 2                 um fio da chapinha
+outro fio da chapinha      direto na tomada
+Desligue da tomada para mexer e isole todos os terminais.
+
+TESTES NO MONITOR SERIAL (115200, "Nova linha")
+-----------------------------------
+TESTE RODAS   gira as duas rodas por 3 s
+TESTE SSR     acende o LED do SSR por 3 s
+STATUS        mostra sensor, temperatura e rodas
+TEMP=120      define a temperatura
+LIGAR         liga o aquecimento
+M=60          velocidade das rodinhas
+
+AJUSTE DAS VELOCIDADES DAS RODINHAS (novo - Monitor Serial 115200)
+-----------------------------------
+O problema de "so funciona em 100%": com 5 V e a perda do L298N, o motor
+precisa de uma forca minima para sair do lugar. O codigo agora:
+ - da um pulso inicial de 100% (KICK) para vencer o atrito e depois cai
+   para a velocidade pedida;
+ - usa PWM de 1000 Hz (mais forca em baixa velocidade);
+ - mapeia 1% a 100% do site entre a forca minima e 255.
+Como acertar (uma vez):
+ 1) M PARAR            (rodas paradas)
+ 2) CALIBRAR           (o PWM sobe devagar, 5 por vez)
+ 3) quando as DUAS rodas comecarem a girar, digite OK
+    (salva o minimo + 10 de folga; agora 1% no site gira devagarinho)
+Ajustes finos:
+ KICK=150      pulso inicial em ms (0 desliga; se a roda arranca e para, suba)
+ PWMMIN=100    forca minima manual (20 a 250)
+ PWMFREQ=1000  frequencia do PWM em Hz (200 a 20000), depois REINICIAR
+ STATUS        mostra kick, frequencia e PWM minimo

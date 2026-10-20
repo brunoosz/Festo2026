@@ -1,0 +1,33 @@
+PINAGEM - DISPENSER (ESP32 + 2 drivers BTS7960)
+
+==========================================================================
+5) ESP32 DO DISPENSER  (2 motores 24V, cada um com seu driver BTS7960)
+==========================================================================
+Os 2 motores sao de 90 RPM: 1/4 de volta a 100% leva ~167 ms
+(formula: 15000 / RPM). O tempo exato se acerta no botao
+TESTAR 1/4 DE VOLTA, na engrenagem da tela do Dispenser.
+
+BTS7960 - MOTOR 1 (reservatorio A)  ESP32
+----------------------------------
+RPWM                       GPIO 25
+LPWM                       GPIO 26
+R_EN + L_EN (juntos)       GPIO 27
+VCC                        3.3V
+GND                        GND
+
+BTS7960 - MOTOR 2 (reservatorio B)  ESP32
+----------------------------------
+RPWM                       GPIO 32
+LPWM                       GPIO 33
+R_EN + L_EN (juntos)       GPIO 13
+VCC                        3.3V
+GND                        GND
+
+Potencia de cada BTS7960:
+B+  -> fusivel -> + da fonte do motor (24V)
+B-  -> - da fonte do motor
+M+ / M- -> fios do motor daquele driver
+(o GND da fonte, dos drivers e do ESP32 precisam estar interligados)
+
+Se um reservatorio girar ao contrario, troque o "Sentido" na engrenagem
+da tela do Dispenser (ou inverta os 2 fios do motor).
