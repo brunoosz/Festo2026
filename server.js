@@ -79,7 +79,7 @@ function permissoesEfetivas(usuario) {
     return efetivas;
 }
 
-const arquivoUsuarios = path.join(__dirname, 'usuarios.json');
+const arquivoUsuarios = process.env.USUARIOS_JSON ? path.resolve(process.env.USUARIOS_JSON) : path.join(__dirname, 'usuarios.json');
 
 function gerarHashSenha(senha) {
     const salt = crypto.randomBytes(16).toString('hex');
@@ -1930,7 +1930,7 @@ const mqttClient = mqtt.connect(MQTT_BROKER);
 // ================================================================================
 // EMERGENCIA GLOBAL: depois de acionada, NADA se move ate alguem LIBERAR no site
 // ================================================================================
-const ARQ_EMERGENCIA = path.join(__dirname, 'emergencia_estado.json');
+const ARQ_EMERGENCIA = process.env.EMERGENCIA_JSON ? path.resolve(process.env.EMERGENCIA_JSON) : path.join(__dirname, 'emergencia_estado.json');
 let emergenciaGlobal = { ativa: false, desde: null, origem: null };
 try { emergenciaGlobal = Object.assign(emergenciaGlobal, JSON.parse(fs.readFileSync(ARQ_EMERGENCIA, 'utf-8'))); } catch (e) {}
 function emergenciaSalvar() { try { fs.writeFileSync(ARQ_EMERGENCIA, JSON.stringify(emergenciaGlobal)); } catch (e) {} }
@@ -2794,7 +2794,7 @@ app.post('/api/emergencia/liberar', loginObrigatorio, (req, res) => {
 });
 
 // receitas (niveis de 50/100/150/200 g) + botoes fisicos + modelo 3d
-const ARQ_RECEITAS = path.join(__dirname, 'receitas.json');
+const ARQ_RECEITAS = process.env.RECEITAS_JSON ? path.resolve(process.env.RECEITAS_JSON) : path.join(__dirname, 'receitas.json');
 const RECEITAS_PADRAO = {
     botoesAtivos: true,
     atual: 0,
@@ -3399,6 +3399,7 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(5000, '0.0.0.0', () => {
-    console.log('\n🚀 SISTEMA INDUSTRIAL LIBERADO NA REDE LOCAL (Porta 5000)\n');
+const PORTA_DO_SITE = parseInt(process.env.PORT, 10) || 5000;
+server.listen(PORTA_DO_SITE, '0.0.0.0', () => {
+    console.log(`\n🚀 SISTEMA INDUSTRIAL LIBERADO NA REDE LOCAL (Porta ${PORTA_DO_SITE})\n`);
 });
