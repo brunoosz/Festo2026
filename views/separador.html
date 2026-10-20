@@ -3,6 +3,7 @@
 {% block title %}Separador{% endblock %}
 
 {% block content %}
+<script src="/js/overlay-visao.js"></script>
 <style>
     .sep-chip { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e2e8f0; border-radius: 999px; padding: 6px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
     .sep-led { width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; flex-shrink: 0; }
@@ -213,7 +214,7 @@
     let recentes = [];
     let velEsteira = 0;
     const canvas = el('sep-canvas');
-    const ctx = canvas.getContext ? canvas.getContext('2d') : null;
+    const vis = OverlayVisao.criar(canvas);
 
     function toast(msg, tipo) {
         const d = document.createElement('div');
@@ -231,31 +232,8 @@
     function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
     const NOME_LADO = { E: 'esquerda', D: 'direita', C: 'centro' };
 
-    // desenho da camera
-    function desenhar() {
-        if (!ctx) return;
-        const w = ultimaImagem ? ultimaImagem.naturalWidth || ultimaImagem.width : 320;
-        const h = ultimaImagem ? ultimaImagem.naturalHeight || ultimaImagem.height : 240;
-        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-        if (ultimaImagem) ctx.drawImage(ultimaImagem, 0, 0, w, h); else { ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, w, h); }
-        if (!overlay) return;
-        const horizontal = overlay.eixo !== 'y';
-        const b0 = overlay.banda[0], b1 = overlay.banda[1];
-        ctx.save();
-        ctx.fillStyle = 'rgba(37,99,235,0.18)'; ctx.strokeStyle = 'rgba(37,99,235,0.9)'; ctx.lineWidth = 2;
-        if (horizontal) { ctx.fillRect(0, b0 * h, w, (b1 - b0) * h); ctx.strokeRect(0, b0 * h, w, (b1 - b0) * h); }
-        else { ctx.fillRect(b0 * w, 0, (b1 - b0) * w, h); ctx.strokeRect(b0 * w, 0, (b1 - b0) * w, h); }
-        ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath();
-        if (horizontal) { const x = overlay.linha * w; ctx.moveTo(x, Math.max(0, b0 * h - 14)); ctx.lineTo(x, Math.min(h, b1 * h + 14)); }
-        else { const y = overlay.linha * h; ctx.moveTo(Math.max(0, b0 * w - 14), y); ctx.lineTo(Math.min(w, b1 * w + 14), y); }
-        ctx.stroke(); ctx.setLineDash([]);
-        (overlay.segmentos || []).forEach(s => {
-            ctx.strokeStyle = s.contado ? '#22c55e' : '#facc15'; ctx.lineWidth = 3; ctx.fillStyle = ctx.strokeStyle; ctx.font = 'bold 13px sans-serif';
-            if (horizontal) { ctx.strokeRect(s.ini * w, b0 * h, (s.fim - s.ini) * w, (b1 - b0) * h); ctx.fillText('#' + s.id, s.ini * w + 4, b0 * h - 5); }
-            else { ctx.strokeRect(b0 * w, s.ini * h, (b1 - b0) * w, (s.fim - s.ini) * h); ctx.fillText('#' + s.id, b0 * w + 4, s.ini * h - 5); }
-        });
-        ctx.restore();
-    }
+    // desenho da camera (mesmo codigo da tela Visao: public/js/overlay-visao.js)
+    function desenhar() { vis.desenhar(); }
 
     function atualizarMedidor() {
         const s = overlay ? Math.max(0, Math.min(1, overlay.sinal || 0)) : 0;
@@ -429,16 +407,16 @@
     // eventos ao vivo
     ouvir('visao_frame', (d) => {
         const img = new Image();
-        img.onload = () => { ultimaImagem = img; desenhar(); };
+        img.onload = () => { ultimaImagem = img; vis.definirImagem(img); };
         img.src = 'data:image/jpeg;base64,' + d.imagem;
     });
     ouvir('visao_status', (d) => { led('sep-led-cam', !!d.online); avisoTela(d.online ? '' : 'Câmera sem sinal' + (d.motivo ? ': ' + d.motivo : '')); });
     ouvir('separador_overlay', (d) => {
-        overlay = d.sobreposicao; atualizarMedidor(); desenhar();
+        overlay = d.sobreposicao; vis.definirOverlay(overlay); atualizarMedidor();
         led('sep-led-motor', d.aprendendoFundo ? 'warn' : true);
         avisoTela(d.aprendendoFundo ? 'Aprendendo o fundo... deixe a esteira vazia (' + d.framesFaltando + ')' : '');
     });
-    ouvir('separador_evento', (e) => { recentes.unshift(e); recentes = recentes.slice(0, 20); renderEventos(); carregarContagem(); });
+    ouvir('separador_evento', (e) => { vis.registrarEvento(e); recentes.unshift(e); recentes = recentes.slice(0, 20); renderEventos(); carregarContagem(); });
     ouvir('separador_servo', (s) => { servo = s; atualizarServoTexto(); });
     ouvir('separador_treino', (t) => atualizarTreino(t));
     ouvir('separador_treino_amostra', (a) => { if (a && a.classe) toast('Exemplo gravado: ' + a.classe + (a.restante > 0 ? ' (faltam ' + a.restante + ')' : '')); });

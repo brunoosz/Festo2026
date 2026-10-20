@@ -3,6 +3,7 @@
 {% block title %}Visão Computacional{% endblock %}
 
 {% block content %}
+<script src="/js/overlay-visao.js"></script>
 <div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6">
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
@@ -46,6 +47,8 @@
         <div id="container-camera" class="flex items-center justify-center bg-slate-900 rounded-lg overflow-hidden relative w-full mx-auto"
              style="aspect-ratio: 4 / 3; max-height: 55vh;">
             <img id="imagem-camera" class="w-full h-full object-cover hidden" alt="Imagem da câmera">
+            <!-- o que a IA esta lendo: linha de contagem, caixas numeradas e nome do produto (mesmo desenho da tela Separador) -->
+            <canvas id="overlay-camera" class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none"></canvas>
             <div id="msg-sem-imagem" class="text-slate-400 text-sm text-center p-6">
                 <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.5 10.677V10.5a1.5 1.5 0 011.5-1.5h.5m3.5 3.5v-.5a1.5 1.5 0 00-1.5-1.5h-.5m-8 3.5H5a2 2 0 01-2-2V8a2 2 0 012-2h.5m14 0H19a2 2 0 012 2v3.5"></path></svg>
                 Aguardando conexão com o ESP32-CAM...<br>
@@ -226,6 +229,8 @@
 (function() {
     const containerCamera = document.getElementById('container-camera');
     const imagemCamera = document.getElementById('imagem-camera');
+    const canvasOverlay = document.getElementById('overlay-camera');
+    const vis = OverlayVisao.criar(canvasOverlay, { fundo: false, banda: false });
     const msgSemImagem = document.getElementById('msg-sem-imagem');
     const faixaContagem = document.getElementById('faixa-contagem');
     const kpiContagem = document.getElementById('kpi-contagem-visao');
@@ -256,6 +261,8 @@
             iconeStatusCamera.className = "w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 transition-all shrink-0";
 
             imagemCamera.classList.add('hidden');
+            canvasOverlay.classList.add('hidden');
+            vis.limpar();
             msgSemImagem.classList.remove('hidden');
             faixaContagem.classList.add('hidden');
         }
@@ -269,6 +276,7 @@
     function handlerVisaoFrame(data) {
         imagemCamera.src = 'data:image/jpeg;base64,' + data.imagem;
         imagemCamera.classList.remove('hidden');
+        canvasOverlay.classList.remove('hidden');
         msgSemImagem.classList.add('hidden');
         faixaContagem.classList.remove('hidden');
 
@@ -279,6 +287,11 @@
         }
     }
     globalSocket.on('visao_frame', handlerVisaoFrame);
+
+    function handlerOverlaySeparador(d) { vis.definirOverlay(d.sobreposicao); }
+    function handlerEventoSeparador(e) { vis.registrarEvento(e); }
+    globalSocket.on('separador_overlay', handlerOverlaySeparador);
+    globalSocket.on('separador_evento', handlerEventoSeparador);
 
     function handlerProdutoContado(data) {
         kpiContagem.innerText = data.total;
@@ -708,6 +721,8 @@
     window.__cleanupPagina = function() {
         globalSocket.off('visao_status', handlerVisaoStatus);
         globalSocket.off('visao_frame', handlerVisaoFrame);
+        globalSocket.off('separador_overlay', handlerOverlaySeparador);
+        globalSocket.off('separador_evento', handlerEventoSeparador);
         globalSocket.off('visao_produto_contado', handlerProdutoContado);
         globalSocket.off('visao_verificacao_ia', handlerVerificacaoIA);
         {% if isAdmin %}window.removeEventListener('resize', posicionarAlcas);{% endif %}
