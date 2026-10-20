@@ -23,3 +23,5 @@ Thumbs.db
 .session_secret
 receitas.json
 produtos_referencia/
+data-teste/
+emergencia_estado.json
