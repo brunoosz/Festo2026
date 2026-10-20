@@ -1,0 +1,199 @@
+PINAGENS DE TODOS OS ESP32 - FLOWPACK (versao atual)
+Indice: 1 Esteira | 2 Selagem 1 | 3 Selagem 2 aquec. | 4 Selagem 2 motor | 5 Dispenser | 6 Separador (servo) | ESP32-CAM nao muda
+
+==========================================================================
+FLOWPACK - PINAGENS DE TODOS OS ESP32
+==========================================================================
+
+REGRAS GERAIS (valem para todos)
+--------------------------------------------------------------------------
+- Todos os GND interligados: GND do ESP32, GND do driver, negativo da
+  fonte e negativo do regulador.
+- ESP32 alimentado pelo regulador ajustado em 5V -> pino VIN (5V) e GND.
+  NUNCA ligue a fonte direto no ESP32. Ajuste o regulador para 5V ANTES
+  de conectar.
+- Ao gravar pelo USB, desconecte o fio 5V do regulador que vai no VIN.
+- Sensores GY-906 e VCC dos drivers BTS7960 vao no 3.3V do ESP32.
+- Fusivel em serie no + da fonte que vai para o B+ dos drivers.
+
+
+==========================================================================
+1) ESP32 DA ESTEIRA  (motor + 1x BTS7960)
+==========================================================================
+BTS7960 (IBT-2)        ESP32
+----------------------------------
+RPWM                   GPIO 25
+LPWM                   GPIO 26
+R_EN                   GPIO 27
+L_EN                   GPIO 27 (junto com R_EN)
+R_IS / L_IS            nao conectar
+VCC                    3.3V
+GND                    GND
+
+Potencia do BTS7960:
+B+  -> fusivel -> + da fonte do motor
+B-  -> - da fonte do motor
+M+ / M- -> fios do motor
+
+BOTOES DA MAQUINA (3 botoes de apertar; um fio no pino, o outro no GND)
+----------------------------------
+EMERGENCIA             GPIO 32  <-> GND
+MAIS (+)               GPIO 33  <-> GND
+MENOS (-)              GPIO 14  <-> GND
+(sem resistor externo: o ESP32 usa o resistor interno)
+
+
+==========================================================================
+2) ESP32 DA SELAGEM 1  (1 placa: chapinha + sensor + 2 rodinhas no L298N)
+==========================================================================
+Sensor GY-906 (MLX90614)   ESP32
+----------------------------------
+VIN                        3.3V
+GND                        GND
+SDA                        GPIO 21
+SCL                        GPIO 22
+
+SSR Fotek SSR-25DA - lado de CONTROLE (baixa tensao)
+----------------------------------
+terminal 3 (+)             GPIO 23
+terminal 4 (-)             GND
+
+SSR Fotek SSR-25DA - lado de POTENCIA (REDE ELETRICA - cuidado!)
+----------------------------------
+terminal 1                 fase (fio vivo) que vem da tomada
+terminal 2                 UM terminal da chapinha
+outro terminal da chapinha direto no segundo fio da tomada
+
+L298N (placa vermelha) - 2 RODINHAS que puxam o plastico
+----------------------------------
+ENA   (canal A, PWM)      GPIO 25
+IN1                        GPIO 26
+IN2                        GPIO 27
+ENB   (canal B, PWM)      GPIO 32
+IN3                        GPIO 33
+IN4                        GPIO 13
+GND do L298N               GND do ESP32 (obrigatorio, junto com o GND da fonte)
+Jumpers ENA e ENB:         RETIRAR (o ESP32 controla a velocidade por esses pinos)
+Jumper 5V-EN:              deixar no lugar
+OUT1 / OUT2                roda A (motor TT)
+OUT3 / OUT4                roda B (motor TT)
+
+Alimentacao (igual ao teste feito com o Arduino Uno)
+----------------------------------
+Fonte 24 V  -> LM2596S:  + 24 V em IN+ , GND em IN-
+LM2596S ajustado em 5 V:  OUT+ (5 V) -> alimentacao do L298N (como no seu teste) e VIN do ESP32
+                          OUT-       -> GND do L298N e GND do ESP32 (todos os GND juntos)
+(Motor TT e de 3 a 6 V: NUNCA ligar nos 24 V. Antes de ligar o ESP32, confira 5 V na saida do LM2596S.)
+Equivalencia dos pinos do teste:  D5 = ENA = GPIO 25 | D7 = IN1 = GPIO 26 | D8 = IN2 = GPIO 27
+                                  D6 = ENB = GPIO 32 | D9 = IN3 = GPIO 33 | D10 = IN4 = GPIO 13
+
+Rodas em sentidos opostos: o codigo ja inverte a roda B. Se uma girar para o
+lado errado na montagem, digite RODAB INVERTER no Monitor Serial (ou troque os
+2 fios daquele motor).
+
+
+==========================================================================
+3) ESP32 DA SELAGEM 2 - AQUECIMENTO  (fita NiCr + SSR-25DD + PID)
+==========================================================================
+Sensor GY-906 (MLX90614)   ESP32
+----------------------------------
+VIN                        3.3V
+GND                        GND
+SDA                        GPIO 21
+SCL                        GPIO 22
+
+SSR-25DD (entrada)         ESP32
+----------------------------------
+3 (+)                      GPIO 25
+4 (-)                      GND
+
+SSR-25DD (saida - tem polaridade!)
+----------------------------------
++ da fonte  -> fita de NiCr (um terminal)
+fita de NiCr (outro terminal) -> SSR terminal 1 (+)
+SSR terminal 2 (-) -> - da fonte
+
+Cuidados:
+- Corrente = tensao da fonte / resistencia da fita. Fique bem abaixo do
+  limite do SSR e da fonte. Use dissipador no SSR.
+- Se a fita girar junto, a energia precisa passar por um anel coletor
+  (slip ring).
+
+
+==========================================================================
+4) ESP32 DA SELAGEM 2 - MOTOR  (1x BTS7960, igual a esteira)
+==========================================================================
+BTS7960 (IBT-2)        ESP32
+----------------------------------
+RPWM                   GPIO 25
+LPWM                   GPIO 26
+R_EN + L_EN (juntos)   GPIO 27
+VCC                    3.3V
+GND                    GND
+
+Potencia do BTS7960:
+B+  -> fusivel -> + da fonte do motor
+B-  -> - da fonte do motor
+M+ / M- -> fios do motor
+
+
+==========================================================================
+5) ESP32 DO DISPENSER  (2 motores 24V, cada um com seu driver BTS7960)
+==========================================================================
+Os 2 motores sao de 90 RPM: 1/4 de volta a 100% leva ~167 ms
+(formula: 15000 / RPM). O tempo exato se acerta no botao
+TESTAR 1/4 DE VOLTA, na engrenagem da tela do Dispenser.
+
+BTS7960 - MOTOR 1 (reservatorio A)  ESP32
+----------------------------------
+RPWM                       GPIO 25
+LPWM                       GPIO 26
+R_EN + L_EN (juntos)       GPIO 27
+VCC                        3.3V
+GND                        GND
+
+BTS7960 - MOTOR 2 (reservatorio B)  ESP32
+----------------------------------
+RPWM                       GPIO 32
+LPWM                       GPIO 33
+R_EN + L_EN (juntos)       GPIO 13
+VCC                        3.3V
+GND                        GND
+
+Potencia de cada BTS7960:
+B+  -> fusivel -> + da fonte do motor (24V)
+B-  -> - da fonte do motor
+M+ / M- -> fios do motor daquele driver
+(o GND da fonte, dos drivers e do ESP32 precisam estar interligados)
+
+Se um reservatorio girar ao contrario, troque o "Sentido" na engrenagem
+da tela do Dispenser (ou inverta os 2 fios do motor).
+
+
+==========================================================================
+6) ESP32 DO SEPARADOR  (servo que desvia os produtos)
+==========================================================================
+Servo                      ESP32 / alimentacao
+----------------------------------
+sinal (laranja/amarelo)    GPIO 18  (na placa D1 R32 e o pino D13)
+V+ (vermelho)              5 V EXTERNO (regulador/fonte de 5 V, minimo 1 A)
+GND (marrom/preto)         GND da fonte de 5 V E GND do ESP32 (os dois juntos)
+
+Cuidados:
+- NAO alimente o servo pelo 3.3V do ESP32 (ele trava ou reinicia a placa).
+- Ponha um capacitor de 470 a 1000 uF (5 V <-> GND) perto do servo.
+- O ESP32 e alimentado como os outros: 5 V do regulador no pino VIN.
+- Para gravar pelo USB, tire o fio de 5 V do VIN.
+
+
+==========================================================================
+RESUMO RAPIDO
+==========================================================================
+ESP32            | Pinos usados
+-----------------|--------------------------------------------------
+Esteira          | 25, 26, 27 (driver) | 32, 33, 14 (botoes)
+Selagem 1         | 21, 22 (sensor) | 23 (SSR) | 25, 26, 27, 32, 33, 13 (L298N)
+Selagem 2 Aquec. | 21, 22 (sensor) | 25 (SSR)
+Selagem 2 Motor  | 25, 26, 27
+Dispenser         | 25, 26, 27 (M1) | 32, 33, 13 (M2) - 2x BTS7960
+Separador        | 18 (servo)

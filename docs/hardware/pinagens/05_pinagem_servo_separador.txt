@@ -1,0 +1,33 @@
+PINAGEM - SEPARADOR (SERVO SG90)  - ESP32 DevKit V1 ou Arduino D1 R32
+Placa no Arduino IDE: ESP32 Dev Module
+=====================================================
+
+SERVO                      LIGACAO
+-----------------------------------
+sinal (laranja/amarelo)    GPIO 18      (na D1 R32 e o pino D13)
+V+ (vermelho)              5 V EXTERNO (regulador/fonte de 5 V, minimo 1 A)
+GND (marrom/preto)         GND da fonte de 5 V  E  GND do ESP32 (os dois juntos)
+
+CUIDADOS
+-----------------------------------
+- NAO alimente o servo pelo 3,3 V do ESP32: ele trava ou reinicia a placa.
+- Capacitor de 470 a 1000 uF (5 V <-> GND) perto do servo.
+- ESP32 alimentado como os outros (5 V no VIN) ou pela USB da D1 R32.
+- Para gravar pelo USB com 5 V no VIN, tire o fio de 5 V do VIN.
+
+NO SITE (menu Separador)
+-----------------------------------
+Angulos (esquerda / centro / direita), velocidade, tempo aberto, atraso e o lado
+de cada produto ficam na tela Separador > Servo e sao enviados ao ESP32 (ficam salvos nele).
+Repouso = angulo do CENTRO. Desvio = angulo da ESQUERDA ou da DIREITA.
+
+EMERGENCIA TRAVADA
+-----------------------------------
+Na emergencia o servo volta ao centro e fica TRAVADO (mesmo se desligar e ligar):
+ignora desvios e testes ate o site mandar liberar (botao DESBLOQUEAR).
+
+TESTES (Monitor Serial 115200)
+-----------------------------------
+E   abre para a esquerda     D   abre para a direita     C   centro
+ESQ=45  CENTRO=90  DIR=135   VEL=60   ABERTO=900
+STATUS   PARAR   EMERGENCIA   AJUDA

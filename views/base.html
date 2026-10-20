@@ -249,17 +249,24 @@
             }
             atualizarVisualBotao();
 
-            btnEmergencia.addEventListener('click', () => {
-                emergenciaAtivada = !emergenciaAtivada;
-                sessionStorage.setItem('estado_emergencia', emergenciaAtivada);
+            function aplicarEstadoEmergencia(ativa) {
+                if (emergenciaAtivada === ativa) return;
+                emergenciaAtivada = ativa; sessionStorage.setItem('estado_emergencia', ativa); atualizarVisualBotao();
+            }
+            btnEmergencia.addEventListener('click', async () => {
                 if (emergenciaAtivada) {
-                    globalSocket.emit('comando_esteira', { acao: 'emergencia' });
-                    adicionarLogInvisivel('SISTEMA DE EMERGÊNCIA ATIVADO. Velocidade zerada.', 'emergencia');
-                } else {
+                    if (!confirm('Liberar a máquina? Confira se está tudo seguro antes de continuar.')) return;
+                    try { const r = await fetch('/api/emergencia/liberar', { method: 'POST' }); if (!r.ok) { alert('Não foi possível liberar a emergência.'); return; } }
+                    catch (e) { alert('Sem conexão com o servidor.'); return; }
                     adicionarLogInvisivel('SISTEMA DESBLOQUEADO. Pronto para operação.', 'emergencia');
+                    return;
                 }
+                emergenciaAtivada = true; sessionStorage.setItem('estado_emergencia', true);
+                globalSocket.emit('comando_esteira', { acao: 'emergencia' });
+                adicionarLogInvisivel('SISTEMA DE EMERGÊNCIA ATIVADO. Velocidade zerada.', 'emergencia');
                 atualizarVisualBotao();
             });
+            globalSocket.on('emergencia_estado', (d) => aplicarEstadoEmergencia(!!(d && d.ativa)));
 
             const conteudoPagina = document.getElementById('conteudo-pagina');
             const barraCarregamento = document.getElementById('barra-carregamento');
@@ -478,9 +485,7 @@
             }
 
             // emergencia acionada fora do site
-            globalSocket.on('emergencia_remota', () => {
-                if (!emergenciaAtivada) btnEmergencia.click();
-            });
+            globalSocket.on('emergencia_remota', () => { aplicarEstadoEmergencia(true); });
 
             globalSocket.on('novo_log_servidor', (log) => {
                 adicionarAoBufferDeLogs(log);

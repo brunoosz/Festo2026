@@ -1,0 +1,29 @@
+{
+  "titulo": "Sobre nós",
+  "subtitulo": "Equipe Dark Coders · FIAP × FESTO · 2026",
+  "mostrarRM": false,
+  "equipe": [
+    { "nome": "Bruno Ridolfi Camperlingo Silveira Carneiro", "rm": "" },
+    { "nome": "Davi Baruch Gutierrez Varas", "rm": "" },
+    { "nome": "Rodrigo Santos Ferreira", "rm": "" },
+    { "nome": "Diego Silveira Carbonieri", "rm": "" },
+    { "nome": "Matheus Henrique Marins Vieira", "rm": "" }
+  ],
+  "equipeTexto": "Alunos do curso 1ECR da FIAP (Engenharia da Computação), na disciplina Resolução Diferenciada de Problemas, em 2026. O projeto é feito em parceria com a FESTO.",
+  "projetoTitulo": "O projeto",
+  "projetoTexto": [
+    "A Flow Pack é uma máquina de embalagem que dosa grãos (arroz e feijão), forma e sela o plástico, corta e separa os produtos usando visão computacional.",
+    "Tudo é controlado por este site, que tem receitas prontas, relatórios de produção, um assistente de IA e comandos por voz pela Alexa."
+  ],
+  "processoTitulo": "Como funciona a linha",
+  "processo": [
+    { "nome": "Bobina", "texto": "Fornece o plástico." },
+    { "nome": "Dispenser", "texto": "Dosa os grãos." },
+    { "nome": "Braço formador", "texto": "Dobra o plástico em tubo." },
+    { "nome": "Selagem horizontal", "texto": "Fecha o pacote." },
+    { "nome": "Selagem final", "texto": "Sela e corta." },
+    { "nome": "Separador de itens", "texto": "Câmera e servo separam cada produto." }
+  ],
+  "tecnologiasTitulo": "Tecnologias",
+  "tecnologias": ["Raspberry Pi", "ESP32", "MQTT", "Node.js", "Visão computacional", "Inteligência artificial", "Alexa"]
+}

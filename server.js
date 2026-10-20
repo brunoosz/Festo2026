@@ -79,7 +79,7 @@ function permissoesEfetivas(usuario) {
     return efetivas;
 }
 
-const arquivoUsuarios = path.join(__dirname, 'usuarios.json');
+const arquivoUsuarios = process.env.USUARIOS_JSON ? path.resolve(process.env.USUARIOS_JSON) : path.join(__dirname, 'usuarios.json');
 
 function gerarHashSenha(senha) {
     const salt = crypto.randomBytes(16).toString('hex');
@@ -1606,16 +1606,24 @@ const AlexaAbrirHandler = {
     canHandle(h) { return Alexa.getRequestType(h.requestEnvelope) === 'LaunchRequest'; },
     handle(h) {
         registrarLogDaAlexa('Skill Dark Coders aberta na Alexa.', 'sistema');
+        if (emergenciaGlobal.ativa) return falarMaquinaTravada(h);
         return perguntarPredefinicao(h, 'Dark Coders pronto.');
     }
 };
+
+function falarMaquinaTravada(h) {
+    return h.responseBuilder
+        .speak('A máquina está travada por uma emergência. Libere no site antes de ligar.')
+        .withShouldEndSession(true)
+        .getResponse();
+}
 
 const AlexaLigarMaquinaHandler = {
     canHandle(h) {
         return Alexa.getRequestType(h.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(h.requestEnvelope) === 'LigarMaquinaIntent';
     },
-    handle(h) { return perguntarPredefinicao(h); }
+    handle(h) { return emergenciaGlobal.ativa ? falarMaquinaTravada(h) : perguntarPredefinicao(h); }
 };
 
 const AlexaPredefinicaoHandler = {
@@ -1624,6 +1632,7 @@ const AlexaPredefinicaoHandler = {
             && Alexa.getIntentName(h.requestEnvelope) === 'PredefinicaoIntent';
     },
     handle(h) {
+        if (emergenciaGlobal.ativa) return falarMaquinaTravada(h);
         const gramas = parseInt(Alexa.getSlotValue(h.requestEnvelope, 'gramas'), 10);
         if (!gramas) return perguntarPredefinicao(h);
 
@@ -1918,9 +1927,61 @@ app.use(sessionMiddleware);
 console.log(`🔌 Tentando conectar ao broker MQTT em: ${MQTT_BROKER} ...`);
 const mqttClient = mqtt.connect(MQTT_BROKER);
 
+// ================================================================================
+// EMERGENCIA GLOBAL: depois de acionada, NADA se move ate alguem LIBERAR no site
+// ================================================================================
+const ARQ_EMERGENCIA = process.env.EMERGENCIA_JSON ? path.resolve(process.env.EMERGENCIA_JSON) : path.join(__dirname, 'emergencia_estado.json');
+let emergenciaGlobal = { ativa: false, desde: null, origem: null };
+try { emergenciaGlobal = Object.assign(emergenciaGlobal, JSON.parse(fs.readFileSync(ARQ_EMERGENCIA, 'utf-8'))); } catch (e) {}
+function emergenciaSalvar() { try { fs.writeFileSync(ARQ_EMERGENCIA, JSON.stringify(emergenciaGlobal)); } catch (e) {} }
+
+// comandos de movimento: bloqueados enquanto a emergencia estiver ativa
+const REGEX_MOVIMENTO = /(\/set$|\/set_temperatura$|\/ativar$|\/dosar$|\/desviar$|\/teste$|resetar_seguranca$)/;
+const mqttPublicarOriginal = mqttClient.publish.bind(mqttClient);
+
+function emergenciaAtivar(origem) {
+    if (emergenciaGlobal.ativa) return;
+    emergenciaGlobal = { ativa: true, desde: new Date().toISOString(), origem: origem || 'desconhecida' };
+    emergenciaSalvar();
+    io.emit('emergencia_estado', emergenciaGlobal);
+    const texto = 'EMERGENCIA ATIVA (' + emergenciaGlobal.origem + '). A maquina fica travada ate alguem liberar no site.';
+    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto, tipo: 'emergencia' });
+    try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] ${texto}`); } catch (e) {}
+}
+
+function emergenciaLiberar(quem) {
+    if (!emergenciaGlobal.ativa) return;
+    emergenciaGlobal = { ativa: false, desde: null, origem: null };
+    emergenciaSalvar();
+    mqttPublicarOriginal('esteira/liberar', '1');
+    mqttPublicarOriginal('separador/liberar', '1');
+    io.emit('emergencia_estado', emergenciaGlobal);
+    const texto = 'EMERGENCIA LIBERADA por ' + (quem || 'usuario') + '. Maquina pronta para uso.';
+    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto, tipo: 'sistema' });
+    try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] ${texto}`); } catch (e) {}
+}
+
+// a esteira avisa o proprio estado (ela guarda a trava mesmo desligada)
+function emergenciaTratarEsteira(valor) {
+    if (valor === 'ativa' && !emergenciaGlobal.ativa) emergenciaAtivar('esteira (botao fisico)');
+    if (valor === 'liberada' && emergenciaGlobal.ativa) mqttPublicarOriginal('esteira/emergencia', '1');
+}
+
+mqttClient.publish = function (topico, mensagem, ...resto) {
+    const t = String(topico);
+    if (t === 'esteira/emergencia' && String(mensagem) === '1') emergenciaAtivar('site, Alexa ou botao');
+    if (emergenciaGlobal.ativa && REGEX_MOVIMENTO.test(t)) {
+        console.log('🛑 Emergencia ativa: comando bloqueado (' + t + ')');
+        return mqttClient;
+    }
+    return mqttPublicarOriginal(topico, mensagem, ...resto);
+};
+
+
 mqttClient.on('connect', () => {
     console.log('✅ Conectado ao Broker MQTT com sucesso!');
     mqttClient.subscribe([MQTT_TOPIC_DISP_STATUS, MQTT_TOPIC_DISP_ESTADO, MQTT_TOPIC_DISP_CONCLUIDO]);
+    mqttClient.subscribe(['esteira/estado_emergencia']);
     mqttClient.subscribe(['esteira/botao']);
     mqttClient.subscribe(['separador/status', 'separador/estado']);
     setTimeout(separadorPublicarConfig, 600);
@@ -1960,6 +2021,7 @@ let ultimaMsgSelagem2 = 0;
 
 mqttClient.on('message', (topic, message) => {
     const valor = message.toString();
+    if (topic === 'esteira/estado_emergencia') emergenciaTratarEsteira(valor);
     if (topic === 'esteira/botao') receitasTratarBotao(valor);
     if (topic.startsWith('separador/')) separadorTratarMqtt(topic, valor);
     // dispenser (ESP32 proprio)
@@ -2288,6 +2350,14 @@ setInterval(() => {
     const agora = Date.now();
     for (const [ip, t] of tentativasLogin) if (agora > t.ate) tentativasLogin.delete(ip);
 }, 10 * 60 * 1000).unref();
+
+// pagina publica "sobre nos": so texto estatico, sem login e sem nenhum dado da maquina
+const arquivoSobre = path.join(__dirname, 'data', 'sobre.json');
+app.get('/sobre', (req, res) => {
+    let sobre = { equipe: [] };
+    try { sobre = JSON.parse(fs.readFileSync(arquivoSobre, 'utf-8')); } catch (e) {}
+    res.render('sobre.html', { sobre });
+});
 
 // rotas
 app.all('/', (req, res) => {
@@ -2716,8 +2786,15 @@ setInterval(() => {
 
 app.get('/dispenser', loginObrigatorio, paginaPermitida('dispenser'), (req, res) => res.render('dispenser.html'));
 
+// --- emergencia global: estado e liberacao (so o site libera) ---
+app.get('/api/emergencia', loginObrigatorio, (req, res) => res.json(emergenciaGlobal));
+app.post('/api/emergencia/liberar', loginObrigatorio, (req, res) => {
+    emergenciaLiberar(res.locals.usuarioLogado || (req.session && req.session.usuario) || 'usuario');
+    res.json(emergenciaGlobal);
+});
+
 // receitas (niveis de 50/100/150/200 g) + botoes fisicos + modelo 3d
-const ARQ_RECEITAS = path.join(__dirname, 'receitas.json');
+const ARQ_RECEITAS = process.env.RECEITAS_JSON ? path.resolve(process.env.RECEITAS_JSON) : path.join(__dirname, 'receitas.json');
 const RECEITAS_PADRAO = {
     botoesAtivos: true,
     atual: 0,
@@ -2790,6 +2867,7 @@ function receitasEmergenciaFisica() {
 
 function receitasTratarBotao(valor) {
     if (valor === 'emergencia') { receitasEmergenciaFisica(); return; }
+    if (emergenciaGlobal.ativa) return;
     if (!receitas.botoesAtivos) return;
     if (valor === 'mais') receitasAplicar(Math.min(receitas.niveis.length - 1, receitas.atual + 1), 'botao MAIS');
     if (valor === 'menos') receitasAplicar(Math.max(0, receitas.atual - 1), 'botao MENOS');
@@ -2804,6 +2882,7 @@ app.post('/api/receitas', loginObrigatorio, adminObrigatorio, paginaPermitida('r
     res.json(receitas);
 });
 app.post('/api/receitas/aplicar', loginObrigatorio, paginaPermitida('receitas'), (req, res) => {
+    if (emergenciaGlobal.ativa) return res.status(423).json({ erro: 'Emergencia ativa: libere no site (botao DESBLOQUEAR) antes de usar a maquina.' });
     const i = parseInt(req.body && req.body.indice, 10);
     if (!receitasAplicar(i, 'site')) return res.status(400).json({ erro: 'Nivel invalido.' });
     res.json({ sucesso: true, atual: receitas.atual });
@@ -2894,6 +2973,7 @@ app.delete('/api/separador/treino/:classe', loginObrigatorio, adminObrigatorio, 
 });
 
 app.post('/api/separador/servo/teste', loginObrigatorio, adminObrigatorio, (req, res) => {
+    if (emergenciaGlobal.ativa) return res.status(423).json({ erro: 'Emergencia ativa: libere no site (botao DESBLOQUEAR) antes de usar a maquina.' });
     const lado = req.body && req.body.lado;
     if (lado !== 'E' && lado !== 'D' && lado !== 'C') return res.status(400).json({ erro: 'Lado invalido.' });
     if (!separadorOnline) return res.status(409).json({ erro: 'O servo (ESP32 do separador) esta desconectado.' });
@@ -3009,6 +3089,7 @@ app.get('/api/dispenser/estado', loginObrigatorio, (req, res) => {
 });
 
 app.post('/api/dispenser/dosar', loginObrigatorio, (req, res) => {
+    if (emergenciaGlobal.ativa) return res.status(423).json({ erro: 'Emergencia ativa: libere no site (botao DESBLOQUEAR) antes de usar a maquina.' });
     const usuario = res.locals.usuarioLogado;
     const corpo = req.body || {};
     const gramas = parseInt(corpo.gramas, 10);
@@ -3175,6 +3256,7 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+    socket.emit('emergencia_estado', emergenciaGlobal);
     socket.emit('separador_servo', { online: separadorOnline, estado: separadorEstado });
     socket.emit('atualizar_velocidade', { velocidade: ultimaVelocidadeConhecida });
     socket.emit('status_esp32', { online: esp32Online });
@@ -3317,6 +3399,7 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(5000, '0.0.0.0', () => {
-    console.log('\n🚀 SISTEMA INDUSTRIAL LIBERADO NA REDE LOCAL (Porta 5000)\n');
+const PORTA_DO_SITE = parseInt(process.env.PORT, 10) || 5000;
+server.listen(PORTA_DO_SITE, '0.0.0.0', () => {
+    console.log(`\n🚀 SISTEMA INDUSTRIAL LIBERADO NA REDE LOCAL (Porta ${PORTA_DO_SITE})\n`);
 });

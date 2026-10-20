@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Dark Coders - Sobre nós</title>
+    <link rel="icon" type="image/png" href="/logo.png">
+    <script src="/tailwind.js"></script>
+    <style>
+        .card-painel { background-color: white; border: 2px solid #1e293b; border-radius: 0.75rem; padding: 1rem; }
+        .titulo-painel { font-size: 0.875rem; text-transform: uppercase; color: #1e293b; font-weight: normal; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        html.dark { filter: invert(1) hue-rotate(180deg); background-color: #111; }
+        html.dark img, html.dark .manter-cor { filter: invert(1) hue-rotate(180deg); }
+        @media (max-width: 640px) { .card-painel { padding: 0.85rem; border-radius: 0.65rem; } .titulo-painel { font-size: 0.7rem; margin-bottom: 0.6rem; padding-bottom: 0.4rem; } }
+    </style>
+    <script>
+        try { if (localStorage.getItem('tema_flowpack') === 'escuro') document.documentElement.classList.add('dark'); } catch (e) {}
+    </script>
+</head>
+<body class="min-h-screen bg-[#f0f4f8] text-gray-800 font-sans">
+
+    <header class="bg-white px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-sm border-b border-gray-200 gap-2">
+        <a href="/" class="flex items-center gap-3 min-w-0">
+            <img src="/logo.png" alt="Logo Dark Coders" class="h-10 sm:h-12 w-auto object-contain shrink-0">
+            <div class="hidden md:block min-w-0">
+                <h1 class="text-xl font-bold text-gray-800 tracking-wide flex items-center flex-wrap">
+                    Dark Coders <span class="text-gray-400 font-medium mx-2 text-lg">x</span> <span class="text-[#e2005a] font-black tracking-widest text-xl manter-cor">FIAP</span> <span class="text-gray-400 font-medium mx-2 text-lg">x</span> <span class="text-[#00A0E3] font-black tracking-widest text-xl manter-cor">FESTO</span>
+                </h1>
+                <p class="text-xs text-gray-500 uppercase tracking-widest">Sistema de Controle</p>
+            </div>
+            <h1 class="md:hidden text-sm font-black text-gray-800 tracking-wide truncate">Dark Coders</h1>
+        </a>
+        <a href="/" class="bg-blue-500 text-white font-semibold px-4 sm:px-5 py-2.5 rounded-md hover:bg-blue-600 active:bg-blue-700 transition duration-200 tracking-wider text-xs sm:text-sm shrink-0">
+            ENTRAR NO SISTEMA
+        </a>
+    </header>
+
+    <main class="max-w-5xl mx-auto p-3 sm:p-6 flex flex-col gap-4 sm:gap-6">
+
+        <div class="card-painel">
+            <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">{{ sobre.titulo | default('Sobre nós') }}</h2>
+            <p class="text-[11px] text-slate-400">{{ sobre.subtitulo }}</p>
+        </div>
+
+        <div class="card-painel">
+            <h3 class="titulo-painel">Equipe Dark Coders</h3>
+            {% if sobre.equipeTexto %}<p class="text-sm text-slate-600 mb-4">{{ sobre.equipeTexto }}</p>{% endif %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for p in sobre.equipe %}
+                <div class="flex items-center gap-3 border border-slate-200 rounded-lg p-3">
+                    <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-gray-800 leading-snug">{{ p.nome }}</p>
+                        {% if sobre.mostrarRM and p.rm %}<p class="text-xs text-gray-500">RM {{ p.rm }}</p>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card-painel">
+            <h3 class="titulo-painel">{{ sobre.projetoTitulo | default('O projeto') }}</h3>
+            <div class="flex flex-col gap-2 text-sm text-slate-600">
+                {% for t in sobre.projetoTexto %}<p>{{ t }}</p>{% endfor %}
+            </div>
+        </div>
+
+        <div class="card-painel">
+            <h3 class="titulo-painel">{{ sobre.processoTitulo | default('Como funciona a linha') }}</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for e in sobre.processo %}
+                <div class="flex items-start gap-3 border border-slate-200 rounded-lg p-3">
+                    <span class="w-7 h-7 bg-blue-600 text-white text-xs font-black rounded-full flex items-center justify-center shrink-0">{{ loop.index }}</span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-slate-800">{{ e.nome }}</p>
+                        <p class="text-xs text-slate-500">{{ e.texto }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card-painel">
+            <h3 class="titulo-painel">{{ sobre.tecnologiasTitulo | default('Tecnologias') }}</h3>
+            <div class="flex flex-wrap gap-2">
+                {% for t in sobre.tecnologias %}
+                <span class="bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm text-[11px] font-bold text-slate-700">{{ t }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="flex justify-center py-2">
+            <a href="/" class="bg-blue-500 text-white font-semibold px-8 py-3 rounded-md hover:bg-blue-600 active:bg-blue-700 transition duration-200 tracking-wider text-sm">
+                ENTRAR NO SISTEMA
+            </a>
+        </div>
+        <p class="text-center text-xs text-gray-400 pb-2">Dark Coders x FIAP x FESTO · 2026</p>
+    </main>
+</body>
+</html>

@@ -1,0 +1,57 @@
+PINAGEM - ESP32 DA ESTEIRA (ESP32 DEVKIT V1)   [versao final]
+Placa no Arduino IDE: ESP32 Dev Module
+=====================================================
+
+DRIVER BTS7960 (IBT-2)     ESP32
+-----------------------------------
+RPWM                       GPIO 25
+LPWM                       GPIO 26
+R_EN + L_EN (juntos)       GPIO 27
+VCC                        3.3V
+GND                        GND
+
+POTENCIA DO BTS7960
+-----------------------------------
+B+                         fusivel -> + da fonte do motor (24 V)
+B-                         - da fonte do motor
+M+ / M-                    fios do motor
+O GND da fonte, do driver e do ESP32 precisam estar juntos.
+
+BOTOES (3 botoes de apertar: um fio no pino, o outro no GND)
+-----------------------------------
+EMERGENCIA                 GPIO 32  <->  GND
+MAIS (+)                   GPIO 33  <->  GND
+MENOS (-)                  GPIO 14  <->  GND
+Os pinos 32, 33 e 14 existem em qualquer DevKit V1.
+
+PARA O BOTAO NAO DISPARAR SOZINHO (recomendado na montagem)
+-----------------------------------
+1) Resistor de 10 kOhm entre o pino do botao e o 3V3 (pull-up externo, mais forte
+   que o interno do ESP32). Faca isso pelo menos no botao de EMERGENCIA.
+2) Capacitor ceramico de 100 nF (104) em paralelo com o botao (entre o pino e o GND).
+3) Fios do botao trancados (par trancado) ou blindados, longe dos fios do motor
+   e do BTS7960 (o PWM dele gera ruido).
+4) Fio do botao curto e bem preso (fio solto ou oxidado "pisca" e parece apertado).
+O codigo tambem se protege: ignora os botoes nos 3 s depois de ligar, so aceita
+a emergencia se ficar apertada sem falhar por 120 ms e se antes ficou solta por 1 s.
+Se algo ainda disparar, o Monitor Serial diz de onde veio:
+   ">>> BOTAO: emergencia (apertado ha X ms)"  = veio do botao (fiacao/ruido)
+   ">>> EMERGENCIA (SITE)"                      = veio do site, da Alexa ou do servidor
+
+EMERGENCIA TRAVADA
+-----------------------------------
+Depois da emergencia a esteira fica TRAVADA, inclusive se desligar e ligar.
+MAIS, MENOS, velocidade e sentido (site, Alexa, receitas e Serial) ficam IGNORADOS.
+So libera quem clicar em DESBLOQUEAR no site.
+
+ALIMENTACAO DO ESP32
+-----------------------------------
+5 V do regulador no pino VIN (nunca a fonte de 24 V direto).
+Para gravar pelo USB, tire o fio de 5 V do VIN.
+
+TESTE (Monitor Serial 115200, "Nova linha")
+-----------------------------------
+STATUS      mostra os botoes (1 = solto, 0 = apertado) e a emergencia
+V=60        velocidade em %
+INVERTER    inverte o sentido
+EMERGENCIA  trava a esteira

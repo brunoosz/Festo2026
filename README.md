@@ -41,7 +41,9 @@ A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço
 | Usuários | Três níveis de acesso e permissão de telas por usuário. |
 | Manuais | Manuais em PDF de cada módulo e da máquina completa. |
 
-A **Parada de Emergência** fica visível em todas as telas e também responde a comandos da Alexa.
+A **Parada de Emergência** fica visível em todas as telas e também responde ao botão físico da esteira e à Alexa. Depois de acionada, **a máquina inteira fica travada** (esteira, selagens, dispenser, separador, receitas e botões MAIS/MENOS) até alguém clicar em **DESBLOQUEAR** no site. A trava vale para todos os aparelhos, continua se o servidor reiniciar, e a esteira e o servo também lembram dela se forem desligados.
+
+A página pública [`/sobre`](views/sobre.html) (acessível sem login, pelo link "Sobre nós" da tela de login) apresenta a equipe e o projeto. O texto fica em [`data/sobre.json`](data/sobre.json).
 
 <p align="center">
   <img src="docs/img/painel-controle.png" alt="Painel de Controle" width="440">
@@ -108,6 +110,18 @@ A aplicação fica disponível em `http://localhost:5000`. A porta está definid
 
 Na primeira execução, caso não exista `usuarios.json`, é criado o usuário `admin` com senha `admin`. **Altere a senha em Configuração antes de qualquer uso real.**
 
+### Testando no seu computador (preview)
+
+Não precisa do Raspberry nem das placas. Em dois terminais:
+
+```bash
+npm install
+npm run mock   # broker MQTT de mentira com placas falsas
+npm run dev    # o site, em http://localhost:5000
+```
+
+O `dev` usa a pasta `data-teste/` (nada do `usuarios.json` real é tocado) e cria os logins `dono`, `adm` e `operario`, todos com a senha `1234`. Para rodar os testes automáticos: `npm test`.
+
 ### Variáveis de ambiente
 
 | Variável | Descrição | Obrigatória |
@@ -115,6 +129,7 @@ Na primeira execução, caso não exista `usuarios.json`, é criado o usuário `
 | `NVIDIA_API_KEY` | Chave da API NVIDIA para o chat e a visão por IA. Sem ela, o chat responde apenas com a base local. | Não |
 | `SESSION_SECRET` | Segredo das sessões e dos cookies. Se ausente, é gerado e salvo em `.session_secret`. | Não |
 | `MQTT_BROKER` | Endereço do broker MQTT. Padrão: `mqtt://192.168.4.1`. | Não |
+| `PORT` | Porta do site. Padrão: `5000`. | Não |
 
 Para que o Node leia o `.env` automaticamente, use `npm run start:env`.
 
@@ -174,7 +189,7 @@ A skill tem cinco comandos. Depois de cada um ela se fecha sozinha, então é pr
 | "200 gramas" | Igual, com a receita de 200 g. |
 | "emergência" | Aciona a Parada de Emergência em todos os módulos e fecha a skill. |
 
-As pré-definições são as receitas da tela **Receitas**, então os valores de cada uma (velocidade, motores e temperaturas) são os que estiverem cadastrados lá.
+Se a máquina estiver travada por uma emergência, a Alexa avisa e não liga nada. As pré-definições são as receitas da tela **Receitas**, então os valores de cada uma (velocidade, motores e temperaturas) são os que estiverem cadastrados lá.
 
 Os pedidos chegam em `POST /alexa`. Antes de executar qualquer comando, o servidor valida a assinatura e o certificado da Amazon e confere o ID da skill. O endereço precisa ser público e usar HTTPS, o que o Tailscale Funnel atende.
 
@@ -188,11 +203,15 @@ O modelo de interação da skill está em [`alexa/modelo_de_interacao.json`](ale
 ├── separador_engine.js    Contagem e desvio de produtos do separador
 ├── atualizar.sh           Atualização do Raspberry Pi
 ├── alexa/                 Modelo de interação da skill da Alexa
+├── firmware/              Códigos dos ESP32 (Arduino IDE)
+├── tools/                 Preview local, testes automáticos e instaladores antigos
+├── data/                  Textos editáveis do site (página Sobre nós)
 ├── views/                 Telas (templates Nunjucks)
 ├── public/                Arquivos estáticos, bibliotecas e modelo 3D
 ├── knowledge/             Base de conhecimento do assistente
 ├── manuais/               Manuais em PDF
 ├── docs/img/              Imagens usadas neste README
+├── docs/hardware/         Pinagens de cada placa e bibliotecas do Arduino
 ├── dispenser_config.json  Configuração do dispenser
 ├── config_visao.json      Configuração da câmera e da visão
 └── .env.example           Modelo de variáveis de ambiente

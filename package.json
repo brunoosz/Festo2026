@@ -5,7 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "start:env": "node --env-file=.env server.js"
+    "start:env": "node --env-file=.env server.js",
+    "dev": "node tools/dev.js",
+    "mock": "node tools/mock_mqtt.js",
+    "seed": "node tools/seed_teste.js",
+    "test": "node tools/testes/etapa1.js && node tools/testes/alexa.js"
   },
   "repository": {
     "type": "git",
@@ -39,5 +43,9 @@
     "multer": "^1.4.5-lts.1",
     "nunjucks": "^3.2.4",
     "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "aedes": "^1.2.0",
+    "socket.io-client": "^4.8.4"
   }
 }
