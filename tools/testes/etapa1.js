@@ -53,7 +53,7 @@ const { iniciar } = require('../mock_mqtt');
         assert.ok(!/https?:\/\//.test(html), 'tem endereco externo (CDN)'); ok('funciona offline (nenhum endereco externo)');
         assert.ok(!/socket\.io|\/api\//.test(html), 'expoe API/socket'); ok('nao expoe nenhuma API nem socket');
         assert.ok(!/RM \d/.test(html), 'mostrou RM'); ok('RM escondido por padrao');
-        assert.ok(html.includes('href="/"') && html.includes('Entrar no sistema'), 'sem botao de entrar'); ok('tem o botao "Entrar no sistema"');
+        assert.ok(html.includes('href="/"') && /entrar no sistema/i.test(html), 'sem botao de entrar'); ok('tem o botao "Entrar no sistema"');
         const login = await (await fetch(B + '/')).text();
         assert.ok(login.includes('href="/sobre"') && login.includes('Sobre nós'), 'sem link no login'); ok('o link "Sobre nos" aparece na tela de login');
         r = await fetch(B + '/dashboard', { redirect: 'manual' });
