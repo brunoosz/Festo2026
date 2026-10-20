@@ -2351,6 +2351,14 @@ setInterval(() => {
     for (const [ip, t] of tentativasLogin) if (agora > t.ate) tentativasLogin.delete(ip);
 }, 10 * 60 * 1000).unref();
 
+// pagina publica "sobre nos": so texto estatico, sem login e sem nenhum dado da maquina
+const arquivoSobre = path.join(__dirname, 'data', 'sobre.json');
+app.get('/sobre', (req, res) => {
+    let sobre = { equipe: [] };
+    try { sobre = JSON.parse(fs.readFileSync(arquivoSobre, 'utf-8')); } catch (e) {}
+    res.render('sobre.html', { sobre });
+});
+
 // rotas
 app.all('/', (req, res) => {
     if (req.signedCookies.lembrar_usuario || req.session.logado) return res.redirect('/dashboard');
