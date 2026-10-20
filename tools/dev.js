@@ -15,7 +15,7 @@ process.env.RECEITAS_JSON = process.env.RECEITAS_JSON || path.join(pasta, 'recei
 if (!fs.existsSync(process.env.USUARIOS_JSON)) criarUsuariosTeste(process.env.USUARIOS_JSON);
 
 console.log('MODO DE TESTE: dados em data-teste/ (o usuarios.json real nao e usado)');
-console.log(`Logins: dono, adm, operario  |  senha: ${SENHA_TESTE}`);
+console.log(`Logins: dono, adm, operario, visualizador  |  senha: ${SENHA_TESTE}`);
 console.log(`Abra http://localhost:${process.env.PORT || 5000}`);
 
 require('../server.js');

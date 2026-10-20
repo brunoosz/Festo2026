@@ -38,15 +38,17 @@ if (!fs.existsSync(pastaKnowledge)) {
 const NIVEL_DONO = 1;
 const NIVEL_ADM = 2;
 const NIVEL_OPERARIO = 3;
+const NIVEL_VISUALIZADOR = 4;
 
 function nomeNivel(nivel) {
     if (nivel === NIVEL_DONO) return 'Dono';
     if (nivel === NIVEL_ADM) return 'Administrador';
+    if (nivel === NIVEL_VISUALIZADOR) return 'Visualizador';
     return 'Operário';
 }
 
 function nivelValido(nivel) {
-    return nivel === NIVEL_DONO || nivel === NIVEL_ADM || nivel === NIVEL_OPERARIO;
+    return nivel === NIVEL_DONO || nivel === NIVEL_ADM || nivel === NIVEL_OPERARIO || nivel === NIVEL_VISUALIZADOR;
 }
 
 // telas que o Dono/Administrador pode liberar ou bloquear por usuário
@@ -67,8 +69,26 @@ const PERMISSOES_PADRAO_OPERARIO = {
     relatorios: true, visao: true, chat: true, logs: true
 };
 
+// telas que o Dono liga e desliga para cada Visualizador (padrao: todas ligadas)
+const TELAS_VISUALIZADOR = Object.assign({}, PAGINAS_CONFIGURAVEIS, {
+    controle: 'Painel de Controle',
+    sistema: 'Status do Sistema',
+    usuarios: 'Usuários'
+});
+
+function telasDoVisualizador(usuario) {
+    const todas = Object.keys(TELAS_VISUALIZADOR);
+    if (!Array.isArray(usuario.telasPermitidas)) return todas;
+    return todas.filter(t => usuario.telasPermitidas.includes(t));
+}
+
 function permissoesEfetivas(usuario) {
     const efetivas = {};
+    if (usuario.nivel === NIVEL_VISUALIZADOR) {
+        const liberadas = telasDoVisualizador(usuario);
+        Object.keys(TELAS_VISUALIZADOR).forEach(t => { efetivas[t] = liberadas.includes(t); });
+        return efetivas;
+    }
     const ehOperario = usuario.nivel === NIVEL_OPERARIO;
     Object.keys(PAGINAS_CONFIGURAVEIS).forEach(pagina => {
         if (!ehOperario) { efetivas[pagina] = true; return; }
@@ -76,6 +96,7 @@ function permissoesEfetivas(usuario) {
             ? usuario.permissoes[pagina] : PERMISSOES_PADRAO_OPERARIO[pagina];
         efetivas[pagina] = salva;
     });
+    ['controle', 'sistema', 'usuarios'].forEach(t => { efetivas[t] = !ehOperario; });
     return efetivas;
 }
 
@@ -1924,6 +1945,65 @@ const sessionMiddleware = session({
 });
 app.use(sessionMiddleware);
 
+// perfil Visualizador (nivel 4): olha tudo que foi liberado e nao controla nada
+// a trava de verdade fica aqui no servidor; esconder botao na tela nao basta
+function registrarLogSegurancaVisualizador(nomeUsuario, descricao) {
+    const log = {
+        hora: new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }),
+        texto: descricao,
+        classe: 'text-amber-600 font-bold',
+        usuario: nomeUsuario,
+        tipo: 'sistema'
+    };
+    try { salvarLogNoArquivoDoDia(log); } catch (e) {}
+    try { io.emit('novo_log_servidor', log); } catch (e) {}
+}
+
+// unicas escritas que o Visualizador pode fazer: conversar com a IA e preferencias da propria conta
+const ESCRITAS_DO_VISUALIZADOR = [
+    ['POST', /^\/api\/chat$/],
+    ['DELETE', /^\/api\/chat\/(limpar|mensagem\/[^/]+)$/],
+    ['POST', /^\/api\/usuario\/(acessibilidade|tutorial-visto)$/]
+];
+
+// rota -> tela que precisa estar liberada (o que nao esta aqui e sempre liberado)
+const TELA_DA_ROTA = [
+    [/^\/dispenser$|^\/api\/dispenser(\/|$)/, 'dispenser'],
+    [/^\/separador$|^\/api\/separador(\/|$)/, 'separador'],
+    [/^\/receitas$|^\/api\/receitas(\/|$)/, 'receitas'],
+    [/^\/graficos$/, 'graficos'],
+    [/^\/relatorios$/, 'relatorios'],
+    [/^\/visao$|^\/api\/visao(\/|$)/, 'visao'],
+    [/^\/chat$|^\/api\/chat(\/|$)/, 'chat'],
+    [/^\/logs$/, 'logs'],
+    [/^\/controle$|^\/api\/painel(\/|$)/, 'controle'],
+    [/^\/sistema$|^\/api\/sistema(\/|$)/, 'sistema'],
+    [/^\/usuarios$|^\/api\/usuarios(\/|$)/, 'usuarios']
+];
+
+function guardaDoVisualizador(req, res, next) {
+    const nome = (req.session && req.session.usuario) || (req.signedCookies && req.signedCookies.lembrar_usuario);
+    if (!nome) return next();
+    const usuario = carregarUsuarios()[nome];
+    if (!usuario || usuario.nivel !== NIVEL_VISUALIZADOR) return next();
+
+    const metodo = req.method, rota = req.path;
+    const leitura = metodo === 'GET' || metodo === 'HEAD';
+    if (!leitura && rota !== '/' && !ESCRITAS_DO_VISUALIZADOR.some(([m, rx]) => m === metodo && rx.test(rota))) {
+        registrarLogSegurancaVisualizador(nome, `Visualizador ${nome} tentou ${metodo} ${rota} e foi bloqueado.`);
+        return res.status(403).json({ erro: 'Seu perfil é de visualização: você pode acompanhar tudo, mas não pode controlar a máquina nem alterar dados.' });
+    }
+
+    const par = TELA_DA_ROTA.find(([rx]) => rx.test(rota));
+    if (par && !permissoesEfetivas(usuario)[par[1]]) {
+        registrarLogSegurancaVisualizador(nome, `Visualizador ${nome} tentou abrir ${rota} (tela não liberada).`);
+        if (rota.startsWith('/api/')) return res.status(403).json({ erro: 'Esta tela não está liberada para o seu perfil.' });
+        return res.redirect('/dashboard');
+    }
+    next();
+}
+app.use(guardaDoVisualizador);
+
 console.log(`🔌 Tentando conectar ao broker MQTT em: ${MQTT_BROKER} ...`);
 const mqttClient = mqtt.connect(MQTT_BROKER);
 
@@ -2302,6 +2382,7 @@ function loginObrigatorio(req, res, next) {
     res.locals.nomeNivelUsuario = nomeNivel(dadosUsuario.nivel);
     res.locals.isDono = dadosUsuario.nivel === NIVEL_DONO;
     res.locals.isAdmin = dadosUsuario.nivel === NIVEL_DONO || dadosUsuario.nivel === NIVEL_ADM;
+    res.locals.somenteLeitura = dadosUsuario.nivel === NIVEL_VISUALIZADOR;
     res.locals.acessibilidadeAtiva = !!dadosUsuario.acessibilidade;
     res.locals.tutorialObrigatorio = !dadosUsuario.tutorialVisto;
     res.locals.permissoes = permissoesEfetivas(dadosUsuario);
@@ -2318,7 +2399,8 @@ function paginaPermitida(pagina) {
 }
 
 function adminObrigatorio(req, res, next) {
-    if (!res.locals.isAdmin) {
+    const soLeitura = req.method === 'GET' || req.method === 'HEAD';
+    if (!res.locals.isAdmin && !(res.locals.somenteLeitura && soLeitura)) {
         return res.status(403).send('Acesso negado. Esta área é restrita a administradores.');
     }
     next();
@@ -2411,9 +2493,9 @@ app.get('/graficos', loginObrigatorio, paginaPermitida('graficos'), (req, res) =
 app.get('/relatorios', loginObrigatorio, paginaPermitida('relatorios'), (req, res) => res.render('relatorios.html'));
 app.get('/configuracoes', loginObrigatorio, (req, res) => res.render('configuracoes.html'));
 app.get('/chat', loginObrigatorio, paginaPermitida('chat'), (req, res) => res.render('chat.html'));
-app.get('/controle', loginObrigatorio, adminObrigatorio, (req, res) => res.render('controle.html'));
+app.get('/controle', loginObrigatorio, adminObrigatorio, paginaPermitida('controle'), (req, res) => res.render('controle.html'));
 app.get('/logs', loginObrigatorio, paginaPermitida('logs'), (req, res) => res.render('logs.html'));
-app.get('/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => res.render('usuarios.html'));
+app.get('/usuarios', loginObrigatorio, adminObrigatorio, paginaPermitida('usuarios'), (req, res) => res.render('usuarios.html'));
 app.get('/visao', loginObrigatorio, paginaPermitida('visao'), (req, res) => res.render('visao.html'));
 
 app.get('/logout', (req, res) => {
@@ -2436,9 +2518,10 @@ app.get('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
         nivel: usuarios[nome].nivel,
         nomeNivel: nomeNivel(usuarios[nome].nivel),
         acessibilidade: !!usuarios[nome].acessibilidade,
-        permissoes: permissoesEfetivas(usuarios[nome])
+        permissoes: permissoesEfetivas(usuarios[nome]),
+        telasPermitidas: usuarios[nome].nivel === NIVEL_VISUALIZADOR ? telasDoVisualizador(usuarios[nome]) : undefined
     }));
-    res.json({ usuarios: lista, paginas: PAGINAS_CONFIGURAVEIS });
+    res.json({ usuarios: lista, paginas: PAGINAS_CONFIGURAVEIS, telasVisualizador: TELAS_VISUALIZADOR });
 });
 
 // define quais telas um Operário pode acessar (Dono ou Administrador)
@@ -2491,6 +2574,7 @@ app.post('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
     const { salt, hash } = gerarHashSenha(senha);
     // usuário novo começa sem ter visto o tutorial
     usuarios[chave] = { salt, hash, nivel: nivelSolicitado, acessibilidade: !!acessibilidade, tutorialVisto: false };
+    if (nivelSolicitado === NIVEL_VISUALIZADOR) usuarios[chave].telasPermitidas = Object.keys(TELAS_VISUALIZADOR);
     salvarUsuarios(usuarios);
 
     res.json({ sucesso: true });
@@ -2536,9 +2620,28 @@ app.post('/api/usuarios/:usuario/nivel', loginObrigatorio, donoObrigatorio, (req
     }
 
     alvo.nivel = novoNivel;
+    if (novoNivel === NIVEL_VISUALIZADOR && !Array.isArray(alvo.telasPermitidas)) alvo.telasPermitidas = Object.keys(TELAS_VISUALIZADOR);
     salvarUsuarios(usuarios);
 
     res.json({ sucesso: true });
+});
+
+// define quais telas um Visualizador enxerga (so o Dono)
+app.post('/api/usuarios/:usuario/telas', loginObrigatorio, donoObrigatorio, (req, res) => {
+    const usuarios = carregarUsuarios();
+    const alvo = usuarios[req.params.usuario];
+
+    if (!alvo) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+    if (alvo.nivel !== NIVEL_VISUALIZADOR) {
+        return res.status(400).json({ erro: 'Só é possível escolher as telas de usuários Visualizador.' });
+    }
+
+    const recebidas = Array.isArray(req.body && req.body.telas) ? req.body.telas : [];
+    alvo.telasPermitidas = Object.keys(TELAS_VISUALIZADOR).filter(t => recebidas.includes(t));
+    salvarUsuarios(usuarios);
+    registrarLogSegurancaVisualizador(res.locals.usuarioLogado, `telas de ${req.params.usuario} atualizadas: ${alvo.telasPermitidas.join(', ') || 'nenhuma'}`);
+
+    res.json({ sucesso: true, telasPermitidas: alvo.telasPermitidas });
 });
 
 app.delete('/api/usuarios/:usuario', loginObrigatorio, donoObrigatorio, (req, res) => {
@@ -3031,7 +3134,7 @@ function sistemaLerThrottled(cb) {
     });
 }
 
-app.get('/sistema', loginObrigatorio, adminObrigatorio, (req, res) => res.render('sistema.html'));
+app.get('/sistema', loginObrigatorio, adminObrigatorio, paginaPermitida('sistema'), (req, res) => res.render('sistema.html'));
 
 app.get('/api/sistema/status', loginObrigatorio, adminObrigatorio, (req, res) => {
     sistemaLerThrottled((throttled) => {
@@ -3251,11 +3354,25 @@ io.use(envolverMiddleware(sessionMiddleware));
 io.use((socket, next) => {
     const req = socket.request;
     const usuarioAtivo = (req.session && req.session.usuario) || (req.signedCookies && req.signedCookies.lembrar_usuario);
-    socket.data.usuario = usuarioAtivo || 'Desconhecido';
+    const dados = usuarioAtivo ? carregarUsuarios()[usuarioAtivo] : null;
+    if (!dados) return next(new Error('nao autorizado'));
+    socket.data.usuario = usuarioAtivo;
+    socket.data.somenteLeitura = dados.nivel === NIVEL_VISUALIZADOR;
     next();
 });
 
 io.on('connection', (socket) => {
+    // Visualizador so recebe dados: qualquer evento que ele mande para a maquina e descartado
+    // (hoje nenhum evento enviado pelo navegador e so de leitura, entao a lista permitida e vazia)
+    if (socket.data.somenteLeitura) {
+        // eventos que a propria tela dispara sozinha (log de interface e contagem de producao): descarta sem alarde
+        const EVENTOS_AUTOMATICOS = ['novo_log', 'registrar_producao'];
+        socket.use(([evento], proximo) => {
+            if (EVENTOS_AUTOMATICOS.includes(evento)) return proximo(new Error('descartado'));
+            registrarLogSegurancaVisualizador(socket.data.usuario, `Visualizador ${socket.data.usuario} tentou o comando "${evento}" e foi bloqueado.`);
+            proximo(new Error('Seu perfil é de visualização: ação bloqueada.'));
+        });
+    }
     socket.emit('emergencia_estado', emergenciaGlobal);
     socket.emit('separador_servo', { online: separadorOnline, estado: separadorEstado });
     socket.emit('atualizar_velocidade', { velocidade: ultimaVelocidadeConhecida });
