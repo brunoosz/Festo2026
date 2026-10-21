@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <title>Dark Coders - Sobre nós</title>
+    <title>{{ sobre.grupo.nome }} - Sobre nós</title>
     <link rel="icon" type="image/png" href="/logo.png">
     <script src="/tailwind.js"></script>
     <style>
@@ -11,6 +11,23 @@
         .titulo-painel { font-size: 0.875rem; text-transform: uppercase; color: #1e293b; font-weight: normal; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem; }
         html.dark { filter: invert(1) hue-rotate(180deg); background-color: #111; }
         html.dark img, html.dark .manter-cor { filter: invert(1) hue-rotate(180deg); }
+        html { scroll-behavior: smooth; }
+        .sb-ancora { scroll-margin-top: 110px; }
+        .sb-menu { display: flex; gap: 0.25rem; overflow-x: auto; scrollbar-width: none; }
+        .sb-menu::-webkit-scrollbar { display: none; }
+        .sb-menu a { white-space: nowrap; font-size: 0.75rem; font-weight: 700; color: #475569; padding: 0.5rem 0.75rem; border-radius: 0.5rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .sb-menu a:hover { background: #f1f5f9; color: #0369a1; }
+        .sb-chip { background: #fff; border: 1px solid #e2e8f0; border-radius: 9999px; padding: 0.25rem 0.65rem; font-size: 11px; font-weight: 700; color: #334155; }
+        .sb-avatar { width: 4.5rem; height: 4.5rem; border-radius: 9999px; object-fit: cover; flex-shrink: 0; border: 2px solid #e2e8f0; }
+        .sb-iniciais { background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.25rem; }
+        .sb-contato { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.35rem 0.65rem; font-size: 12px; font-weight: 700; color: #1e293b; background: #fff; }
+        .sb-contato:hover { background: #f1f5f9; border-color: #0284c7; color: #0369a1; }
+        .sb-linha { position: relative; padding-left: 1.5rem; border-left: 3px solid #bae6fd; }
+        .sb-marco { position: relative; padding-bottom: 1.25rem; }
+        .sb-marco:last-child { padding-bottom: 0; }
+        .sb-marco::before { content: ''; position: absolute; left: calc(-1.5rem - 8px); top: 0.2rem; width: 13px; height: 13px; border-radius: 9999px; background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 2px #2563eb; }
+        .sb-foto-galeria { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 0.5rem; border: 1px solid #e2e8f0; }
+        .sb-embreve { border: 2px dashed #cbd5e1; border-radius: 0.5rem; padding: 1.25rem; text-align: center; color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
         @media (max-width: 640px) { .card-painel { padding: 0.85rem; border-radius: 0.65rem; } .titulo-painel { font-size: 0.7rem; margin-bottom: 0.6rem; padding-bottom: 0.4rem; } }
     </style>
     <script>
@@ -19,84 +36,189 @@
 </head>
 <body class="min-h-screen bg-[#f0f4f8] text-gray-800 font-sans">
 
-    <header class="bg-white px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-sm border-b border-gray-200 gap-2">
-        <a href="/" class="flex items-center gap-3 min-w-0">
-            <img src="/logo.png" alt="Logo Dark Coders" class="h-10 sm:h-12 w-auto object-contain shrink-0">
-            <div class="hidden md:block min-w-0">
-                <h1 class="text-xl font-bold text-gray-800 tracking-wide flex items-center flex-wrap">
-                    Dark Coders <span class="text-gray-400 font-medium mx-2 text-lg">x</span> <span class="text-[#e2005a] font-black tracking-widest text-xl manter-cor">FIAP</span> <span class="text-gray-400 font-medium mx-2 text-lg">x</span> <span class="text-[#00A0E3] font-black tracking-widest text-xl manter-cor">FESTO</span>
-                </h1>
-                <p class="text-xs text-gray-500 uppercase tracking-widest">Sistema de Controle</p>
-            </div>
-            <h1 class="md:hidden text-sm font-black text-gray-800 tracking-wide truncate">Dark Coders</h1>
-        </a>
-        <a href="/" class="bg-blue-500 text-white font-semibold px-4 sm:px-5 py-2.5 rounded-md hover:bg-blue-600 active:bg-blue-700 transition duration-200 tracking-wider text-xs sm:text-sm shrink-0">
-            ENTRAR NO SISTEMA
-        </a>
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+        <div class="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between gap-2">
+            <a href="/sobre" class="flex items-center gap-3 min-w-0">
+                <img src="/logo.png" alt="Logo Dark Coders" class="h-10 sm:h-12 w-auto object-contain shrink-0">
+                <div class="hidden md:block min-w-0">
+                    <h1 class="text-xl font-bold text-gray-800 tracking-wide flex items-center flex-wrap">
+                        Dark Coders <span class="text-gray-400 font-medium mx-2 text-lg">x</span> <span class="text-[#e2005a] font-black tracking-widest text-xl manter-cor">FIAP</span> <span class="text-gray-400 font-medium mx-2 text-lg">x</span> <span class="text-[#00A0E3] font-black tracking-widest text-xl manter-cor">FESTO</span>
+                    </h1>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest">Sobre nós</p>
+                </div>
+                <h1 class="md:hidden text-sm font-black text-gray-800 tracking-wide truncate">Dark Coders</h1>
+            </a>
+            <a href="/" class="bg-blue-500 text-white font-semibold px-4 sm:px-5 py-2.5 rounded-md hover:bg-blue-600 active:bg-blue-700 transition duration-200 tracking-wider text-xs sm:text-sm shrink-0">
+                ENTRAR NO SISTEMA
+            </a>
+        </div>
+        <nav class="sb-menu px-3 sm:px-6 pb-2 border-t border-gray-100 pt-1" aria-label="Seções da página">
+            <a href="#quem-somos">Quem somos</a>
+            <a href="#projeto">O projeto</a>
+            <a href="#equipe">Equipe</a>
+            <a href="#jornada">Jornada</a>
+            <a href="#contato">Contato</a>
+        </nav>
     </header>
 
     <main class="max-w-5xl mx-auto p-3 sm:p-6 flex flex-col gap-4 sm:gap-6">
 
-        <div class="card-painel">
-            <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">{{ sobre.titulo | default('Sobre nós') }}</h2>
-            <p class="text-[11px] text-slate-400">{{ sobre.subtitulo }}</p>
-        </div>
+        <section class="card-painel flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
+            <img src="{% if sobre.grupo.logo %}/img/projeto/{{ sobre.grupo.logo }}{% else %}/logo.png{% endif %}" alt="Logo {{ sobre.grupo.nome }}" class="h-20 sm:h-28 w-auto object-contain shrink-0">
+            <div class="min-w-0">
+                <h2 class="text-xl sm:text-3xl font-black text-slate-800 uppercase tracking-wider">{{ sobre.grupo.nome }} <span class="text-blue-600">· FlowPack</span></h2>
+                {% if sobre.grupo.frase %}<p class="text-sm sm:text-base text-slate-600 mt-1">{{ sobre.grupo.frase }}</p>{% endif %}
+                {% if sobre.grupo.curso %}<p class="text-[11px] sm:text-xs text-slate-400 mt-2 uppercase tracking-wide">{{ sobre.grupo.curso }}</p>{% endif %}
+                <div class="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
+                    <a href="#projeto" class="bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-md hover:bg-blue-600 transition text-xs tracking-wider">CONHEÇA O PROJETO</a>
+                    <a href="#equipe" class="bg-white border-2 border-slate-800 text-slate-800 font-semibold px-5 py-2.5 rounded-md hover:bg-slate-50 transition text-xs tracking-wider">CONHEÇA A EQUIPE</a>
+                </div>
+            </div>
+        </section>
 
-        <div class="card-painel">
-            <h3 class="titulo-painel">Equipe Dark Coders</h3>
-            {% if sobre.equipeTexto %}<p class="text-sm text-slate-600 mb-4">{{ sobre.equipeTexto }}</p>{% endif %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {% if sobre.quemSomos %}
+        <section id="quem-somos" class="card-painel sb-ancora">
+            <h3 class="titulo-painel">Quem somos</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">{{ sobre.quemSomos }}</p>
+        </section>
+        {% endif %}
+
+        <section id="projeto" class="flex flex-col gap-4 sm:gap-6 sb-ancora">
+            {% if sobre.projeto.problema or sobre.projeto.solucao or sobre.projeto.integracao %}
+            <div class="card-painel">
+                <h3 class="titulo-painel">Sobre o projeto FlowPack</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600 leading-relaxed">
+                    {% if sobre.projeto.problema %}<div><p class="text-xs font-black text-slate-500 uppercase tracking-wider mb-1">O problema</p><p>{{ sobre.projeto.problema }}</p></div>{% endif %}
+                    {% if sobre.projeto.solucao %}<div><p class="text-xs font-black text-slate-500 uppercase tracking-wider mb-1">A solução</p><p>{{ sobre.projeto.solucao }}</p></div>{% endif %}
+                </div>
+                {% if sobre.projeto.integracao %}<p class="text-sm text-slate-600 leading-relaxed mt-4">{{ sobre.projeto.integracao }}</p>{% endif %}
+            </div>
+            {% endif %}
+
+            {% if sobre.projeto.processo | length %}
+            <div class="card-painel">
+                <h3 class="titulo-painel">Como funciona a linha</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {% for e in sobre.projeto.processo %}
+                    <div class="flex items-start gap-3 border border-slate-200 rounded-lg p-3">
+                        <span class="w-7 h-7 bg-blue-600 text-white text-xs font-black rounded-full flex items-center justify-center shrink-0">{{ loop.index }}</span>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-slate-800">{{ e.nome }}</p>
+                            {% if e.texto %}<p class="text-xs text-slate-500">{{ e.texto }}</p>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if sobre.projeto.tecnologias | length %}
+            <div class="card-painel">
+                <h3 class="titulo-painel">Tecnologias</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for t in sobre.projeto.tecnologias %}<span class="sb-chip shadow-sm">{{ t }}</span>{% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card-painel">
+                <h3 class="titulo-painel">Galeria do protótipo</h3>
+                {% if sobre.projeto.galeria | length %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {% for f in sobre.projeto.galeria %}
+                    <figure>
+                        <img src="/img/projeto/{{ f.arquivo }}" alt="{{ f.legenda or 'Foto do projeto FlowPack' }}" loading="lazy" class="sb-foto-galeria">
+                        {% if f.legenda %}<figcaption class="text-xs text-slate-500 mt-1">{{ f.legenda }}</figcaption>{% endif %}
+                    </figure>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="sb-embreve">Fotos do protótipo e do processo em breve</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section id="equipe" class="card-painel sb-ancora">
+            <h3 class="titulo-painel">Conheça a equipe</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 items-start gap-3 sm:gap-4">
                 {% for p in sobre.equipe %}
-                <div class="flex items-center gap-3 border border-slate-200 rounded-lg p-3">
-                    <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 shrink-0">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                <article class="border border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-3">
+                    <div class="flex items-center gap-3">
+                        {% if p.foto %}
+                        <img src="/img/equipe/{{ p.foto }}" alt="Foto de {{ p.nome }}" loading="lazy" class="sb-avatar">
+                        {% else %}
+                        <div class="sb-avatar sb-iniciais" aria-hidden="true">{{ p.iniciais }}</div>
+                        {% endif %}
+                        <h4 class="text-sm sm:text-base font-bold text-slate-800 leading-snug min-w-0">{{ p.nome }}</h4>
                     </div>
-                    <div class="min-w-0">
-                        <p class="text-sm font-bold text-gray-800 leading-snug">{{ p.nome }}</p>
-                        {% if sobre.mostrarRM and p.rm %}<p class="text-xs text-gray-500">RM {{ p.rm }}</p>{% endif %}
+                    {% if p.descricao %}<p class="text-sm text-slate-600">{{ p.descricao }}</p>{% endif %}
+                    {% if p.habilidades | length %}
+                    <div class="flex flex-wrap gap-1.5">{% for h in p.habilidades %}<span class="sb-chip">{{ h }}</span>{% endfor %}</div>
+                    {% endif %}
+                    {% if p.contribuicao %}<p class="text-xs text-slate-500"><span class="font-black uppercase tracking-wide text-slate-400">No projeto:</span> {{ p.contribuicao }}</p>{% endif %}
+                    {% if p.links | length or p.email or p.telefone or p.whatsapp %}
+                    <div class="flex flex-wrap gap-2 mt-auto">
+                        {% for l in p.links %}<a class="sb-contato" href="{{ l.url }}" target="_blank" rel="noopener noreferrer">{{ l.rotulo }}</a>{% endfor %}
+                        {% if p.email %}<a class="sb-contato" href="mailto:{{ p.email }}">E-mail</a>{% endif %}
+                        {% if p.telefone %}<a class="sb-contato" href="tel:+{{ p.telefone }}">Ligar</a>{% endif %}
+                        {% if p.whatsapp %}<a class="sb-contato" href="https://wa.me/{{ p.whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>{% endif %}
                     </div>
-                </div>
+                    {% endif %}
+                </article>
                 {% endfor %}
             </div>
-        </div>
+        </section>
 
-        <div class="card-painel">
-            <h3 class="titulo-painel">{{ sobre.projetoTitulo | default('O projeto') }}</h3>
-            <div class="flex flex-col gap-2 text-sm text-slate-600">
-                {% for t in sobre.projetoTexto %}<p>{{ t }}</p>{% endfor %}
-            </div>
-        </div>
-
-        <div class="card-painel">
-            <h3 class="titulo-painel">{{ sobre.processoTitulo | default('Como funciona a linha') }}</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {% for e in sobre.processo %}
-                <div class="flex items-start gap-3 border border-slate-200 rounded-lg p-3">
-                    <span class="w-7 h-7 bg-blue-600 text-white text-xs font-black rounded-full flex items-center justify-center shrink-0">{{ loop.index }}</span>
-                    <div class="min-w-0">
-                        <p class="text-sm font-bold text-slate-800">{{ e.nome }}</p>
-                        <p class="text-xs text-slate-500">{{ e.texto }}</p>
+        <section id="jornada" class="flex flex-col gap-4 sm:gap-6 sb-ancora">
+            {% if sobre.jornada | length %}
+            <div class="card-painel">
+                <h3 class="titulo-painel">Nossa jornada</h3>
+                <div class="sb-linha ml-2">
+                    {% for m in sobre.jornada %}
+                    <div class="sb-marco">
+                        {% if m.data %}<p class="text-[11px] font-black text-blue-600 uppercase tracking-wider">{{ m.data }}</p>{% endif %}
+                        <p class="text-sm font-bold text-slate-800">{{ m.titulo }}</p>
+                        {% if m.texto %}<p class="text-xs sm:text-sm text-slate-500">{{ m.texto }}</p>{% endif %}
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
-        </div>
+            {% endif %}
+            {% if sobre.aprendemos | length %}
+            <div class="card-painel">
+                <h3 class="titulo-painel">O que aprendemos</h3>
+                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-600">
+                    {% for a in sobre.aprendemos %}<li class="flex gap-2"><span class="text-blue-600 font-black">✓</span><span>{{ a }}</span></li>{% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </section>
 
-        <div class="card-painel">
-            <h3 class="titulo-painel">{{ sobre.tecnologiasTitulo | default('Tecnologias') }}</h3>
+        <section id="contato" class="card-painel sb-ancora">
+            <h3 class="titulo-painel">Conecte-se conosco</h3>
             <div class="flex flex-wrap gap-2">
-                {% for t in sobre.tecnologias %}
-                <span class="bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm text-[11px] font-bold text-slate-700">{{ t }}</span>
-                {% endfor %}
+                {% if sobre.conecte.github %}<a class="sb-contato" href="{{ sobre.conecte.github }}" target="_blank" rel="noopener noreferrer">GitHub do projeto</a>{% endif %}
+                {% if sobre.conecte.email %}<a class="sb-contato" href="mailto:{{ sobre.conecte.email }}">{{ sobre.conecte.email }}</a>{% endif %}
+                {% for p in sobre.equipe %}{% for l in p.links %}{% if l.rotulo == 'LinkedIn' %}<a class="sb-contato" href="{{ l.url }}" target="_blank" rel="noopener noreferrer">LinkedIn · {{ p.nome.split(' ')[0] }}</a>{% endif %}{% endfor %}{% endfor %}
             </div>
-        </div>
+            <div class="mt-4">
+                <p class="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Vídeos de demonstração e outros projetos</p>
+                {% if sobre.conecte.videos | length %}
+                <div class="flex flex-wrap gap-2">
+                    {% for v in sobre.conecte.videos %}<a class="sb-contato" href="{{ v.url }}" target="_blank" rel="noopener noreferrer">{{ v.titulo or v.url }}</a>{% endfor %}
+                </div>
+                {% else %}
+                <div class="sb-embreve">Em breve</div>
+                {% endif %}
+            </div>
+        </section>
 
         <div class="flex justify-center py-2">
             <a href="/" class="bg-blue-500 text-white font-semibold px-8 py-3 rounded-md hover:bg-blue-600 active:bg-blue-700 transition duration-200 tracking-wider text-sm">
                 ENTRAR NO SISTEMA
             </a>
         </div>
-        <p class="text-center text-xs text-gray-400 pb-2">Dark Coders x FIAP x FESTO · 2026</p>
+        <p class="text-center text-xs text-gray-400 pb-2">{{ sobre.grupo.nome }} x FIAP x FESTO · 2026</p>
     </main>
 </body>
 </html>

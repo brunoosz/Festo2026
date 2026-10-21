@@ -1,29 +1,212 @@
 {
-  "titulo": "Sobre nós",
-  "subtitulo": "Equipe Dark Coders · FIAP × FESTO · 2026",
-  "mostrarRM": false,
+  "grupo": {
+    "nome": "Dark Coders",
+    "frase": "Engenharia da Computação aplicada à automação industrial",
+    "curso": "Engenharia da Computação · FIAP · 1ECR · Resolução Diferenciada de Problemas · 2026",
+    "logo": ""
+  },
+  "quemSomos": "Somos a Dark Coders, equipe de estudantes de Engenharia da Computação da FIAP. Desenvolvemos o FlowPack em parceria com a FESTO: uma máquina de embalagem automatizada que une software, eletrônica, automação e mecânica. Buscamos desenvolver, como equipe, a prática de projetar, construir e testar um sistema real, do código à máquina funcionando.",
+  "projeto": {
+    "problema": "Embalar produtos a granel com precisão, rapidez e rastreabilidade exige uma linha com vários equipamentos trabalhando juntos, e operá-la manualmente é lento e sujeito a erros.",
+    "solucao": "O FlowPack integra esteira, dispenser, selagens e um separador de itens com câmera e servo. Tudo é controlado por um site em tempo real, com receitas prontas, relatórios de produção, assistente de IA e comandos por voz pela Alexa.",
+    "tecnologias": [
+      "Raspberry Pi",
+      "ESP32",
+      "MQTT",
+      "Node.js",
+      "Visão computacional",
+      "Inteligência artificial",
+      "Alexa"
+    ],
+    "galeria": [],
+    "processo": [
+      {
+        "nome": "Bobina",
+        "texto": "Fornece o plástico."
+      },
+      {
+        "nome": "Dispenser",
+        "texto": "Dosa os grãos."
+      },
+      {
+        "nome": "Braço formador",
+        "texto": "Dobra o plástico em tubo."
+      },
+      {
+        "nome": "Selagem horizontal",
+        "texto": "Fecha o pacote."
+      },
+      {
+        "nome": "Selagem final",
+        "texto": "Sela e corta."
+      },
+      {
+        "nome": "Separador de itens",
+        "texto": "Câmera e servo separam cada produto."
+      }
+    ],
+    "integracao": "Integramos software (site, MQTT, visão computacional e IA), eletrônica (ESP32, sensores e drivers), automação (receitas, emergência e leitor de cartão) e mecânica (estrutura, rolos e peças impressas em 3D)."
+  },
   "equipe": [
-    { "nome": "Bruno Ridolfi Camperlingo Silveira Carneiro", "rm": "" },
-    { "nome": "Davi Baruch Gutierrez Varas", "rm": "" },
-    { "nome": "Rodrigo Santos Ferreira", "rm": "" },
-    { "nome": "Diego Silveira Carbonieri", "rm": "" },
-    { "nome": "Matheus Henrique Marins Vieira", "rm": "" }
+    {
+      "nome": "Bruno Ridolfi Camperlingo Silveira Carneiro",
+      "foto": "",
+      "descricao": "Estudante de Engenharia da Computação na FIAP, com foco em sistemas embarcados, IoT e desenvolvimento web full-stack. Gosto de ligar software, eletrônica e automação industrial em soluções que funcionam na prática.",
+      "habilidades": [
+        "ESP32 e Arduino (C++)",
+        "Raspberry Pi",
+        "Node.js e JavaScript",
+        "MQTT e IoT",
+        "Automação industrial",
+        "Integração de IA e visão computacional"
+      ],
+      "contribuicao": "No FlowPack, atuo no sistema de controle: site em tempo real (Raspberry Pi, Node.js e MQTT), comunicação com os ESP32 da esteira, das selagens, do dispenser e do separador, receitas de produção, visão computacional, comando por voz com a Alexa e documentação técnica da máquina.",
+      "links": {
+        "linkedin": "",
+        "github": "https://github.com/brunoosz",
+        "portfolio": "",
+        "outro": {
+          "nome": "",
+          "url": ""
+        }
+      },
+      "contato": {
+        "email": "",
+        "telefone": "",
+        "whatsapp": ""
+      },
+      "autorizou": true
+    },
+    {
+      "nome": "Davi Baruch Gutierrez Varas",
+      "foto": "",
+      "descricao": "",
+      "habilidades": [],
+      "contribuicao": "",
+      "links": {
+        "linkedin": "",
+        "github": "",
+        "portfolio": "",
+        "outro": {
+          "nome": "",
+          "url": ""
+        }
+      },
+      "contato": {
+        "email": "",
+        "telefone": "",
+        "whatsapp": ""
+      },
+      "autorizou": false
+    },
+    {
+      "nome": "Rodrigo Santos Ferreira",
+      "foto": "",
+      "descricao": "",
+      "habilidades": [],
+      "contribuicao": "",
+      "links": {
+        "linkedin": "",
+        "github": "",
+        "portfolio": "",
+        "outro": {
+          "nome": "",
+          "url": ""
+        }
+      },
+      "contato": {
+        "email": "",
+        "telefone": "",
+        "whatsapp": ""
+      },
+      "autorizou": false
+    },
+    {
+      "nome": "Diego Silveira Carbonieri",
+      "foto": "",
+      "descricao": "",
+      "habilidades": [],
+      "contribuicao": "",
+      "links": {
+        "linkedin": "",
+        "github": "",
+        "portfolio": "",
+        "outro": {
+          "nome": "",
+          "url": ""
+        }
+      },
+      "contato": {
+        "email": "",
+        "telefone": "",
+        "whatsapp": ""
+      },
+      "autorizou": false
+    },
+    {
+      "nome": "Matheus Henrique Marins Vieira",
+      "foto": "",
+      "descricao": "",
+      "habilidades": [],
+      "contribuicao": "",
+      "links": {
+        "linkedin": "",
+        "github": "",
+        "portfolio": "",
+        "outro": {
+          "nome": "",
+          "url": ""
+        }
+      },
+      "contato": {
+        "email": "",
+        "telefone": "",
+        "whatsapp": ""
+      },
+      "autorizou": false
+    }
   ],
-  "equipeTexto": "Alunos do curso 1ECR da FIAP (Engenharia da Computação), na disciplina Resolução Diferenciada de Problemas, em 2026. O projeto é feito em parceria com a FESTO.",
-  "projetoTitulo": "O projeto",
-  "projetoTexto": [
-    "A Flow Pack é uma máquina de embalagem que dosa grãos (arroz e feijão), forma e sela o plástico, corta e separa os produtos usando visão computacional.",
-    "Tudo é controlado por este site, que tem receitas prontas, relatórios de produção, um assistente de IA e comandos por voz pela Alexa."
+  "jornada": [
+    {
+      "data": "2026",
+      "titulo": "Ideia inicial",
+      "texto": "Definimos o desafio FIAP x FESTO e a proposta de uma linha Flow Pack controlada por um site."
+    },
+    {
+      "data": "2026",
+      "titulo": "Estudo e planejamento",
+      "texto": "Estudamos o processo de embalagem, escolhemos os componentes e dividimos as frentes de trabalho."
+    },
+    {
+      "data": "2026",
+      "titulo": "Protótipo",
+      "texto": "Montamos a esteira, as selagens, o dispenser e o separador, cada um com seu ESP32."
+    },
+    {
+      "data": "2026",
+      "titulo": "Testes",
+      "texto": "Calibramos temperaturas, velocidades e a visão computacional com produtos reais."
+    },
+    {
+      "data": "2026",
+      "titulo": "Desafios",
+      "texto": "Ruído elétrico nos botões, queda de energia e ajustes finos da câmera exigiram várias rodadas."
+    },
+    {
+      "data": "2026",
+      "titulo": "Melhorias",
+      "texto": "Emergência travada, cartão NFC, perfis de acesso e painel de controle completo."
+    }
   ],
-  "processoTitulo": "Como funciona a linha",
-  "processo": [
-    { "nome": "Bobina", "texto": "Fornece o plástico." },
-    { "nome": "Dispenser", "texto": "Dosa os grãos." },
-    { "nome": "Braço formador", "texto": "Dobra o plástico em tubo." },
-    { "nome": "Selagem horizontal", "texto": "Fecha o pacote." },
-    { "nome": "Selagem final", "texto": "Sela e corta." },
-    { "nome": "Separador de itens", "texto": "Câmera e servo separam cada produto." }
+  "aprendemos": [
+    "Integrar software, eletrônica e mecânica em um só sistema.",
+    "Projetar segurança desde o início: emergência, perfis e permissões.",
+    "Testar cada parte isoladamente antes de ligar tudo junto.",
+    "Trabalhar em equipe e documentar para os outros conseguirem repetir."
   ],
-  "tecnologiasTitulo": "Tecnologias",
-  "tecnologias": ["Raspberry Pi", "ESP32", "MQTT", "Node.js", "Visão computacional", "Inteligência artificial", "Alexa"]
+  "conecte": {
+    "githubProjeto": "https://github.com/brunoosz/Festo2026",
+    "emailGrupo": "",
+    "videos": []
+  }
 }

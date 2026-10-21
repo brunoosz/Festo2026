@@ -1181,7 +1181,18 @@ let selagem2Online = false;
 let ultimoEstadoSelagem2 = { temperatura: 0, setpoint: 0, potencia: 0, habilitado: false, seguranca: 'ok' };
 let ultimaSegurancaSelagem2Avisada = 'ok';
 
+// o historico guarda objetos { hora, texto, classe, usuario, tipo }; linhas em texto puro "[hh:mm:ss] mensagem" viram objeto
+function logParaObjeto(item) {
+    if (item && typeof item === 'object' && typeof item.texto === 'string') return item;
+    const bruto = String(typeof item === 'string' ? item : (item && item.texto) || '');
+    const m = bruto.match(/^\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*(.*)$/);
+    const texto = m ? m[2] : bruto;
+    const emergencia = /emerg[eê]ncia/i.test(texto);
+    return { hora: m ? m[1] : '', texto, classe: emergencia ? 'text-red-600 font-bold' : 'text-slate-700 font-medium', usuario: 'sistema', tipo: emergencia ? 'emergencia' : 'sistema' };
+}
+
 function salvarLogNoArquivoDoDia(logComUsuario) {
+    logComUsuario = logParaObjeto(logComUsuario);
     const dataLocal = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }).split(', ')[0];
     const partes = dataLocal.split('/');
     const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
@@ -2057,11 +2068,81 @@ mqttClient.publish = function (topico, mensagem, ...resto) {
     return mqttPublicarOriginal(topico, mensagem, ...resto);
 };
 
+// ================================================================================
+// CARTOES NFC: so cartao de DONO ou ADM libera a emergencia (decisao sempre do servidor)
+// ================================================================================
+const ARQ_NFC = process.env.CARTOES_NFC_JSON ? path.resolve(process.env.CARTOES_NFC_JSON) : path.join(__dirname, 'cartoes_nfc.json');
+let cartoesNfc = {};                       // { UID: { usuario, criadoEm, criadoPor } }
+try { cartoesNfc = JSON.parse(fs.readFileSync(ARQ_NFC, 'utf-8')); } catch (e) {}
+function nfcSalvar() { try { fs.writeFileSync(ARQ_NFC, JSON.stringify(cartoesNfc, null, 2)); } catch (e) { console.warn('NFC: nao consegui salvar:', e.message); } }
+let nfcOnline = false, nfcUltimaMsg = 0;
+let nfcUltimaLeitura = null;               // { uidFinal, hora, resultado }
+let nfcCadastro = null;                    // { usuario, ate, por }
+let nfcFalhas = [], nfcBloqueadoAte = 0;
+
+function nfcIdCurto(uid) { return crypto.createHash('sha1').update(uid).digest('hex').slice(0, 10); }
+function nfcResponder(resultado) { mqttPublicarOriginal('nfc/resultado', resultado); if (nfcUltimaLeitura) nfcUltimaLeitura.resultado = resultado; }
+function nfcLog(texto, tipo) {
+    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto, tipo: tipo || 'sistema' });
+    try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] ${texto}`); } catch (e) {}
+}
+
+function nfcProcessarLeitura(uid) {
+    if (!uid || uid.length < 8 || uid.length > 20) return;
+    const agora = Date.now();
+    nfcUltimaLeitura = { uidFinal: uid.slice(-4), hora: horaAtualCurta(), resultado: '' };
+    if (agora < nfcBloqueadoAte) { nfcResponder('bloqueado'); return; }
+
+    if (nfcCadastro && agora < nfcCadastro.ate) {                       // modo cadastro (so o Dono liga)
+        const existente = cartoesNfc[uid];
+        if (existente && existente.usuario !== nfcCadastro.usuario) { nfcResponder('negado'); nfcLog('NFC: cartao ja pertence a ' + existente.usuario + '.'); return; }
+        cartoesNfc[uid] = { usuario: nfcCadastro.usuario, criadoEm: new Date().toISOString(), criadoPor: nfcCadastro.por };
+        nfcSalvar(); nfcLog('NFC: cartao final ' + uid.slice(-4) + ' cadastrado para ' + nfcCadastro.usuario + ' (por ' + nfcCadastro.por + ').');
+        nfcCadastro = null; nfcResponder('cadastrado'); return;
+    }
+
+    const cartao = cartoesNfc[uid];
+    const u = cartao ? carregarUsuarios()[cartao.usuario] : null;
+    if (!u || !(Number(u.nivel) <= 2)) {                                // desconhecido ou sem nivel Dono/Adm
+        nfcFalhas = nfcFalhas.filter(t => agora - t < 60000); nfcFalhas.push(agora);
+        if (nfcFalhas.length >= 3) { nfcBloqueadoAte = agora + 30000; nfcFalhas = []; nfcLog('NFC: 3 leituras recusadas seguidas. Leitor bloqueado por 30 s.', 'emergencia'); }
+        nfcLog('NFC: cartao final ' + uid.slice(-4) + ' NAO autorizado.', 'emergencia'); nfcResponder('negado'); return;
+    }
+    nfcFalhas = [];
+    nfcJanelaAte = agora + NFC_JANELA_MS;
+    if (emergenciaGlobal.ativa) { emergenciaLiberar('cartao NFC de ' + cartao.usuario); nfcResponder('liberado'); }
+    else { nfcLog('NFC: cartao de ' + cartao.usuario + ' lido (nao havia emergencia ativa).'); nfcResponder('ok'); }
+}
+
+function nfcTratarMqtt(topic, valor) {
+    if (topic === 'nfc/status') { nfcUltimaMsg = Date.now(); nfcOnline = (valor === 'online'); }
+    if (topic === 'nfc/leitura') { nfcUltimaMsg = Date.now(); nfcOnline = true; nfcProcessarLeitura(String(valor).toUpperCase().replace(/[^0-9A-F]/g, '')); }
+}
+setInterval(() => { if (nfcOnline && Date.now() - nfcUltimaMsg > 15000) nfcOnline = false; }, 3000);
+
+// ================================================================================
+// PAINEL: botoes MAIS/MENOS so funcionam por um tempo depois de passar um cartao de Dono/Adm
+// (a EMERGENCIA do painel vale sempre)
+// ================================================================================
+const NFC_JANELA_MS = Number(process.env.NFC_JANELA_MS) || 30000;
+let nfcJanelaAte = 0;
+function nfcJanelaAberta() { return Date.now() < nfcJanelaAte; }
+
+function painelTratarBotao(valor) {
+    if (valor === 'emergencia') { receitasEmergenciaFisica(); return; }          // sempre permitido
+    if (valor !== 'mais' && valor !== 'menos') return;
+    if (emergenciaGlobal.ativa) { mqttPublicarOriginal('painel/resultado', 'travado'); return; }
+    if (!nfcJanelaAberta()) { mqttPublicarOriginal('painel/resultado', 'sem_permissao'); return; }
+    nfcJanelaAte = Date.now() + NFC_JANELA_MS;                                  // cada uso renova o tempo
+    receitasTratarBotao(valor);
+    mqttPublicarOriginal('painel/resultado', 'ok');
+}
 
 mqttClient.on('connect', () => {
     console.log('✅ Conectado ao Broker MQTT com sucesso!');
     mqttClient.subscribe([MQTT_TOPIC_DISP_STATUS, MQTT_TOPIC_DISP_ESTADO, MQTT_TOPIC_DISP_CONCLUIDO]);
     mqttClient.subscribe(['esteira/estado_emergencia']);
+    mqttClient.subscribe(['nfc/leitura', 'nfc/status', 'painel/botao']);
     mqttClient.subscribe(['esteira/botao']);
     mqttClient.subscribe(['separador/status', 'separador/estado']);
     setTimeout(separadorPublicarConfig, 600);
@@ -2102,6 +2183,8 @@ let ultimaMsgSelagem2 = 0;
 mqttClient.on('message', (topic, message) => {
     const valor = message.toString();
     if (topic === 'esteira/estado_emergencia') emergenciaTratarEsteira(valor);
+    if (topic.startsWith('nfc/')) nfcTratarMqtt(topic, valor);
+    if (topic === 'painel/botao') painelTratarBotao(valor);
     if (topic === 'esteira/botao') receitasTratarBotao(valor);
     if (topic.startsWith('separador/')) separadorTratarMqtt(topic, valor);
     // dispenser (ESP32 proprio)
@@ -2398,6 +2481,12 @@ function paginaPermitida(pagina) {
     };
 }
 
+// so Dono/Adm de verdade: nem o Visualizador (que le as telas de admin) entra aqui
+function adminEstritoObrigatorio(req, res, next) {
+    if (!res.locals.isAdmin) return res.status(403).send('Acesso negado. Esta área é restrita a administradores.');
+    next();
+}
+
 function adminObrigatorio(req, res, next) {
     const soLeitura = req.method === 'GET' || req.method === 'HEAD';
     if (!res.locals.isAdmin && !(res.locals.somenteLeitura && soLeitura)) {
@@ -2434,11 +2523,9 @@ setInterval(() => {
 }, 10 * 60 * 1000).unref();
 
 // pagina publica "sobre nos": so texto estatico, sem login e sem nenhum dado da maquina
-const arquivoSobre = path.join(__dirname, 'data', 'sobre.json');
+const arquivoSobre = process.env.SOBRE_JSON ? path.resolve(process.env.SOBRE_JSON) : path.join(__dirname, 'data', 'sobre.json');
 app.get('/sobre', (req, res) => {
-    let sobre = { equipe: [] };
-    try { sobre = JSON.parse(fs.readFileSync(arquivoSobre, 'utf-8')); } catch (e) {}
-    res.render('sobre.html', { sobre });
+    res.render('sobre.html', { sobre: require('./sobre_dados').carregar(arquivoSobre) });
 });
 
 // rotas
@@ -2862,8 +2949,9 @@ app.delete('/api/visao/produtos/:id', loginObrigatorio, adminObrigatorio, (req, 
 // rota dos logs e da produção
 app.get('/api/logs/:data', loginObrigatorio, (req, res) => {
     const arquivo = path.join(pastaLogs, `${req.params.data}.json`);
-    if (fs.existsSync(arquivo)) res.json(JSON.parse(fs.readFileSync(arquivo, 'utf-8')));
-    else res.json([]);
+    let lista = [];
+    try { if (fs.existsSync(arquivo)) lista = JSON.parse(fs.readFileSync(arquivo, 'utf-8')); } catch (e) {}
+    res.json(Array.isArray(lista) ? lista.map(logParaObjeto) : []);   // conserta tambem linhas antigas salvas como texto
 });
 
 app.get('/api/producao/historico', loginObrigatorio, (req, res) => {
@@ -2891,7 +2979,44 @@ app.get('/dispenser', loginObrigatorio, paginaPermitida('dispenser'), (req, res)
 
 // --- emergencia global: estado e liberacao (so o site libera) ---
 app.get('/api/emergencia', loginObrigatorio, (req, res) => res.json(emergenciaGlobal));
-app.post('/api/emergencia/liberar', loginObrigatorio, (req, res) => {
+
+// --- cartoes NFC: tela e API (so Dono/Adm veem; so o Dono cadastra e apaga) ---
+app.get('/nfc', loginObrigatorio, adminEstritoObrigatorio, (req, res) => res.render('nfc.html'));
+app.get('/api/nfc/estado', loginObrigatorio, adminEstritoObrigatorio, (req, res) => {
+    const usuarios = carregarUsuarios();
+    res.json({
+        online: nfcOnline,
+        ultimaLeitura: nfcUltimaLeitura,
+        cadastro: nfcCadastro && Date.now() < nfcCadastro.ate ? { usuario: nfcCadastro.usuario, restanteS: Math.ceil((nfcCadastro.ate - Date.now()) / 1000) } : null,
+        bloqueadoS: Math.max(0, Math.ceil((nfcBloqueadoAte - Date.now()) / 1000)),
+        janelaS: Math.max(0, Math.ceil((nfcJanelaAte - Date.now()) / 1000)),
+        podeCadastrar: res.locals.nivelUsuario === 1,
+        elegiveis: Object.keys(usuarios).filter(n => Number(usuarios[n].nivel) <= 2),
+        cartoes: Object.keys(cartoesNfc).map(uid => ({
+            id: nfcIdCurto(uid), final: uid.slice(-4), usuario: cartoesNfc[uid].usuario, criadoEm: cartoesNfc[uid].criadoEm,
+            nivel: (usuarios[cartoesNfc[uid].usuario] || {}).nivel || null
+        }))
+    });
+});
+app.post('/api/nfc/cadastrar', loginObrigatorio, donoObrigatorio, (req, res) => {
+    const nome = String((req.body && req.body.usuario) || '');
+    const u = carregarUsuarios()[nome];
+    if (!u) return res.status(404).json({ erro: 'Usuario nao encontrado.' });
+    if (!(Number(u.nivel) <= 2)) return res.status(400).json({ erro: 'So Dono ou Adm podem ter cartao.' });
+    if (!nfcOnline) return res.status(409).json({ erro: 'O leitor NFC esta desconectado.' });
+    nfcCadastro = { usuario: nome, ate: Date.now() + 30000, por: res.locals.usuarioLogado || 'dono' };
+    res.json({ sucesso: true, segundos: 30 });
+});
+app.post('/api/nfc/cadastrar/cancelar', loginObrigatorio, donoObrigatorio, (req, res) => { nfcCadastro = null; res.json({ sucesso: true }); });
+app.delete('/api/nfc/cartoes/:id', loginObrigatorio, donoObrigatorio, (req, res) => {
+    const uid = Object.keys(cartoesNfc).find(k => nfcIdCurto(k) === req.params.id);
+    if (!uid) return res.status(404).json({ erro: 'Cartao nao encontrado.' });
+    const dono = cartoesNfc[uid].usuario; delete cartoesNfc[uid]; nfcSalvar();
+    nfcLog('NFC: cartao de ' + dono + ' apagado por ' + (res.locals.usuarioLogado || 'dono') + '.');
+    res.json({ sucesso: true });
+});
+
+app.post('/api/emergencia/liberar', loginObrigatorio, adminEstritoObrigatorio, (req, res) => {
     emergenciaLiberar(res.locals.usuarioLogado || (req.session && req.session.usuario) || 'usuario');
     res.json(emergenciaGlobal);
 });
@@ -2971,6 +3096,7 @@ function receitasEmergenciaFisica() {
 function receitasTratarBotao(valor) {
     if (valor === 'emergencia') { receitasEmergenciaFisica(); return; }
     if (emergenciaGlobal.ativa) return;
+    if (!nfcJanelaAberta()) return;
     if (!receitas.botoesAtivos) return;
     if (valor === 'mais') receitasAplicar(Math.min(receitas.niveis.length - 1, receitas.atual + 1), 'botao MAIS');
     if (valor === 'menos') receitasAplicar(Math.max(0, receitas.atual - 1), 'botao MENOS');
@@ -3177,7 +3303,8 @@ app.get('/api/sistema/status', loginObrigatorio, adminObrigatorio, (req, res) =>
                 { id: 'selagem2m', nome: 'Selagem 2 - motor', online: !!selagem2MotorOnline },
                 { id: 'dispenser', nome: 'Dispenser', online: !!dispenserOnline },
                 { id: 'separador', nome: 'Separador (servo)', online: !!separadorOnline },
-                { id: 'camera', nome: 'Camera', online: !!cameraOnline }
+                { id: 'camera', nome: 'Camera', online: !!cameraOnline },
+                { id: 'nfc', nome: 'Leitor NFC', online: !!nfcOnline }
             ]
         });
     });

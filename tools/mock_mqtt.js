@@ -25,11 +25,14 @@ function placasDeMentira() {
     const pub = (t, v) => c.publish(t, typeof v === 'string' ? v : JSON.stringify(v));
 
     c.on('connect', () => {
-        c.subscribe(['esteira/velocidade/set', 'selagem/set_temperatura', 'selagem/ativar', 'selagem2/set_temperatura', 'selagem2/ativar', 'separador/teste', 'separador/config']);
-        console.log('Placas de mentira ligadas: esteira, selagem 1, selagem 2, dispenser, servo do separador');
+        c.subscribe(['esteira/velocidade/set', 'selagem/set_temperatura', 'selagem/ativar', 'selagem2/set_temperatura', 'selagem2/ativar', 'separador/teste', 'separador/config', 'nfc/resultado', 'painel/resultado']);
+        console.log('Placas de mentira ligadas: esteira, selagem 1, selagem 2, dispenser, servo do separador, painel NFC');
+        console.log('Painel NFC de mentira: digite aqui  cartao <NUMERO-HEX>  |  mais  |  menos  |  emergencia  (ex.: cartao A1B2C3D4)');
     });
     c.on('message', (t, m) => {
         const v = m.toString();
+        if (t === 'nfc/resultado') console.log('[painel] cartao ->', v);
+        if (t === 'painel/resultado') console.log('[painel] botao ->', v);
         if (t === 'esteira/velocidade/set') velocidade = v;
         if (t === 'selagem/set_temperatura') setpoint1 = Number(v);
         if (t === 'selagem/ativar') ligada1 = v === '1';
@@ -55,10 +58,20 @@ function placasDeMentira() {
         pub('selagem/motores/status', 'online');
         pub('selagem2/motor/status', 'online');
         pub('dispenser/status', 'online');
+        pub('nfc/status', 'online');
         pub('separador/status', 'online');
         pub('separador/estado', { lado: servo.lado, angulo: servo.angulos[servo.lado], fila: servo.fila });
         pub('dispenser/estado', { m1: { ocupado: false, restantes: 0 }, m2: { ocupado: false, restantes: 0 } });
     }, 1000);
+
+    // painel de mentira: comandos digitados no terminal do mock
+    if (process.stdin.isTTY) {
+        require('readline').createInterface({ input: process.stdin }).on('line', linha => {
+            const [cmd, arg] = linha.trim().split(/\s+/);
+            if (cmd === 'cartao' && arg) pub('nfc/leitura', arg);
+            else if (['mais', 'menos', 'emergencia'].includes(cmd)) pub('painel/botao', cmd);
+        });
+    }
 }
 
 module.exports = { iniciar };
