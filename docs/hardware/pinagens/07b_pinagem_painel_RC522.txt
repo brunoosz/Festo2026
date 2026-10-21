@@ -1,0 +1,57 @@
+PINAGEM - ESP32 DO PAINEL: LEITOR NFC RC522 (azulzinho, SPI) + 3 BOTOES + BUZZER  (um ESP32 so para isso)
+Placa no Arduino IDE: ESP32 Dev Module     Biblioteca: MFRC522 (GithubCommunity / miguelbalboa)
+=====================================================================
+
+RC522                      ESP32
+-----------------------------------
+3.3V                       3V3          (ATENCAO: so 3,3 V. 5 V QUEIMA o RC522)
+GND                        GND
+RST                        GPIO 4
+SDA (e o SS / chip select) GPIO 5
+SCK                        GPIO 18
+MOSI                       GPIO 23
+MISO                       GPIO 19
+IRQ                        NAO LIGAR
+
+Se o Monitor Serial disser "RC522 NAO ENCONTRADO": confira os 7 fios (principalmente SDA, SCK, MOSI, MISO) e o 3,3 V.
+
+BUZZER (use um transistor; nao ligue o buzzer direto no pino)
+-----------------------------------
+GPIO 25  ->  resistor 1 kOhm  ->  base do transistor NPN (BC547 ou 2N2222)
+emissor do transistor         ->  GND
+coletor do transistor         ->  terminal (-) do buzzer
+terminal (+) do buzzer        ->  5 V (ou 3,3 V, conforme o buzzer)
+Opcional: diodo 1N4148 em paralelo com o buzzer (risco virado para o +).
+Teste: ligue o buzzer direto em 5 V por um instante. Se APITA sozinho, e ATIVO (o codigo ja esta assim).
+Se so faz um "tec", e PASSIVO: no codigo troque  #define BUZZER_PASSIVO false  por  true.
+
+LEDS (opcionais)
+-----------------------------------
+GPIO 26 -> 330 Ohm -> LED verde -> GND    (aceso enquanto MAIS/MENOS estao liberados)
+GPIO 27 -> 330 Ohm -> LED vermelho -> GND (aceso enquanto a emergencia esta ativa)
+
+ALIMENTACAO / INSTALACAO
+-----------------------------------
+5 V do regulador no pino VIN do ESP32 (ou USB). GND comum. Para gravar pelo USB, tire o fio de 5 V do VIN.
+Leitor longe de motores e fios de potencia, e sem chapa de metal atras (use espacador de plastico).
+Alcance do RC522: cerca de 2 a 3 cm.
+
+
+BOTOES DO PAINEL (3 botoes de apertar: um fio no pino, o outro no GND; sem resistor externo)
+-----------------------------------
+EMERGENCIA                 GPIO 32  <->  GND     (vale SEMPRE)
+MAIS (+)                   GPIO 33  <->  GND     (so funciona depois de passar o cartao)
+MENOS (-)                  GPIO 14  <->  GND     (so funciona depois de passar o cartao)
+Anti-ruido (recomendado no botao de EMERGENCIA): resistor de 10 kOhm do pino ao 3V3 e capacitor de 100 nF
+(104) em paralelo com o botao; fios trancados e longe dos fios de motor.
+
+COMO FUNCIONA O PAINEL
+-----------------------------------
+ * Passar cartao de Dono/Adm: libera a emergencia (se estiver ativa) E libera MAIS/MENOS por 30 s
+   (LED verde aceso; cada uso renova os 30 s). Passou o tempo, trava de novo.
+ * MAIS/MENOS sem cartao: 1 bip medio (0,2 s) e nada acontece. Em emergencia ativa tambem ficam bloqueados.
+ * EMERGENCIA do painel: sempre vale. Mantenha tambem o botao de emergencia LIGADO NO ESP32 DA ESTEIRA (GPIO 32 de la):
+   ele para a esteira na hora, mesmo sem Wi-Fi. Os dois podem existir juntos.
+
+BIPS: 1 longo (1 s) aceito | 3 curtos nao autorizado | 2 curtos o site nao respondeu | 4 curtos bloqueado | 2 medios cadastrado
+MONITOR SERIAL (115200): STATUS | BIP | UID | AJUDA

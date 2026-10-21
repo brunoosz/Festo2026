@@ -4,17 +4,13 @@
 #include <math.h>
 
 // ============================================================
-// FLOWPACK - ESTEIRA (1 ESP32 + 1 BTS7960 + 3 BOTOES)
+// FLOWPACK - ESTEIRA (1 ESP32 + 1 BTS7960 + BOTAO DE EMERGENCIA)
 //
-// Funciona pelo site e pelos 3 botoes da maquina:
-//   EMERGENCIA : para a esteira NA HORA (mesmo sem Wi-Fi) e avisa o site,
-//                que para todas as outras placas. DEPOIS DISSO A ESTEIRA
-//                FICA TRAVADA (mesmo se desligar e ligar): nada mexe ate
-//                alguem LIBERAR no site (botao DESBLOQUEAR).
-//   MAIS       : sobe o nivel da receita (50 > 100 > 150 > 200 g)
-//   MENOS      : desce o nivel da receita
-// As receitas (velocidade da esteira, das selagens e temperaturas)
-// ficam guardadas no site, na tela "Receitas".
+// O botao de EMERGENCIA fica AQUI (GPIO 32): para a esteira NA HORA, mesmo sem Wi-Fi, e avisa o site,
+// que para todas as outras placas. DEPOIS DISSO A ESTEIRA FICA TRAVADA (mesmo se desligar e ligar)
+// ate alguem de Dono/Adm LIBERAR (botao DESBLOQUEAR no site ou cartao NFC).
+// Os botoes MAIS e MENOS (receitas) agora ficam no ESP32 do PAINEL (leitor de cartao):
+// so funcionam depois de passar um cartao de Dono ou Adm.
 //
 // Monitor Serial (115200): V=60, INVERTER, EMERGENCIA, STATUS, AJUDA
 //
@@ -63,10 +59,8 @@ Preferences memoria;
 #define PIN_LPWM 26
 #define PIN_EN   27      // R_EN e L_EN ligados juntos
 
-// Botoes: um fio no pino, o outro no GND (usam o resistor interno)
+// Botao de emergencia: um fio no pino, o outro no GND (usa o resistor interno)
 #define BTN_EMERGENCIA 32
-#define BTN_MAIS       33
-#define BTN_MENOS      14
 
 
 // ============================================================
@@ -113,10 +107,8 @@ struct Botao {
   unsigned long altoDesde;
 };
 
-Botao botoes[3] = {
-  { BTN_EMERGENCIA, "emergencia", 120, false, false, 0, false, false, 0 },
-  { BTN_MAIS,       "mais",        50, false, false, 0, false, false, 0 },
-  { BTN_MENOS,      "menos",       50, false, false, 0, false, false, 0 }
+Botao botoes[1] = {
+  { BTN_EMERGENCIA, "emergencia", 120, false, false, 0, false, false, 0 }
 };
 
 const unsigned long BOTOES_APOS_LIGAR_MS = 3000;
@@ -351,19 +343,6 @@ void botaoApertado(const char* nome, unsigned long duracaoMs) {
     return;
   }
 
-  // com a emergencia ativa, MAIS e MENOS nao fazem nada
-  if (emergenciaTravada) {
-    Serial.println(">>> BOTAO ignorado: emergencia ativa. Libere no site.");
-    return;
-  }
-
-  if (client.connected()) {
-    publicarBotao(nome);          // o site aplica a receita do nivel
-  }
-  else {
-    int novo = velocidadePct + (String(nome) == "mais" ? 25 : -25);
-    definirVelocidade(novo, "BOTAO sem site");
-  }
 }
 
 void lerBotoes() {
@@ -375,7 +354,7 @@ void lerBotoes() {
 
   bool aposLigar = agora > BOTOES_APOS_LIGAR_MS;
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 1; i++) {
 
     Botao& b = botoes[i];
 
@@ -435,12 +414,8 @@ void mostrarStatus() {
   Serial.println(sentidoInvertido ? "INVERTIDO" : "NORMAL");
   Serial.print("Emergencia: ");
   Serial.println(emergenciaTravada ? "ATIVA (travada ate liberar no site)" : "liberada");
-  Serial.print("Botoes (1 = solto): emergencia ");
-  Serial.print(digitalRead(BTN_EMERGENCIA));
-  Serial.print(" | mais ");
-  Serial.print(digitalRead(BTN_MAIS));
-  Serial.print(" | menos ");
-  Serial.println(digitalRead(BTN_MENOS));
+  Serial.print("Botao de emergencia (1 = solto): ");
+  Serial.println(digitalRead(BTN_EMERGENCIA));
   Serial.print("Site: ");
   Serial.println(client.connected() ? "CONECTADO" : "DESCONECTADO");
   Serial.println("===================");
@@ -459,7 +434,7 @@ void processarComando(String comando) {
   else if (comando == "STATUS") mostrarStatus();
   else if (comando == "AJUDA") {
     Serial.println("V=60  INVERTER  EMERGENCIA  STATUS  AJUDA  (com a emergencia ativa so o site libera)");
-    Serial.println("Botoes: GPIO 32 emergencia | 33 mais | 14 menos (outro lado no GND)");
+    Serial.println("Botao de emergencia: GPIO 32 (outro lado no GND)");
   }
   else Serial.println("Comando desconhecido. Digite AJUDA.");
 }
@@ -572,8 +547,6 @@ void setup() {
   aplicarMotor(0, true);
 
   pinMode(BTN_EMERGENCIA, INPUT_PULLUP);
-  pinMode(BTN_MAIS, INPUT_PULLUP);
-  pinMode(BTN_MENOS, INPUT_PULLUP);
 
   memoria.begin("esteira", false);
   sentidoInvertido = memoria.getBool("inv", false);
@@ -587,7 +560,7 @@ void setup() {
   Serial.println("FLOWPACK - ESTEIRA");
   Serial.println("==============================");
   Serial.println("BTS7960: RPWM 25 / LPWM 26 / EN 27");
-  Serial.println("Botoes: emergencia 32 / mais 33 / menos 14");
+  Serial.println("Botao de emergencia: GPIO 32 (MAIS/MENOS ficam no painel NFC)");
   if (emergenciaTravada) Serial.println("!!! EMERGENCIA ATIVA (salva antes de desligar): libere no site para usar a esteira.");
 
   WiFi.mode(WIFI_STA);

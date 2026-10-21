@@ -1,0 +1,68 @@
+GUIA DO PAINEL NFC (cartao + botoes) - passo a passo para o Bruno
+=================================================================
+Abra os .txt no Bloco de Notas. NAO cole codigo no terminal do Raspberry.
+
+A NOVA LOGICA (resumo)
+ * Um ESP32 so para o PAINEL: leitor de cartao + buzzer + LEDs + 3 botoes (EMERGENCIA, MAIS, MENOS).
+ * Passar o cartao de um DONO ou ADM:  (1) libera a emergencia, se estiver ativa; (2) libera MAIS e MENOS por 30 segundos
+   (LED verde aceso; cada vez que usar, renova os 30 s). Acabou o tempo: bloqueia de novo.
+ * MAIS e MENOS sem cartao: 1 bip medio (0,2 s) e nada acontece. Isso vale ate para os botoes antigos da esteira.
+ * EMERGENCIA: vale SEMPRE, com ou sem cartao. (Seguranca: nunca bloqueie o botao de parada.)
+ * Fora isso, nada mais se mexe pelo painel. A decisao e sempre do site (servidor).
+ * Recomendacao: mantenha tambem UM botao de emergencia ligado no ESP32 da ESTEIRA (GPIO 32 de la). Ele para a esteira
+   na hora, mesmo se o Wi-Fi cair. O do painel e um segundo botao.
+
+PARTE 0 - QUAL LEITOR USAR
+ RC522 = modulinho AZUL (7 fios, 3,3 V) | PN532 V3 = placa VERMELHA (4 fios, I2C). Os dois leem o cartao branco e o
+ chaveiro azul do kit (MIFARE Classic 1K). O PN532 e um pouco melhor, mas a diferenca e pequena: use o que funcionar.
+ Firmware e pinagem para cada um:  firmware_painel_rc522.txt + pinagem_painel_rc522.txt  OU  firmware_painel_pn532.txt + pinagem_painel_pn532.txt
+
+PARTE 1 - LIGAR O PAINEL (um ESP32 so para ele)
+ Siga a pinagem do seu leitor: ela inclui o leitor, o buzzer (com transistor), os LEDs e os 3 botoes
+ (EMERGENCIA GPIO 32, MAIS GPIO 33, MENOS GPIO 14, cada um entre o pino e o GND).
+
+PARTE 2 - GRAVAR OS ESP32 (Arduino IDE, placa "ESP32 Dev Module")
+ 1) Bibliotecas: RC522 -> "MFRC522" (GithubCommunity) | PN532 -> "Adafruit PN532" (+BusIO) | PubSubClient (as de sempre).
+ 2) PAINEL: cole o firmware do seu leitor, tire o fio de 5 V do VIN, Upload. Monitor Serial 115200: deve dizer "RC522 OK" / "PN532 OK".
+    Aproxime o cartao: ">>> CARTAO LIDO: XXXXXXXX". Anote o FINAL (4 ultimos digitos) e escreva no cartao.
+    Digite STATUS: mostra leitor, site, emergencia, se MAIS/MENOS estao liberados e o estado dos 3 botoes (1 = solto, 0 = apertado).
+ 3) ESTEIRA: grave o NOVO firmware_esteira.txt (agora so tem o botao de EMERGENCIA; MAIS/MENOS sairam daqui).
+    Se voce tinha MAIS/MENOS ligados na esteira, pode desligar esses fios.
+
+PARTE 3 - INSTALAR NO SITE (Raspberry, pelo VS Code; rode so o que falta, na ordem)
+   instalar_fase4.py (emergencia travada)  ->  instalar_fase5.py (cartao NFC)  ->  instalar_fase6.py (botoes so com cartao)
+ Para cada um: arraste o arquivo ..._py.txt para /root, salve como /root/instalar_faseN.py e rode (uma linha por vez):
+      python3 /root/instalar_fase6.py
+      sudo systemctl restart site_esteira        (depois Ctrl+Shift+R)
+ Siga so se nao aparecer ❌. A fase 6 exige a fase 5; a fase 5 exige a fase 4.
+ Resultado: menu "Cartoes NFC" (Dono/Adm) mostra o leitor, o ultimo cartao e "Botoes MAIS e MENOS: liberados/bloqueados".
+
+PARTE 4 - CADASTRAR O CARTAO E A TAG (so o Dono cadastra)
+ OPCAO A (recomendada): os dois no seu usuario Dono (cartao = uso normal, tag = reserva/chaveiro).
+ OPCAO B: cartao no Dono e a tag para outro Adm (crie o usuario Adm antes na tela Usuarios).
+ Para cada um: site > Cartoes NFC > escolha o usuario > "Cadastrar cartao" > em ate 30 s aproxime o cartao >
+ 2 bips medios = cadastrado. Confira o final do numero na lista. Nao da para cadastrar cartao de Operario (de proposito).
+ Cartao perdido: apague na mesma tela (so o Dono).
+
+PARTE 5 - TESTES (nesta ordem)
+  1) Sem cartao: aperte MAIS -> 1 bip medio e nada muda na receita.
+  2) Passe o cartao cadastrado: 1 bip longo (1 s), LED verde aceso. Aperte MAIS e MENOS: a receita sobe/desce (50/100/150/200 g).
+  3) Fique 30 s sem apertar: o LED verde apaga. MAIS volta a dar o bip medio.
+  4) Aperte a EMERGENCIA do painel (sem cartao): tudo trava, LED vermelho acende. MAIS/MENOS ficam bloqueados.
+  5) Passe o cartao: 1 bip longo, a emergencia sai (esteira continua parada) e os botoes ficam liberados por 30 s.
+  6) Cartao nao cadastrado: 3 bips curtos, nada libera. 3 erros seguidos: 4 bips e bloqueio de 30 s.
+  7) Sem site/Wi-Fi: o cartao da 2 bips curtos e NADA libera (de proposito).
+  8) Como Operario no site: nao consegue liberar a emergencia ("Somente Dono ou Adm").
+
+PARTE 6 - SE ALGO DER ERRADO
+  * Leitor nao encontrado: confira os fios (RC522: 7 fios e 3,3 V; PN532: modo I2C, SDA/SCL/IRQ/RST).
+  * Nao le o cartao: 2-3 cm, sem metal atras, longe dos motores.   * Buzzer mudo ou so "tec": e passivo -> BUZZER_PASSIVO = true.
+  * 2 bips curtos: o site nao respondeu (Serial: STATUS).   * 3 bips com cartao seu: usuario nao e Dono/Adm ou cartao de outro usuario.
+  * MAIS/MENOS dao so bip medio: passe o cartao antes. Se passou e continua: confira o Serial do painel (STATUS) e se o site esta online.
+  * Emergencia disparando sozinha: veja a linha do Monitor Serial (">>> BOTAO ..." = fiacao/ruido; ">>> EMERGENCIA (SITE)" = veio do site/painel).
+  * Mudar os 30 s: no firmware do painel (JANELA_MS) E no servidor (variavel NFC_JANELA_MS, padrao 30000). Mantenha os dois iguais.
+
+LIMITES (honestidade)
+  * O numero do cartao (UID) pode ser copiado por cartoes "magicos": serve para o projeto, nao e seguranca forte.
+  * O MQTT nao tem senha: quem estiver no Wi-Fi DarkCoders poderia publicar comandos. Posso fazer a protecao depois.
+  * Testado so em simulacao (firmware e site). Com o modulo real, se algo falhar, me mande o Monitor Serial.

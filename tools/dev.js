@@ -12,6 +12,8 @@ process.env.USUARIOS_JSON = process.env.USUARIOS_JSON || path.join(pasta, 'usuar
 process.env.EMERGENCIA_JSON = process.env.EMERGENCIA_JSON || path.join(pasta, 'emergencia_estado.json');
 process.env.RECEITAS_JSON = process.env.RECEITAS_JSON || path.join(pasta, 'receitas.json');
 
+process.env.CARTOES_NFC_JSON = process.env.CARTOES_NFC_JSON || path.join(pasta, 'cartoes_nfc.json');
+
 if (!fs.existsSync(process.env.USUARIOS_JSON)) criarUsuariosTeste(process.env.USUARIOS_JSON);
 
 console.log('MODO DE TESTE: dados em data-teste/ (o usuarios.json real nao e usado)');

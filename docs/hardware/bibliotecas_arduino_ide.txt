@@ -14,6 +14,8 @@ BIBLIOTECAS E CONFIGURACAO DO ARDUINO IDE - FLOWPACK
    Adafruit MLX90614 Library Adafruit                Selagem 1 e Selagem 2 (aquecimento)
    Adafruit BusIO            Adafruit                (instala junto; aceite as dependencias)
    esp32cam                  yoursunny               so a camera (firmware opcional)
+   Adafruit PN532            Adafruit                leitor NFC PN532 (08a, painel) (+ Adafruit BusIO)
+   MFRC522                   GithubCommunity         leitor NFC RC522 azulzinho (08b, painel)
 
 3) JA VEM COM A PLACA ESP32 (nao precisa instalar)
    WiFi, Wire, Preferences, WebServer, esp_camera
@@ -26,6 +28,8 @@ BIBLIOTECAS E CONFIGURACAO DO ARDUINO IDE - FLOWPACK
    05 dispenser .......... WiFi, PubSubClient, Preferences
    06 separador (servo) .. WiFi, PubSubClient, Preferences
    07 camera (opcional) .. WiFi, WebServer, esp32cam
+   08a painel NFC PN532 .. WiFi, PubSubClient, Wire, Adafruit_PN532
+   08b painel NFC RC522 .. WiFi, PubSubClient, SPI, MFRC522
 
 5) RASPBERRY (site) - pacotes npm (a pasta /root/site_esteira ja tem; so para referencia)
    express  express-session  cookie-parser  socket.io  mqtt  multer  nunjucks  chokidar@3

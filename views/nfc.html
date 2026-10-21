@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Cartões NFC{% endblock %}
+
+{% block content %}
+<style>
+    .nf-h3 { font-size: 12px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }
+    .nf-led { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: #94a3b8; vertical-align: middle; }
+    .nf-led.on { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,.6); } .nf-led.off { background: #ef4444; }
+    .nf-btn { border: 2px solid #1e293b; background: #fff; color: #1e293b; border-radius: 10px; padding: 9px 14px; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .nf-btn.azul { background: #2563eb; border-color: #2563eb; color: #fff; } .nf-btn.verm { background: #dc2626; border-color: #dc2626; color: #fff; padding: 6px 10px; }
+    .nf-btn[disabled] { opacity: .45; cursor: not-allowed; }
+    .nf-linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; }
+    .nf-linha:last-child { border-bottom: 0; }
+    .nf-campo select { width: 100%; border: 2px solid #e2e8f0; border-radius: 8px; padding: 9px 10px; font-size: 14px; background: #fff; margin-top: 4px; }
+    .nf-dica { font-size: 11px; color: #64748b; line-height: 1.5; margin-top: 8px; }
+    .nf-tag { font-size: 10px; font-weight: 900; padding: 2px 9px; border-radius: 999px; background: #e0e7ff; color: #3730a3; }
+    .nf-aviso { border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 800; margin-top: 10px; }
+    .nf-aviso.azul { background: #dbeafe; color: #1e40af; } .nf-aviso.verm { background: #fee2e2; color: #991b1b; }
+    .nf-oculto { display: none !important; }
+</style>
+<div class="flex flex-col gap-4 sm:gap-5 max-w-3xl mx-auto w-full">
+    <div class="card-painel">
+        <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Cartões NFC</h2>
+        <p class="text-[11px] text-slate-400">Cartão de Dono ou Adm libera a parada de emergência e também libera os botões MAIS e MENOS por 30 s. A decisão é sempre do servidor.</p>
+        <div class="nf-linha" style="margin-top:8px"><span><i id="nf-led" class="nf-led"></i><b>Leitor NFC</b></span><span id="nf-online">-</span></div>
+        <div class="nf-linha"><span><b>Último cartão lido</b></span><span id="nf-ultima">nenhum</span></div>
+        <div class="nf-linha"><span><b>Botões MAIS e MENOS</b></span><span id="nf-janela">-</span></div>
+        <p id="nf-bloq" class="nf-aviso verm nf-oculto"></p>
+    </div>
+
+    <div class="card-painel nf-oculto" id="nf-cad">
+        <h3 class="nf-h3">Cadastrar um cartão (só o Dono)</h3>
+        <label class="nf-campo text-[11px] font-bold text-slate-600">Para qual usuário (Dono ou Adm)?
+            <select id="nf-usuario"></select>
+        </label>
+        <div class="flex gap-2 mt-3 flex-wrap">
+            <button id="nf-iniciar" class="nf-btn azul">Cadastrar cartão</button>
+            <button id="nf-cancelar" class="nf-btn nf-oculto">Cancelar</button>
+        </div>
+        <p id="nf-cadmsg" class="nf-aviso azul nf-oculto"></p>
+        <p class="nf-dica">Toque em "Cadastrar cartão" e, em até 30 segundos, aproxime o cartão do leitor. O buzzer dá 2 bips médios quando cadastrar.</p>
+    </div>
+
+    <div class="card-painel">
+        <h3 class="nf-h3">Cartões cadastrados</h3>
+        <div id="nf-lista"><p class="nf-dica" style="margin:0">Nenhum cartão cadastrado.</p></div>
+    </div>
+
+    <div class="card-painel">
+        <h3 class="nf-h3">O que o buzzer significa</h3>
+        <div class="nf-linha"><span>1 bip longo (1 s)</span><span>Cartão aceito (emergência liberada)</span></div>
+        <div class="nf-linha"><span>3 bips curtos</span><span>Cartão não autorizado</span></div>
+        <div class="nf-linha"><span>2 bips curtos</span><span>O site não respondeu: nada foi liberado</span></div>
+        <div class="nf-linha"><span>4 bips curtos</span><span>Muitas tentativas recusadas: espere 30 s</span></div>
+        <div class="nf-linha"><span>2 bips médios</span><span>Cartão cadastrado</span></div>
+        <div class="nf-linha"><span>1 bip médio (0,2 s)</span><span>Botão MAIS/MENOS sem cartão: passe o cartão primeiro</span></div>
+    </div>
+</div>
+<script>
+(function () {
+    const el = (id) => document.getElementById(id);
+    const esc = (t) => String(t === null || t === undefined ? '-' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    let podeCadastrar = false, montouSelect = false, timer = null;
+    const NOME = { 1: 'Dono', 2: 'Adm' };
+    async function api(url, metodo, corpo) {
+        try { const r = await fetch(url, { method: metodo || 'GET', headers: corpo ? { 'Content-Type': 'application/json' } : undefined, body: corpo ? JSON.stringify(corpo) : undefined }); let d = {}; try { d = await r.json(); } catch (e) {} return { ok: r.ok, d }; }
+        catch (e) { return { ok: false, d: { erro: 'Sem conexão com o servidor.' } }; }
+    }
+    function render(d) {
+        podeCadastrar = !!d.podeCadastrar;
+        el('nf-led').className = 'nf-led ' + (d.online ? 'on' : 'off'); el('nf-online').textContent = d.online ? 'conectado' : 'DESCONECTADO';
+        el('nf-ultima').textContent = d.ultimaLeitura ? ('final ' + d.ultimaLeitura.uidFinal + ' · ' + d.ultimaLeitura.hora + ' · ' + (d.ultimaLeitura.resultado || '...')) : 'nenhum';
+        el('nf-janela').textContent = d.janelaS > 0 ? ('LIBERADOS por mais ' + d.janelaS + ' s') : 'bloqueados (passe um cartão de Dono ou Adm)';
+        const b = el('nf-bloq'); if (d.bloqueadoS > 0) { b.textContent = 'Leitor bloqueado por tentativas recusadas: ' + d.bloqueadoS + ' s'; b.classList.remove('nf-oculto'); } else b.classList.add('nf-oculto');
+        el('nf-cad').classList.toggle('nf-oculto', !podeCadastrar);
+        if (podeCadastrar && !montouSelect) { el('nf-usuario').innerHTML = d.elegiveis.map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join(''); montouSelect = true; }
+        const cm = el('nf-cadmsg');
+        if (d.cadastro) { cm.textContent = 'Aproxime o cartão de ' + d.cadastro.usuario + ' do leitor... (' + d.cadastro.restanteS + ' s)'; cm.classList.remove('nf-oculto'); el('nf-cancelar').classList.remove('nf-oculto'); el('nf-iniciar').disabled = true; }
+        else { cm.classList.add('nf-oculto'); el('nf-cancelar').classList.add('nf-oculto'); el('nf-iniciar').disabled = !d.online; }
+        el('nf-lista').innerHTML = d.cartoes.length ? d.cartoes.map(c => '<div class="nf-linha"><span><b>' + esc(c.usuario) + '</b> <span class="nf-tag">' + esc(NOME[c.nivel] || 'sem nível de Dono/Adm') + '</span><br><small>cartão final ' + esc(c.final) + ' · cadastrado em ' + esc((c.criadoEm || '').slice(0, 10)) + '</small></span>' + (podeCadastrar ? '<button class="nf-btn verm" data-apagar="' + esc(c.id) + '">Apagar</button>' : '') + '</div>').join('') : '<p class="nf-dica" style="margin:0">Nenhum cartão cadastrado.</p>';
+        el('nf-lista').querySelectorAll('[data-apagar]').forEach(bt => bt.addEventListener('click', async () => { if (!confirm('Apagar este cartão?')) return; const r = await api('/api/nfc/cartoes/' + bt.dataset.apagar, 'DELETE'); if (!r.ok) alert(r.d.erro || 'Não foi possível apagar.'); carregar(); }));
+    }
+    async function carregar() { const r = await api('/api/nfc/estado'); if (r.ok) render(r.d); }
+    el('nf-iniciar').addEventListener('click', async () => { const r = await api('/api/nfc/cadastrar', 'POST', { usuario: el('nf-usuario').value }); if (!r.ok) alert(r.d.erro || 'Não foi possível iniciar.'); carregar(); });
+    el('nf-cancelar').addEventListener('click', async () => { await api('/api/nfc/cadastrar/cancelar', 'POST', {}); carregar(); });
+    carregar(); timer = setInterval(carregar, 2000);
+    window.__cleanupPagina = function () { clearInterval(timer); };
+})();
+</script>
+{% endblock %}
