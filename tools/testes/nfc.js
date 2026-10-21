@@ -93,6 +93,11 @@ const { iniciar } = require('../mock_mqtt');
         assert.strictEqual((await chamar('POST', '/api/emergencia/liberar', oper, {})).status, 403); ok('Operário não libera pelo site (403)');
         assert.strictEqual((await chamar('POST', '/api/emergencia/liberar', vis, {})).status, 403); ok('Visualizador também não');
 
+        const [dd, mm, aa] = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).split(', ')[0].split('/');
+        const diaLogs = (await chamar('GET', `/api/logs/${aa}-${mm}-${dd}`, dono)).json;
+        assert.ok(Array.isArray(diaLogs) && diaLogs.length && diaLogs.every(l => l && typeof l.texto === 'string'), 'log com item sem texto');
+        assert.ok(diaLogs.some(l => /NFC|EMERGENCIA/i.test(l.texto))); ok('os logs de emergência e de cartão aparecem no histórico (Relatórios) como registros completos');
+
         console.log('4) Bloqueio por recusas seguidas');
         for (const u of ['01010101', '02020202']) assert.strictEqual(await cartao(u), 'nfc:negado');
         assert.strictEqual(await cartao('03030303'), 'nfc:negado');

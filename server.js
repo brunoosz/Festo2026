@@ -1181,7 +1181,18 @@ let selagem2Online = false;
 let ultimoEstadoSelagem2 = { temperatura: 0, setpoint: 0, potencia: 0, habilitado: false, seguranca: 'ok' };
 let ultimaSegurancaSelagem2Avisada = 'ok';
 
+// o historico guarda objetos { hora, texto, classe, usuario, tipo }; linhas em texto puro "[hh:mm:ss] mensagem" viram objeto
+function logParaObjeto(item) {
+    if (item && typeof item === 'object' && typeof item.texto === 'string') return item;
+    const bruto = String(typeof item === 'string' ? item : (item && item.texto) || '');
+    const m = bruto.match(/^\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*(.*)$/);
+    const texto = m ? m[2] : bruto;
+    const emergencia = /emerg[eê]ncia/i.test(texto);
+    return { hora: m ? m[1] : '', texto, classe: emergencia ? 'text-red-600 font-bold' : 'text-slate-700 font-medium', usuario: 'sistema', tipo: emergencia ? 'emergencia' : 'sistema' };
+}
+
 function salvarLogNoArquivoDoDia(logComUsuario) {
+    logComUsuario = logParaObjeto(logComUsuario);
     const dataLocal = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }).split(', ')[0];
     const partes = dataLocal.split('/');
     const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
@@ -2938,8 +2949,9 @@ app.delete('/api/visao/produtos/:id', loginObrigatorio, adminObrigatorio, (req, 
 // rota dos logs e da produção
 app.get('/api/logs/:data', loginObrigatorio, (req, res) => {
     const arquivo = path.join(pastaLogs, `${req.params.data}.json`);
-    if (fs.existsSync(arquivo)) res.json(JSON.parse(fs.readFileSync(arquivo, 'utf-8')));
-    else res.json([]);
+    let lista = [];
+    try { if (fs.existsSync(arquivo)) lista = JSON.parse(fs.readFileSync(arquivo, 'utf-8')); } catch (e) {}
+    res.json(Array.isArray(lista) ? lista.map(logParaObjeto) : []);   // conserta tambem linhas antigas salvas como texto
 });
 
 app.get('/api/producao/historico', loginObrigatorio, (req, res) => {
