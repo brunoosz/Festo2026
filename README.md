@@ -38,12 +38,15 @@ A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço
 | Alexa | Skill própria com cinco comandos: ligar com a receita de 50, 100, 150 ou 200 g e parada de emergência. |
 | Logs ao Vivo | Registro em tempo real de tudo o que acontece, com usuário e origem (site, assistente ou Alexa). |
 | Status do Sistema | Internet, Raspberry (temperatura, memória, alimentação) e conexão de cada dispositivo. |
-| Usuários | Três níveis de acesso e permissão de telas por usuário. |
+| Usuários | Quatro níveis de acesso e permissão de telas por usuário. |
+| Cartões NFC | Cadastro de cartões de Dono/Administrador que liberam a emergência e os botões do painel. |
 | Manuais | Manuais em PDF de cada módulo e da máquina completa. |
 
 A **Parada de Emergência** fica visível em todas as telas e também responde ao botão físico da esteira e à Alexa. Depois de acionada, **a máquina inteira fica travada** (esteira, selagens, dispenser, separador, receitas e botões MAIS/MENOS) até alguém clicar em **DESBLOQUEAR** no site. A trava vale para todos os aparelhos, continua se o servidor reiniciar, e a esteira e o servo também lembram dela se forem desligados.
 
-A página pública [`/sobre`](views/sobre.html) (acessível sem login, pelo link "Sobre nós" da tela de login) apresenta a equipe e o projeto. O texto fica em [`data/sobre.json`](data/sobre.json).
+**Cartão NFC e painel físico.** Um ESP32 só para o painel (leitor RC522 ou PN532, buzzer, LEDs e 3 botões) manda o número do cartão por MQTT (`nfc/leitura`) e o servidor decide (`nfc/resultado`). Só cartão de Dono ou Administrador libera a emergência; passar o cartão também libera os botões **MAIS** e **MENOS** por 30 s (cada uso renova; variável `NFC_JANELA_MS`). O botão de **EMERGÊNCIA** do painel vale sempre. Três recusas seguidas bloqueiam o leitor por 30 s. Só o Dono cadastra e apaga cartões, na tela **Cartões NFC** (`/nfc`, Dono e Administrador); a tela mostra só o final de 4 dígitos. Desbloquear a emergência pelo site agora também exige Dono ou Administrador. Firmwares em [`firmware/`](firmware) e guia de montagem em [`docs/hardware/guia_painel_nfc.txt`](docs/hardware/guia_painel_nfc.txt). O número do cartão pode ser copiado por cartões "mágicos": serve para o projeto, não é segurança forte.
+
+A página pública [`/sobre`](views/sobre.html) (acessível sem login, pelo link "Sobre nós" da tela de login) tem menu fixo com cinco seções: quem somos, o projeto (com galeria), a equipe (cartões com contatos), a jornada e o contato. Todo o conteúdo fica em [`data/sobre.json`](data/sobre.json); fotos em `public/img/equipe/` e `public/img/projeto/`. Cada integrante só aparece com o que preencheu e autorizou (`"autorizou": true`).
 
 <p align="center">
   <img src="docs/img/painel-controle.png" alt="Painel de Controle" width="440">
