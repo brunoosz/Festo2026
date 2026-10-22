@@ -152,6 +152,10 @@
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     Configuração
                 </a>
+                <a href="/sobre" target="_blank" rel="noopener" class="sm:hidden flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-sobre-menu">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.01" stroke-width="2.6"/></svg>
+                    Sobre nós
+                </a>
             </nav>
         </div>
         <div class="p-3 sm:p-4 border-t border-gray-100">
@@ -184,6 +188,15 @@
                 <button type="button" data-abrir-manuais title="Manuais (PDF)" class="hidden sm:flex w-9 h-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:text-blue-600 hover:border-blue-300 transition cursor-pointer shadow-sm">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </button>
+                <a href="/sobre" target="_blank" rel="noopener" title="Sobre nós" aria-label="Sobre nós" class="hidden sm:flex w-9 h-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:text-blue-600 hover:border-blue-300 transition cursor-pointer shadow-sm">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.01" stroke-width="2.6"/></svg>
+                </a>
+                <div id="receita-topo" data-clicavel="{{ 'sim' if permissoes.receitas else '' }}" title="Receita selecionada" class="hidden items-center gap-1.5 sm:gap-2 border border-blue-200 bg-blue-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-sm shrink-0">
+                    <div class="flex flex-col leading-none">
+                        <span class="hidden sm:block text-[9px] font-bold text-blue-700 uppercase tracking-wider">Receita</span>
+                        <span id="receita-topo-valor" class="text-xs sm:text-sm font-black text-blue-900">--</span>
+                    </div>
+                </div>
                 <div class="text-base sm:text-2xl font-light text-gray-800 px-0.5 sm:px-4" id="relogio-topo">--:--</div>
                 <div class="hidden sm:flex items-center gap-2 border border-gray-200 px-4 py-2 rounded-lg bg-white shadow-sm">
                     <svg class="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
@@ -289,6 +302,18 @@
                 atualizarVisualBotao();
             });
             globalSocket.on('emergencia_estado', (d) => aplicarEstadoEmergencia(!!(d && d.ativa)));
+
+            // receita selecionada (50, 100, 150, 200 g ou o que estiver em Receitas), sempre visivel no topo
+            const receitaTopo = document.getElementById('receita-topo'), receitaTopoValor = document.getElementById('receita-topo-valor');
+            function mostrarReceitaTopo(gramas) {
+                if (!receitaTopo || gramas === null || gramas === undefined) return;
+                receitaTopoValor.textContent = gramas + ' g';
+                receitaTopo.title = 'Receita selecionada: ' + gramas + ' g';
+                receitaTopo.classList.remove('hidden'); receitaTopo.classList.add('flex');
+            }
+            if (receitaTopo && receitaTopo.dataset.clicavel === 'sim') { receitaTopo.style.cursor = 'pointer'; receitaTopo.addEventListener('click', () => { window.location.href = '/receitas'; }); }
+            fetch('/api/receita-atual').then(r => r.json()).then(d => mostrarReceitaTopo(d.gramas)).catch(() => {});
+            globalSocket.on('receita_atual', (d) => { const n = d && d.niveis && d.niveis[d.indice]; if (n) mostrarReceitaTopo(n.gramas); });
             // quem abre o site no meio da emergencia: confirma com o servidor (o estado guardado no navegador pode estar velho)
             fetch('/api/emergencia').then(r => r.json()).then(e => aplicarEstadoEmergencia(!!(e && e.ativa))).catch(() => {});
 

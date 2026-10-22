@@ -3285,6 +3285,11 @@ function receitasTratarBotao(valor) {
     if (valor === 'menos') receitasAplicar(Math.max(0, receitas.atual - 1), 'botao MENOS');
 }
 
+// receita selecionada: qualquer perfil logado ve no topo do site (so leitura)
+app.get('/api/receita-atual', loginObrigatorio, (req, res) => {
+    const n = receitas.niveis[receitas.atual];
+    res.json({ indice: receitas.atual, gramas: n ? n.gramas : null });
+});
 app.get('/receitas', loginObrigatorio, paginaPermitida('receitas'), (req, res) => res.render('receitas.html'));
 app.get('/api/receitas', loginObrigatorio, paginaPermitida('receitas'), (req, res) => res.json(receitas));
 app.post('/api/receitas', loginObrigatorio, adminObrigatorio, paginaPermitida('receitas'), (req, res) => {
