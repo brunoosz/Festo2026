@@ -7,27 +7,32 @@
       "onde fica o botão de parada",
       "o que faz o botão de emergência"
     ],
-    "resposta": "É o botão vermelho localizado no canto superior direito de todas as telas do sistema. Ele serve para travar completamente a operação da esteira em caso de risco, falha técnica, ou qualquer situação que exija parada imediata."
+    "resposta": "É o botão vermelho no canto superior direito de todas as telas. Ele também existe no botão da esteira, no botão do painel e na Alexa. Qualquer um deles trava a máquina inteira em caso de risco ou falha."
   },
   {
     "id": 402,
     "pergunta": "O que acontece quando a emergência é ativada?",
     "perguntas_alternativas": [
       "o que muda na tela quando aciono a emergência",
-      "quais os efeitos de apertar o botão vermelho",
-      "o que trava quando ativo a parada"
+      "o que trava quando ativo a parada",
+      "por que a borda ficou vermelha",
+      "por que a tela ficou com borda vermelha",
+      "quais os efeitos de apertar o botão vermelho"
     ],
-    "resposta": "O sistema zera a velocidade da esteira imediatamente (envia comando de 0.00 via MQTT), trava o controle deslizante de velocidade, mantém o slider de temperatura travado, muda o LED de emergência para vermelho piscante, registra um log crítico no servidor e bloqueia qualquer novo comando de movimento até ser desbloqueado."
+    "resposta": "A máquina inteira trava: esteira, selagens, dispenser, servo do separador, receitas e os botões MAIS e MENOS. A esteira para (gira ao contrário por 1 segundo), as selagens desligam e o servo vai ao centro. A tela fica com uma borda vermelha brilhando e o botão vira amarelo, escrito SISTEMA TRAVADO. A esteira e o servo lembram a trava mesmo se forem desligados e ligados. Tudo fica registrado nos logs."
   },
   {
     "id": 403,
     "pergunta": "Como destravar o sistema após uma emergência?",
     "perguntas_alternativas": [
       "como eu desbloqueio depois da emergência",
+      "como eu libero a esteira de novo",
+      "como libero a emergência",
+      "como tirar a emergência",
       "o botão ficou amarelo, como eu volto ao normal",
-      "como eu libero a esteira de novo"
+      "quem pode liberar a emergência"
     ],
-    "resposta": "Depois de garantir que a máquina está segura, clique no mesmo botão (que agora aparece amarelo, escrito 'SISTEMA TRAVADO / DESBLOQUEAR') no canto superior direito. Isso libera os controles da esteira novamente para operação normal."
+    "resposta": "Só o Dono ou o Administrador liberam, de duas formas: clicar no botão amarelo DESBLOQUEAR no site (com confirmação) ou passar um cartão NFC cadastrado no leitor do painel. Operário e Visualizador não conseguem liberar. Depois de liberar, a esteira continua parada e é preciso iniciar de novo."
   },
   {
     "id": 404,
@@ -37,7 +42,7 @@
       "o raspberry desliga quando aciono a emergência",
       "eu perco acesso ao painel na emergência?"
     ],
-    "resposta": "Não. A parada de emergência é uma trava lógica, aplicada apenas ao movimento da esteira. O servidor, a rede Wi-Fi e o painel web continuam funcionando normalmente, para que você possa monitorar a situação e desbloquear o sistema quando for seguro."
+    "resposta": "Não. A emergência é uma trava lógica: o servidor, a rede Wi-Fi e o site continuam funcionando, para você acompanhar a situação e desbloquear depois."
   },
   {
     "id": 405,
@@ -47,7 +52,7 @@
       "consigo mexer na esteira travada",
       "o controle fica bloqueado mesmo?"
     ],
-    "resposta": "Não. Enquanto o sistema estiver em estado de emergência, o controle deslizante de velocidade fica desabilitado e o visor central mostra 'ERR' no lugar da porcentagem."
+    "resposta": "Não. Com a emergência ativa a velocidade fica travada, assim como as temperaturas, as receitas, o dispenser, o servo e os botões MAIS e MENOS. Para voltar, o Dono ou o Administrador precisam liberar a emergência."
   },
   {
     "id": 406,

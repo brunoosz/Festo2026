@@ -17,7 +17,7 @@
       "não lembro minha senha",
       "posso recuperar minha senha sozinho?"
     ],
-    "resposta": "Usuários comuns não conseguem redefinir a própria senha sozinhos por segurança. Procure um administrador do sistema (que tem acesso à aba 'Usuários') para que ele redefina sua senha por você."
+    "resposta": "Usuários comuns não redefinem a própria senha sozinhos. Procure o Dono ou um Administrador, que redefine a sua senha na aba Usuários."
   },
   {
     "id": 703,
@@ -37,7 +37,7 @@
       "todo usuário pode fazer tudo?",
       "existe hierarquia de acesso"
     ],
-    "resposta": "Administradores têm acesso a tudo que operadores têm (controle da esteira, gráficos, relatórios, chat) mais a aba exclusiva 'Usuários', onde podem criar, remover e redefinir senhas de qualquer conta. Operadores não enxergam nem conseguem acessar essa aba de gerenciamento."
+    "resposta": "Existem quatro perfis. Dono: acesso total, inclusive promover e apagar usuários. Administrador: controla a máquina, cria usuários e libera a emergência. Operário: opera a máquina e aplica receitas, nas telas liberadas para ele. Visualizador: só olha todas as telas, em modo leitura, e conversa com a IA, sem controlar nada."
   },
   {
     "id": 705,

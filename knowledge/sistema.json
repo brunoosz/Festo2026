@@ -68,7 +68,7 @@
       "quais funcionalidades o painel oferece",
       "me lista as seções do site"
     ],
-    "resposta": "O sistema tem: Operação (controle da esteira e selagem em tempo real), Produção (gráficos e indicadores), Relatórios (histórico de eventos e exportação em PDF), Visão Computacional (contagem de produtos por câmera), Dark Coders AI (este chat), Usuários (gerenciamento de acessos, restrito a administradores) e Configuração."
+    "resposta": "As telas são: Operação (Dashboard com o modelo 3D da máquina), Painel de Controle, Dispenser, Separador, Receitas, Produção, Relatórios, Visão Computacional, Dark Coders AI, Logs ao Vivo, Status do Sistema, Cartões NFC e Usuários, além de Configuração e dos Manuais. Cada perfil vê o que tem permissão. A página pública Sobre nós abre sem login."
   },
   {
     "id": 107,
