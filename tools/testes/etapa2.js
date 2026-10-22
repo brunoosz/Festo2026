@@ -132,7 +132,7 @@ const { iniciar } = require('../mock_mqtt');
         r = await chamar('POST', '/api/usuarios', adm, { usuario: 'vis_adm', senha: '1234', nivel: 4 }); assert.strictEqual(r.status, 403); ok('Administrador não cria Visualizador (só o Dono)');
         r = await chamar('POST', '/api/usuarios', dono, { usuario: 'vis2', senha: '1234', nivel: 4 }); assert.strictEqual(r.status, 200);
         let novo = (await chamar('GET', '/api/usuarios', dono)).json.usuarios.find(u => u.usuario === 'vis2');
-        assert.strictEqual(novo.nomeNivel, 'Visualizador'); assert.strictEqual(novo.telasPermitidas.length, 11); ok('Visualizador novo nasce com todas as 11 telas ligadas');
+        assert.strictEqual(novo.nomeNivel, 'Visualizador'); assert.strictEqual(novo.telasPermitidas.length, 12); ok('Visualizador novo nasce com todas as 12 telas ligadas');
         r = await chamar('POST', '/api/usuarios/vis2/telas', adm, { telas: [] }); assert.strictEqual(r.status, 403); ok('Administrador não mexe nas telas (só o Dono)');
         r = await chamar('POST', '/api/usuarios/operario/telas', dono, { telas: [] }); assert.strictEqual(r.status, 400); ok('só dá para escolher telas de Visualizador');
         const vis2 = await entrar('vis2');
