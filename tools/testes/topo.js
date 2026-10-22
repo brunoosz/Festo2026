@@ -46,6 +46,14 @@ const ok = m => console.log('  ok   ' + m);
         ok('aplicando os 4 níveis (' + niveis.map(n => n.gramas).join(', ') + ' g) o topo acompanha cada um');
         assert.strictEqual((await fetch(B + '/api/receita-atual', { redirect: 'manual' })).status, 302); ok('sem login não responde');
 
+        console.log('3) LEDs de todas as placas no Dashboard');
+        for (const n of ['dono', 'operario', 'visualizador']) { const r = await chamar('GET', '/api/dispositivos', await entrar(n)); assert.strictEqual(r.status, 200, n); assert.strictEqual(r.json.length, 9, n); assert.ok(r.json.every(d => d.id && typeof d.online === 'boolean')); }
+        ok('todos os perfis recebem o estado das 9 placas (esteira, selagens, rodinhas, motor, dispenser, servo, câmera e NFC)');
+        const dash = (await chamar('GET', '/dashboard', dono)).texto;
+        for (const id of ['selagem1m', 'selagem2m', 'dispenser', 'separador', 'camera', 'nfc']) assert.ok(dash.includes('id="led-dev-' + id + '"'), id);
+        assert.ok(dash.includes("globalSocket.on('dispositivos_status'")); ok('o Dashboard tem os LEDs das placas que faltavam e os atualiza ao vivo');
+        assert.strictEqual((await fetch(B + '/api/dispositivos', { redirect: 'manual' })).status, 302); ok('sem login não responde');
+
         console.log('\nTOPO: TUDO OK'); fim(0);
     } catch (e) { console.error('\nFALHOU: ' + (e && e.message)); console.error(saida.slice(0, 400)); fim(1); }
 })();

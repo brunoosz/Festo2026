@@ -9,26 +9,51 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1">
 
         <div class="flex flex-col gap-3 sm:gap-4">
-            <div class="flex flex-wrap items-center gap-2">
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+            <div class="flex flex-wrap items-center gap-1 sm:gap-1.5">
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm">
                     <span id="led-esteira" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">ESTEIRA</span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">ESTEIRA</span>
                 </div>
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm">
                     <span id="led-emerg" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">EMERG.</span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">EMERG.</span>
                 </div>
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm">
                     <span id="led-selagem" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">SELAGEM 1</span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">SELAGEM 1</span>
                 </div>
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm">
                     <span id="led-selagem2" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">SELAGEM 2</span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">SELAGEM 2</span>
+                </div>
+
+                                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm" title="Selagem 1 - rodinhas">
+                    <span id="led-dev-selagem1m" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">S1 RODINHAS</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm" title="Selagem 2 - motor">
+                    <span id="led-dev-selagem2m" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">S2 MOTOR</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm" title="Dispenser">
+                    <span id="led-dev-dispenser" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">DISPENSER</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm" title="Separador (servo)">
+                    <span id="led-dev-separador" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">SERVO</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm" title="Câmera">
+                    <span id="led-dev-camera" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">CÂMERA</span>
+                </div>
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-sm" title="Painel NFC (leitor de cartão e botões)">
+                    <span id="led-dev-nfc" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="text-[8px] sm:text-[9px] font-bold text-slate-700 whitespace-nowrap">PAINEL NFC</span>
                 </div>
 
                 <!-- botão de recarregar status -->
-                <button id="btn-recarregar-status" data-leitura-ok title="Recarregar status recebido" class="ml-auto w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm shrink-0">
+                <button id="btn-recarregar-status" data-leitura-ok title="Recarregar status recebido" class="ml-auto w-7 h-7 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 active:bg-blue-50 transition cursor-pointer shadow-sm shrink-0">
                     <svg id="icone-recarregar-status" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                     </svg>
@@ -330,12 +355,22 @@
             .catch(() => {});
     }
 
+    // LEDs das demais placas (rodinhas, motor da selagem 2, dispenser, servo, camera e painel NFC)
+    const LED_ON = 'w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)] shrink-0', LED_OFF = 'w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0';
+    function aplicarDispositivos(lista) {
+        (lista || []).forEach(d => { const led = document.getElementById('led-dev-' + d.id); if (led) led.className = d.online ? LED_ON : LED_OFF; });
+    }
+    function buscarDispositivos() { return fetch('/api/dispositivos').then(r => r.json()).then(aplicarDispositivos).catch(() => {}); }
+    globalSocket.on('dispositivos_status', aplicarDispositivos);
+    buscarDispositivos();
+
     btnRecarregarStatus.addEventListener('click', () => {
         iconeRecarregarStatus.style.transform = 'rotate(360deg)';
         Promise.all([
             buscarStatusEsteiraAgora(),
             controladorSelagem1.buscarStatusAgora(),
-            controladorSelagem2.buscarStatusAgora()
+            controladorSelagem2.buscarStatusAgora(),
+            buscarDispositivos()
         ]).finally(() => {
             setTimeout(() => { iconeRecarregarStatus.style.transform = 'rotate(0deg)'; }, 500);
         });
@@ -455,6 +490,7 @@
         sliderVelocidade.removeEventListener('input', handlerSliderInput);
         globalSocket.off('status_esp32', handlerStatusEsp32);
         globalSocket.off('atualizar_velocidade', handlerAtualizarVelocidade);
+        globalSocket.off('dispositivos_status', aplicarDispositivos);
         controladorSelagem1.cleanup();
         globalSocket.off('sentido_esteira', handlerSentidoEsteira);
         controladorSelagem2.cleanup();

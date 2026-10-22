@@ -3450,6 +3450,27 @@ function sistemaLerThrottled(cb) {
 
 app.get('/sistema', loginObrigatorio, adminObrigatorio, paginaPermitida('sistema'), (req, res) => res.render('sistema.html'));
 
+// estado (online/offline) de todas as placas; usado no Dashboard (LEDs) e em Status do Sistema
+function listaDispositivos() {
+    return [
+        { id: 'esteira', nome: 'Esteira', online: !!esp32Online },
+        { id: 'selagem1', nome: 'Selagem 1 - aquecimento', online: !!selagemOnline },
+        { id: 'selagem1m', nome: 'Selagem 1 - rodinhas', online: !!selagem1MotorOnline },
+        { id: 'selagem2', nome: 'Selagem 2 - aquecimento', online: !!selagem2Online },
+        { id: 'selagem2m', nome: 'Selagem 2 - motor', online: !!selagem2MotorOnline },
+        { id: 'dispenser', nome: 'Dispenser', online: !!dispenserOnline },
+        { id: 'separador', nome: 'Separador (servo)', online: !!separadorOnline },
+        { id: 'camera', nome: 'Camera', online: !!cameraOnline },
+        { id: 'nfc', nome: 'Leitor NFC', online: !!nfcOnline }
+    ];
+}
+app.get('/api/dispositivos', loginObrigatorio, (req, res) => res.json(listaDispositivos()));
+let ultimaListaDispositivos = '';
+setInterval(() => {                                   // avisa as telas quando alguma placa muda de estado
+    const lista = listaDispositivos(), texto = JSON.stringify(lista);
+    if (texto !== ultimaListaDispositivos) { ultimaListaDispositivos = texto; io.emit('dispositivos_status', lista); }
+}, 2000);
+
 app.get('/api/sistema/status', loginObrigatorio, adminObrigatorio, (req, res) => {
     sistemaLerThrottled((throttled) => {
         let rede = null, redeIdadeS = null;
@@ -3488,17 +3509,7 @@ app.get('/api/sistema/status', loginObrigatorio, adminObrigatorio, (req, res) =>
                 siteMemMB: Math.round(process.memoryUsage().rss / 1048576),
                 tempCpu, throttled
             },
-            dispositivos: [
-                { id: 'esteira', nome: 'Esteira', online: !!esp32Online },
-                { id: 'selagem1', nome: 'Selagem 1 - aquecimento', online: !!selagemOnline },
-                { id: 'selagem1m', nome: 'Selagem 1 - rodinhas', online: !!selagem1MotorOnline },
-                { id: 'selagem2', nome: 'Selagem 2 - aquecimento', online: !!selagem2Online },
-                { id: 'selagem2m', nome: 'Selagem 2 - motor', online: !!selagem2MotorOnline },
-                { id: 'dispenser', nome: 'Dispenser', online: !!dispenserOnline },
-                { id: 'separador', nome: 'Separador (servo)', online: !!separadorOnline },
-                { id: 'camera', nome: 'Camera', online: !!cameraOnline },
-                { id: 'nfc', nome: 'Leitor NFC', online: !!nfcOnline }
-            ]
+            dispositivos: listaDispositivos()
         });
     });
 });
