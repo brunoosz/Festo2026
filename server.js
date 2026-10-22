@@ -2057,6 +2057,7 @@ function guardaDoVisualizador(req, res, next) {
     if (!usuario || usuario.nivel !== NIVEL_VISUALIZADOR) return next();
 
     const metodo = req.method, rota = req.path;
+    if (/^\/(api\/sobre|sobre\/(editar|previa))(\/|$)/.test(rota)) return next();     // essas rotas nao existem para quem nao e Dono (404)
     const leitura = metodo === 'GET' || metodo === 'HEAD';
     if (!leitura && rota !== '/' && !ESCRITAS_DO_VISUALIZADOR.some(([m, rx]) => m === metodo && rx.test(rota))) {
         registrarLogSegurancaVisualizador(nome, `Visualizador ${nome} tentou ${metodo} ${rota} e foi bloqueado.`);
@@ -2599,9 +2600,100 @@ setInterval(() => {
 }, 10 * 60 * 1000).unref();
 
 // pagina publica "sobre nos": so texto estatico, sem login e sem nenhum dado da maquina
-const arquivoSobre = process.env.SOBRE_JSON ? path.resolve(process.env.SOBRE_JSON) : path.join(__dirname, 'data', 'sobre.json');
+// o texto original (data/sobre.json) vem no repositorio; o que o Dono edita fica em data/sobre_editado.json (fora do git, para o git pull nunca dar conflito)
+const arquivoSobreBase = process.env.SOBRE_JSON ? path.resolve(process.env.SOBRE_JSON) : path.join(__dirname, 'data', 'sobre.json');
+const arquivoSobreEdicao = process.env.SOBRE_JSON ? arquivoSobreBase : path.join(__dirname, 'data', 'sobre_editado.json');
+const arquivoSobre = () => (fs.existsSync(arquivoSobreEdicao) ? arquivoSobreEdicao : arquivoSobreBase);
+const sobreDados = require('./sobre_dados');
+const iconesSobre = require('./sobre_icones.json');
+const pastaImgSobre = process.env.SOBRE_IMG_DIR ? path.resolve(process.env.SOBRE_IMG_DIR) : path.join(__dirname, 'public', 'img');
+const pastaBackupsSobre = process.env.SOBRE_BACKUPS_DIR ? path.resolve(process.env.SOBRE_BACKUPS_DIR) : path.join(__dirname, 'data', 'sobre_backups');
+const existeImgSobre = rel => fs.existsSync(path.join(pastaImgSobre, rel));
 app.get('/sobre', (req, res) => {
-    res.render('sobre.html', { sobre: require('./sobre_dados').carregar(arquivoSobre) });
+    res.render('sobre.html', { sobre: sobreDados.carregar(arquivoSobre(), { existeArquivo: existeImgSobre }), icones: iconesSobre });
+});
+
+// ---- editor do conteudo da pagina acima: so o Dono. Para qualquer outro perfil rota e API nao existem (404) ----
+const soDono404 = (req, res, next) => (res.locals.isDono ? next() : next('route'));
+const previasSobre = new Map();                                            // rascunho de cada Dono (so na memoria)
+
+app.get('/sobre/editar', loginObrigatorio, soDono404, (req, res) => res.render('sobre_editor.html'));
+app.get('/api/sobre', loginObrigatorio, soDono404, (req, res) => {
+    res.json({ dados: sobreDados.lerArquivo(arquivoSobre()), icones: iconesSobre, limites: sobreDados.LIMITES, max: sobreDados.MAX, versoes: sobreDados.listarBackups(pastaBackupsSobre) });
+});
+app.post('/api/sobre/validar', loginObrigatorio, soDono404, (req, res) => {
+    res.json({ erros: sobreDados.validar(req.body && req.body.dados).erros });
+});
+
+// apaga fotos enviadas pelo editor que nao estao mais em uso (nunca mexe em arquivos colocados a mao)
+function limparFotosSobre(dados) {
+    const emUso = new Set([...dados.equipe.map(p => 'equipe/' + p.foto), ...dados.projeto.galeria.map(f => 'projeto/' + f.arquivo)]);
+    [['equipe', /^[a-z0-9-]+-[0-9a-f]{6}\.jpg$/], ['projeto', /^[0-9a-f]{6}\.jpg$/]].forEach(([pasta, padrao]) => {
+        let arquivos = []; try { arquivos = fs.readdirSync(path.join(pastaImgSobre, pasta)); } catch (e) {}
+        arquivos.filter(a => padrao.test(a) && !emUso.has(pasta + '/' + a)).forEach(a => { try { fs.unlinkSync(path.join(pastaImgSobre, pasta, a)); } catch (e) {} });
+    });
+}
+function registrarEdicaoSobre(usuario) { try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] Conteúdo editado por ${usuario}.`); } catch (e) {} }
+
+app.put('/api/sobre', loginObrigatorio, soDono404, (req, res) => {
+    const corpo = req.body || {};
+    const atual = sobreDados.lerArquivo(arquivoSobre());
+    if (Number(corpo.versaoBase) !== atual.versao) return res.status(409).json({ erro: 'Alguém editou antes de você. Recarregue a página para ver a versão mais nova.', versaoAtual: atual.versao });
+    const { erros, limpo } = sobreDados.validar(corpo.dados);
+    if (Object.keys(erros).length) return res.status(422).json({ erro: 'Corrija os campos marcados.', erros });
+    const novo = sobreDados.salvar(arquivoSobreEdicao, pastaBackupsSobre, limpo, res.locals.usuarioLogado, arquivoSobre());
+    limparFotosSobre(novo); previasSobre.delete(res.locals.usuarioLogado);
+    registrarEdicaoSobre(res.locals.usuarioLogado);
+    res.json({ sucesso: true, dados: novo, versoes: sobreDados.listarBackups(pastaBackupsSobre) });
+});
+app.get('/api/sobre/versoes', loginObrigatorio, soDono404, (req, res) => res.json({ versoes: sobreDados.listarBackups(pastaBackupsSobre) }));
+app.post('/api/sobre/restaurar/:id', loginObrigatorio, soDono404, (req, res) => {
+    const novo = sobreDados.restaurar(arquivoSobreEdicao, pastaBackupsSobre, req.params.id, res.locals.usuarioLogado, arquivoSobre());
+    if (!novo) return res.status(404).json({ erro: 'Versão não encontrada.' });
+    limparFotosSobre(novo); registrarEdicaoSobre(res.locals.usuarioLogado);
+    res.json({ sucesso: true, dados: novo, versoes: sobreDados.listarBackups(pastaBackupsSobre) });
+});
+
+// pre-visualizacao: mostra o rascunho sem publicar
+app.post('/api/sobre/previa', loginObrigatorio, soDono404, (req, res) => {
+    previasSobre.set(res.locals.usuarioLogado, sobreDados.normalizar(req.body && req.body.dados));
+    res.json({ sucesso: true });
+});
+app.get('/sobre/previa', loginObrigatorio, soDono404, (req, res) => {
+    const rascunho = previasSobre.get(res.locals.usuarioLogado);
+    if (!rascunho) return res.redirect('/sobre/editar');
+    res.set('Cache-Control', 'no-store');
+    res.render('sobre.html', { sobre: sobreDados.paraPublico(rascunho, { existeArquivo: existeImgSobre }), icones: iconesSobre, previa: true });
+});
+
+// fotos (opcionais): o tipo de arquivo e conferido pelo conteudo, a imagem e redimensionada e regravada como JPG sem EXIF
+async function prepararFotoSobre(buffer) {
+    const jpeg = buffer.length > 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+    const png = buffer.length > 8 && buffer.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
+    const webp = buffer.length > 12 && buffer.slice(0, 4).toString() === 'RIFF' && buffer.slice(8, 12).toString() === 'WEBP';
+    if (webp) { const e = new Error('WEBP direto não é aceito aqui; o editor converte sozinho. Tente enviar JPG ou PNG.'); e.status = 415; throw e; }
+    if (!jpeg && !png) { const e = new Error('Esse arquivo não é uma imagem JPG ou PNG.'); e.status = 415; throw e; }
+    let img;
+    try { img = await Jimp.read(buffer); } catch (err) { const e = new Error('Não consegui abrir essa imagem.'); e.status = 415; throw e; }
+    if (img.bitmap.width > 800 || img.bitmap.height > 800) img.scaleToFit(800, 800);
+    const base = new Jimp(img.bitmap.width, img.bitmap.height, 0xFFFFFFFF);          // fundo branco (PNG com transparencia)
+    base.composite(img, 0, 0);
+    return base.quality(82).getBufferAsync(Jimp.MIME_JPEG);
+}
+app.post('/api/sobre/foto/:tipo', loginObrigatorio, soDono404, express.raw({ type: () => true, limit: '3mb' }), async (req, res) => {
+    const tipo = req.params.tipo;
+    if (!['equipe', 'projeto'].includes(tipo)) return res.status(404).json({ erro: 'Não encontrado.' });
+    if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ erro: 'Nenhuma imagem recebida.' });
+    try {
+        const jpg = await prepararFotoSobre(req.body);
+        const aleatorio = crypto.randomBytes(3).toString('hex');
+        const dono = tipo === 'equipe' ? String(req.query.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30) : '';
+        if (tipo === 'equipe' && !dono) return res.status(400).json({ erro: 'Integrante inválido.' });
+        const nome = tipo === 'equipe' ? `${dono}-${aleatorio}.jpg` : `${aleatorio}.jpg`;
+        fs.mkdirSync(path.join(pastaImgSobre, tipo), { recursive: true });
+        fs.writeFileSync(path.join(pastaImgSobre, tipo, nome), jpg);
+        res.json({ sucesso: true, arquivo: nome, bytes: jpg.length });
+    } catch (e) { res.status(e.status || 500).json({ erro: e.message || 'Não consegui salvar a foto.' }); }
 });
 
 // rotas
