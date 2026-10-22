@@ -27,7 +27,7 @@ A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço
 
 | Módulo | Descrição |
 |---|---|
-| Operação | Velocidade da esteira, temperatura das selagens, estado dos módulos e modelo 3D da máquina. |
+| Operação | Velocidade da esteira, temperatura das selagens, modelo 3D da máquina e LEDs de conexão de **todas as placas** (esteira, selagens, rodinhas, motor, dispenser, servo, câmera e painel NFC). O topo do site mostra sempre a **receita selecionada** (50, 100, 150 ou 200 g). |
 | Painel de Controle | Motores e aquecimento de cada selagem, sentido da esteira, reinício e reset de cada placa. Tem também a seção **Separador (servo)**: estado da conexão, teste esquerda/centro/direita, ângulos, velocidade, tempo aberto e liga/desliga do servo (somente Administrador e Dono). |
 | Dispenser | Seleção do grão e da quantidade (1/4, 1/2, 3/4 ou 1 volta do rotor) e acionamento da dosagem. |
 | Separador | Contagem e reconhecimento de produtos por câmera, com servo que desvia cada item. Inclui treinamento por classe e calibração de fundo. |
@@ -42,12 +42,6 @@ A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço
 | Cartões NFC | Cadastro de cartões de Dono/Administrador que liberam a emergência e os botões do painel. |
 | Manuais | Manuais em PDF de cada módulo e da máquina completa. |
 
-A **Parada de Emergência** fica visível em todas as telas e também responde ao botão físico da esteira e à Alexa. Depois de acionada, **a máquina inteira fica travada** (esteira, selagens, dispenser, separador, receitas e botões MAIS/MENOS) até alguém clicar em **DESBLOQUEAR** no site. A trava vale para todos os aparelhos, continua se o servidor reiniciar, e a esteira e o servo também lembram dela se forem desligados.
-
-**Cartão NFC e painel físico.** Um ESP32 só para o painel (leitor RC522 ou PN532, buzzer, LEDs e 3 botões) manda o número do cartão por MQTT (`nfc/leitura`) e o servidor decide (`nfc/resultado`). Só cartão de Dono ou Administrador libera a emergência; passar o cartão também libera os botões **MAIS** e **MENOS** por 30 s (cada uso renova; variável `NFC_JANELA_MS`). O botão de **EMERGÊNCIA** do painel vale sempre. Três recusas seguidas bloqueiam o leitor por 30 s. Só o Dono cadastra e apaga cartões, na tela **Cartões NFC** (`/nfc`, Dono e Administrador); a tela mostra só o final de 4 dígitos. Desbloquear a emergência pelo site agora também exige Dono ou Administrador. Firmwares em [`firmware/`](firmware) e guia de montagem em [`docs/hardware/guia_painel_nfc.txt`](docs/hardware/guia_painel_nfc.txt). O número do cartão pode ser copiado por cartões "mágicos": serve para o projeto, não é segurança forte.
-
-A página pública [`/sobre`](views/sobre.html) (acessível sem login, pelo link "Sobre nós" da tela de login) tem menu fixo com as seções quem somos, o projeto (com galeria), a equipe (cartões com contatos), a jornada e o contato; a ordem e a visibilidade das seções e das pessoas vêm dos dados. O texto original fica em [`data/sobre.json`](data/sobre.json) e traz a versão, a ordem das seções, os integrantes (cada um com `mostrarContatos` e `visivel`, e os links como caixinhas com tipo, nome e endereço) e a jornada. As alterações salvas ficam em `data/sobre_editado.json` (fora do git, para o `git pull` nunca dar conflito), as fotos em `public/img/equipe/` e `public/img/projeto/`, e os 10 últimos backups em `data/sobre_backups/`. Para voltar a uma versão antiga na mão, copie um backup por cima de `data/sobre_editado.json` e reinicie o site. Os ícones dos links são SVG locais (`sobre_icones.json`) e todo texto é escapado na saída.
-
 <p align="center">
   <img src="docs/img/painel-controle.png" alt="Painel de Controle" width="440">
   <img src="docs/img/dispenser.png" alt="Dispenser" width="440">
@@ -59,6 +53,44 @@ A página pública [`/sobre`](views/sobre.html) (acessível sem login, pelo link
 <p align="center">
   <img src="docs/img/chat.png" alt="Dark Coders AI" width="440">
   <img src="docs/img/status-sistema.png" alt="Status do Sistema" width="440">
+</p>
+
+### Parada de emergência
+
+- O botão fica visível em **todas as telas**, e a emergência também pode vir do botão da esteira, do botão do painel ou da Alexa.
+- Depois de acionada, **a máquina inteira fica travada** (esteira, selagens, dispenser, separador, receitas e botões MAIS/MENOS) até um **Dono ou Administrador** liberar.
+- Liberar: botão **DESBLOQUEAR** no site (com confirmação) ou **cartão NFC** cadastrado. Depois de liberar, a esteira continua parada.
+- A trava vale para todos os aparelhos, continua se o servidor reiniciar, e a esteira e o servo lembram dela mesmo desligados.
+- Com a emergência ativa, **todas as telas ganham uma borda vermelha brilhando** (some sozinha ao liberar).
+
+### Cartão NFC e painel físico
+
+Um ESP32 só para o painel (leitor RC522 ou PN532, buzzer, LEDs e 3 botões: EMERGÊNCIA, MAIS e MENOS) manda o número do cartão por MQTT (`nfc/leitura`) e o **servidor decide** (`nfc/resultado`).
+
+- Cartão de **Dono ou Administrador**: libera a emergência (se ativa) e libera **MAIS** e **MENOS** por 30 s, com o LED verde aceso (cada uso renova; variável `NFC_JANELA_MS`).
+- A **EMERGÊNCIA** do painel vale sempre, com ou sem cartão. MAIS e MENOS sem cartão não fazem nada (1 bip médio).
+- 3 cartões recusados seguidos bloqueiam o leitor por 30 s. Sem Wi-Fi ou site, nada é liberado.
+- Só o **Dono** cadastra e apaga cartões, na tela **Cartões NFC** (`/nfc`); a tela mostra só o final de 4 dígitos.
+- Desbloquear a emergência pelo site exige Dono ou Administrador.
+- Limite: o número do cartão pode ser copiado por cartões "mágicos"; serve ao projeto, não é segurança forte.
+
+Firmwares em [`firmware/`](firmware) e montagem em [`docs/hardware/guia_painel_nfc.txt`](docs/hardware/guia_painel_nfc.txt).
+
+<p align="center">
+  <img src="docs/img/nfc.png" alt="Tela Cartões NFC" width="720">
+</p>
+
+### Página pública Sobre nós
+
+[`/sobre`](views/sobre.html) abre **sem login** (botão "i" ao lado de Manuais, item do menu no celular e link na tela de login).
+
+- Menu fixo com as seções: quem somos, o projeto (com galeria), a equipe (cartões com contatos), a jornada e o contato.
+- A ordem e a visibilidade das seções e das pessoas vêm dos dados; cada pessoa só mostra e-mail, telefone e links se estiver com "mostrar contatos" ligado e preenchido. Sem foto, aparecem as iniciais.
+- O texto original fica em [`data/sobre.json`](data/sobre.json). As alterações salvas ficam em `data/sobre_editado.json` (fora do git, para o `git pull` nunca dar conflito), as fotos em `public/img/equipe/` e `public/img/projeto/`, e os 10 últimos backups em `data/sobre_backups/`. Para voltar a uma versão antiga na mão, copie um backup por cima de `data/sobre_editado.json` e reinicie o site.
+- Ícones dos links em SVG local (`sobre_icones.json`) e todo texto escapado na saída.
+
+<p align="center">
+  <img src="docs/img/sobre.png" alt="Página Sobre nós" width="560">
 </p>
 
 ### Modelo 3D
@@ -89,7 +121,9 @@ A máquina pode ser visualizada em 3D no próprio site (Dashboard e tela Modelo 
 | Selagem 1 | `selagem/set_temperatura`, `selagem/ativar`, `selagem/dados`, `selagem/status_conexao`, `selagem/emergencia`, `selagem/motores/status` |
 | Selagem 2 | `selagem2/set_temperatura`, `selagem2/ativar`, `selagem2/dados`, `selagem2/status_conexao`, `selagem2/emergencia`, `selagem2/motor/status` |
 | Dispenser | `dispenser/dosar`, `dispenser/estado`, `dispenser/concluido`, `dispenser/status`, `dispenser/reiniciar`, `dispenser/emergencia` |
-| Separador | `separador/desviar`, `separador/config`, `separador/estado`, `separador/status`, `separador/teste`, `separador/emergencia` |
+| Separador | `separador/desviar`, `separador/config`, `separador/estado`, `separador/status`, `separador/teste`, `separador/emergencia`, `separador/liberar` |
+| Emergência e painel | `esteira/botao`, `esteira/estado_emergencia`, `esteira/liberar`, `painel/botao`, `painel/resultado` |
+| Cartão NFC | `nfc/leitura`, `nfc/resultado`, `nfc/status`, `nfc/reiniciar` |
 
 ## Instalação
 
@@ -109,7 +143,7 @@ cp .env.example .env
 npm start
 ```
 
-A aplicação fica disponível em `http://localhost:5000`. A porta está definida no início do [`server.js`](server.js) e o endereço do broker pode ser trocado pela variável `MQTT_BROKER`.
+A aplicação fica disponível em `http://localhost:5000`. A porta e o endereço do broker podem ser trocados pelas variáveis `PORT` e `MQTT_BROKER` (tabela abaixo).
 
 Na primeira execução, caso não exista `usuarios.json`, é criado o usuário `admin` com senha `admin`. **Altere a senha em Configuração antes de qualquer uso real.**
 
@@ -125,6 +159,10 @@ npm run dev    # o site, em http://localhost:5000
 
 O `dev` usa a pasta `data-teste/` (nada do `usuarios.json` real é tocado) e cria os logins `dono`, `adm`, `operario` e `visualizador`, todos com a senha `1234`. Para rodar os testes automáticos: `npm test`.
 
+### Testes automáticos
+
+`npm test` sobe o site com um broker MQTT falso e confere, de ponta a ponta: emergência travada, cartão NFC e botões do painel, perfis e permissões (inclusive o Visualizador), servo e visão, Alexa, página Sobre nós, manuais, modelo 3D, receita e LEDs no topo do Dashboard. Os testes ficam em [`tools/testes/`](tools/testes).
+
 ### Variáveis de ambiente
 
 | Variável | Descrição | Obrigatória |
@@ -133,12 +171,26 @@ O `dev` usa a pasta `data-teste/` (nada do `usuarios.json` real é tocado) e cri
 | `SESSION_SECRET` | Segredo das sessões e dos cookies. Se ausente, é gerado e salvo em `.session_secret`. | Não |
 | `MQTT_BROKER` | Endereço do broker MQTT. Padrão: `mqtt://192.168.4.1`. | Não |
 | `PORT` | Porta do site. Padrão: `5000`. | Não |
+| `NFC_JANELA_MS` | Tempo, em ms, que MAIS e MENOS ficam liberados depois de um cartão. Padrão: `30000` (mantenha igual ao `JANELA_MS` do firmware do painel). | Não |
+| `USUARIOS_JSON`, `EMERGENCIA_JSON`, `RECEITAS_JSON`, `CARTOES_NFC_JSON` | Caminho dos arquivos de dados, para testes ou para guardar fora da pasta do site. Padrão: arquivos na pasta do projeto. | Não |
 
 Para que o Node leia o `.env` automaticamente, use `npm run start:env`.
 
 ## Implantação no Raspberry Pi
 
 ### Atualização
+
+Com o repositório já clonado em `/root/site_esteira` (serviço `site_esteira`), o jeito mais simples é:
+
+```bash
+cd /root/site_esteira && git checkout main && git pull
+sudo systemctl restart site_esteira
+journalctl -u site_esteira -n 30 --no-pager
+```
+
+Depois, `Ctrl+Shift+R` no navegador. Rode `npm install` só se o `package.json` tiver mudado. Os firmwares dos ESP32 são gravados pelo Arduino IDE (veja [`firmware/LEIA-ME.md`](firmware/LEIA-ME.md)).
+
+Outra opção é o script abaixo, que também faz backup dos dados.
 
 O script [`atualizar.sh`](atualizar.sh) baixa a versão mais recente do GitHub preservando os dados da máquina: `usuarios.json`, receitas, fotos de referência, configurações, `.env` e logs. Em seguida instala as dependências e reinicia o serviço (pm2 ou systemd).
 
@@ -174,7 +226,14 @@ Recomendações adicionais estão em [SECURITY.md](SECURITY.md).
 | Operário | Acessa apenas as telas liberadas pelo Dono ou pelo Administrador. |
 | Visualizador | Só olha: acompanha em tempo real as telas liberadas e conversa com a IA, mas não controla nada. |
 
-O **Visualizador** é pensado para quem só precisa acompanhar a máquina (professores, visitantes). Ele vê todas as telas em modo somente leitura, inclusive Painel de Controle, Status do Sistema, Usuários e Cartões NFC (as telas sensíveis mostram os dados ocultos: sem o final dos cartões, sem linhas de log da rede e só nome e perfil dos usuários). Não aciona velocidade, temperatura, receitas, dosagem, servo, ajustes da visão nem a emergência (o botão fica escondido e aparece só um aviso "Máquina travada" quando há emergência), e não cria nem altera usuários. A IA responde perguntas para ele, mas não executa comandos. Só o Dono cria Visualizadores e escolhe, em **Usuários → Telas**, quais das 12 telas cada um enxerga (por padrão todas). O tutorial começa sozinho em **todo** login do Visualizador (pular vale só para aquela sessão). O bloqueio é feito no servidor (HTTP e socket), não só escondendo botões, e as tentativas bloqueadas ficam nos Logs.
+O **Visualizador** é pensado para quem só precisa acompanhar a máquina (professores, visitantes):
+
+- Vê **todas as telas** em modo somente leitura, inclusive Painel de Controle, Status do Sistema, Usuários e Cartões NFC. As telas sensíveis mostram os dados ocultos: sem o final dos cartões, sem linhas de log da rede e só nome e perfil dos usuários.
+- Não aciona nada: velocidade, temperatura, receitas, dosagem, servo, ajustes da visão e emergência (o botão fica escondido; aparece só o aviso "Máquina travada"). Também não cria nem altera usuários.
+- A IA responde perguntas para ele, mas não executa comandos.
+- O Dono cria Visualizadores e escolhe, em **Usuários → Telas**, quais das 12 telas cada um enxerga (por padrão todas).
+- O tutorial começa sozinho em **todo** login dele (pular vale só para aquela sessão).
+- O bloqueio é feito no servidor (HTTP e socket), não só escondendo botões, e as tentativas bloqueadas ficam nos Logs.
 
 **Tutorial:** o roteiro do tour guiado fica em [`public/js/tutorial-roteiro.js`](public/js/tutorial-roteiro.js) (um passo por item, com a tela, o destaque e o perfil que o vê). Para os demais perfis ele abre na primeira vez, e **Rever tutorial** fica em Configurações e no Chat. A IA usa os textos da pasta `knowledge/` (recarregados sozinhos ao salvar) e conhece o estado ao vivo: emergência, leitor NFC, janela dos botões MAIS/MENOS, receita atual e servo.
 
@@ -210,11 +269,13 @@ O modelo de interação da skill está em [`alexa/modelo_de_interacao.json`](ale
 .
 ├── server.js              Servidor: rotas, MQTT, Socket.IO, Alexa e IA
 ├── separador_engine.js    Contagem e desvio de produtos do separador
+├── sobre_dados.js         Dados da página Sobre nós (validação, versões e backups)
+├── sobre_icones.json      Ícones SVG locais dos links
 ├── atualizar.sh           Atualização do Raspberry Pi
 ├── alexa/                 Modelo de interação da skill da Alexa
 ├── firmware/              Códigos dos ESP32 (Arduino IDE)
 ├── tools/                 Preview local, testes automáticos e instaladores antigos
-├── data/                  Textos editáveis do site (página Sobre nós)
+├── data/                  Texto da página Sobre nós
 ├── views/                 Telas (templates Nunjucks)
 ├── public/                Arquivos estáticos, bibliotecas e modelo 3D
 ├── knowledge/             Base de conhecimento do assistente
@@ -240,8 +301,9 @@ Os manuais em PDF ficam em [`manuais/`](manuais) e também podem ser baixados pe
 | Selagem 2 | [`Manual_Selagem2_FlowPack.pdf`](manuais/Manual_Selagem2_FlowPack.pdf) |
 | Cartão NFC e acesso | [`Manual_NFC_FlowPack.pdf`](manuais/Manual_NFC_FlowPack.pdf) |
 | Botões e painel | [`Manual_Botoes_Painel_FlowPack.pdf`](manuais/Manual_Botoes_Painel_FlowPack.pdf) |
+| Alexa (comandos de voz) | `Manual_Alexa_FlowPack.pdf` (em breve) |
 
-Já está cadastrado, esperando o PDF (aparece "PDF ainda não adicionado" até o arquivo existir): `Manual_Alexa_FlowPack.pdf`.
+O manual da Alexa já está cadastrado: enquanto o PDF não existir na pasta, a entrada aparece como "PDF ainda não adicionado".
 
 **Como adicionar um manual:** copie o PDF para a pasta `manuais/` com o nome exato acima. Ele passa a abrir sozinho, sem reiniciar o site (a existência do arquivo é conferida a cada acesso).
 Para um manual novo, acrescente uma linha na lista `LISTA_MANUAIS` do `server.js` (id, título, arquivo e descrição).
