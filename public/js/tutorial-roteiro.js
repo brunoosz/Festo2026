@@ -33,8 +33,8 @@ window.ROTEIRO_TUTORIAL = [
     { pagina: '/usuarios', titulo: 'Usuários e perfis', texto: 'Quatro perfis: Dono (tudo), Administrador (controla a máquina e gerencia os níveis abaixo), Operário (opera e aplica receitas) e Visualizador (só vê). Dono e Administrador liberam a emergência.', alvoSeletor: '#tut-usuarios' },
 
     { pagina: '/chat', titulo: 'Dark Coders AI', texto: 'Esta sou eu! Pergunte qualquer coisa sobre o projeto ou o sistema, a qualquer momento.' },
-    { pagina: null, titulo: 'Manuais', texto: 'O botão Manuais, no menu e no topo, abre os PDFs de cada módulo da máquina, do cartão NFC, dos botões do painel e da Alexa (os que ainda não foram adicionados aparecem avisando).' },
-    { pagina: null, titulo: 'Sobre nós', texto: 'A página pública Sobre nós, aberta pelo link na tela de login (sem precisar de senha), apresenta a equipe e o projeto para qualquer pessoa.' },
+    { pagina: null, titulo: 'Manuais', texto: 'O botão Manuais, no menu e no topo (com o Sobre nós ao lado), abre os PDFs de cada módulo da máquina, do cartão NFC, dos botões do painel e da Alexa (os que ainda não foram adicionados aparecem avisando).' },
+    { pagina: null, titulo: 'Sobre nós', texto: 'A página pública Sobre nós apresenta a equipe e o projeto para qualquer pessoa. Abra pelo botão ao lado de Manuais (no topo, ou no menu no celular) ou pelo link da tela de login, que não pede senha.' },
     { pagina: '/configuracoes', titulo: 'Configurações', texto: 'Por fim, aqui você troca a senha, ativa o leitor de tela e pode rever este tutorial quando quiser.' },
 
     { pagina: null, exceto: [4], titulo: 'Tudo pronto!', texto: 'Esse foi o tour pelo sistema. Você pode rever este tutorial a qualquer momento, em Configurações ou no Chat.' },
