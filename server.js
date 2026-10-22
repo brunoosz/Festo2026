@@ -1,3 +1,4 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -33,7 +34,7 @@ if (!fs.existsSync(pastaKnowledge)) {
     fs.writeFileSync(path.join(pastaKnowledge, 'sistema.json'), JSON.stringify(baseDefault, null, 2));
 }
 
-// sistema de usuários
+// usuários
 
 const NIVEL_DONO = 1;
 const NIVEL_ADM = 2;
@@ -51,7 +52,7 @@ function nivelValido(nivel) {
     return nivel === NIVEL_DONO || nivel === NIVEL_ADM || nivel === NIVEL_OPERARIO || nivel === NIVEL_VISUALIZADOR;
 }
 
-// telas que o Dono/Administrador pode liberar ou bloquear por usuário
+// telas liberáveis
 const PAGINAS_CONFIGURAVEIS = {
     dispenser: 'Dispenser',
     separador: 'Separador',
@@ -63,13 +64,13 @@ const PAGINAS_CONFIGURAVEIS = {
     logs: 'Logs ao Vivo'
 };
 
-// padrão de um Operário que ainda não teve permissões personalizadas
+// padrão do Operário
 const PERMISSOES_PADRAO_OPERARIO = {
     dispenser: true, separador: true, receitas: false, graficos: true,
     relatorios: true, visao: true, chat: true, logs: true
 };
 
-// telas que o Dono liga e desliga para cada Visualizador (padrao: todas ligadas)
+// telas do Visualizador
 const TELAS_VISUALIZADOR = Object.assign({}, PAGINAS_CONFIGURAVEIS, {
     controle: 'Painel de Controle',
     sistema: 'Status do Sistema',
@@ -77,7 +78,7 @@ const TELAS_VISUALIZADOR = Object.assign({}, PAGINAS_CONFIGURAVEIS, {
     nfc: 'Cartões NFC'
 });
 
-// listas salvas antes da tela Cartões NFC existir (todas as 11 telas antigas ligadas) valem como "todas ligadas"
+// listas antigas
 const TELAS_VISUALIZADOR_ANTIGAS = Object.keys(TELAS_VISUALIZADOR).filter(t => t !== 'nfc');
 
 function telasDoVisualizador(usuario) {
@@ -150,7 +151,7 @@ function carregarUsuarios() {
             delete usuario.admin;
             precisaMigrar = true;
         }
-        // usuários antigos não precisam ver o tutorial
+        // tutorial
         if (typeof usuario.tutorialVisto !== 'boolean') {
             usuario.tutorialVisto = true;
             precisaMigrar = true;
@@ -173,7 +174,7 @@ if (!fs.existsSync(arquivoUsuarios)) {
     salvarUsuarios(usuariosPadrao);
 }
 
-// base de conhecimento
+// conhecimento
 
 const STOPWORDS = new Set([
     'o','a','os','as','um','uma','uns','umas','de','da','do','das','dos','em','no','na','nos','nas',
@@ -335,7 +336,7 @@ function montarContextoRAG(pergunta, maxItens = 4) {
     return ordenado.map(item => `- ${item.pergunta}: ${item.resposta}`).join('\n');
 }
 
-// ia (texto)
+// IA texto
 
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '';
 
@@ -385,7 +386,7 @@ async function atualizarModelosDinamicos() {
 
         console.log(`🔎 Descoberta automática de modelos NVIDIA: ${modelosDinamicosCache.length} candidatos de reserva encontrados.`);
     } catch (e) {
-        // descoberta automática é só um bônus de segurança
+        // descoberta
     }
 }
 
@@ -458,7 +459,7 @@ function montarContextoAoVivo() {
     return linhas.join('\n');
 }
 
-// estado ao vivo que a IA conhece (emergencia, painel NFC, janela dos botoes, receita e servo)
+// estado ao vivo
 function estadoAoVivoDoPainel() {
     const nivel = receitas && receitas.niveis && receitas.niveis[receitas.atual];
     return {
@@ -468,10 +469,10 @@ function estadoAoVivoDoPainel() {
     };
 }
 
-// perguntas sobre o estado de agora respondem com os dados reais, mesmo sem internet
+// estado ao vivo
 function respostaAoVivoLocal(normalizada) {
     const e = estadoAoVivoDoPainel();
-    // pergunta geral ("o que acontece quando...", "como libero...") vai para a base de conhecimento; so o estado de agora usa os dados ao vivo
+    // pergunta geral
     const geral = /\b(quando|o que acontece|o que e|o que faz|para que|pra que|quem|onde|como|qual a diferenca)\b/.test(normalizada);
     if (!geral && /\b(esta|estao|ainda|agora|tem|ha|ficou)\b/.test(normalizada) && /emergencia|travad/.test(normalizada)) {
         return e.emergencia
@@ -499,7 +500,7 @@ async function perguntarNvidia(promptSistema, perguntaUsuario, historico = []) {
         throw new Error('Chave da API NVIDIA não configurada (NVIDIA_API_KEY).');
     }
 
-    // atualiza a lista em segundo plano, sem travar a resposta atual
+    // atualizar lista
     atualizarModelosDinamicos().catch(() => {});
 
     const listaTentativas = [];
@@ -594,12 +595,12 @@ if (NVIDIA_API_KEY) {
     io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'IA online (NVIDIA) inicializada e pronta.', tipo: 'sistema' });
 }
 
-// eco ao vivo (não salvo em disco)
+// eco
 if (NVIDIA_API_KEY) {
     io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'IA online (NVIDIA) inicializada e pronta.', tipo: 'sistema' });
 }
 
-// produtos de referência
+// produtos
 
 const pastaProdutosReferencia = path.join(__dirname, 'produtos_referencia');
 if (!fs.existsSync(pastaProdutosReferencia)) fs.mkdirSync(pastaProdutosReferencia);
@@ -668,7 +669,7 @@ function removerProdutoReferencia(id) {
     return existia;
 }
 
-// ia (visão)
+// IA visão
 
 const NVIDIA_MODELOS_VISAO = [
     'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
@@ -892,14 +893,14 @@ async function decidirContagemComIA(bufferImagemCandidata) {
     }
 }
 
-// histórico de chat
+// histórico
 let historicosChat = {};
 
 function gerarIdMensagem() {
     return crypto.randomBytes(6).toString('hex');
 }
 
-// visão computacional
+// visão
 
 const arquivoConfigVisao = path.join(__dirname, 'config_visao.json');
 
@@ -1083,7 +1084,7 @@ async function cicloPollingVisao() {
         }
 
         if (separadorMotor.getConfig().motorLocal) {
-            // motor local do Separador
+            // motor local
             io.emit('visao_frame', {
                 imagem: bufferImagem.toString('base64'),
                 contagemHoje: obterContagemHojeVisao()
@@ -1115,7 +1116,7 @@ async function cicloPollingVisao() {
     }
 }
 
-// separador (fase 2)
+// separador
 const { criarMotorSeparador } = require('./separador_engine');
 const separadorMotor = criarMotorSeparador({
     Jimp,
@@ -1143,7 +1144,7 @@ function separadorLadoPara(classe) {
     return (c.ladoPorClasse && c.ladoPorClasse[classe]) || 'C';
 }
 
-// atraso entre a linha de contagem e o servo
+// atraso
 function separadorAtrasoMs() {
     const c = separadorMotor.getConfig();
     let atraso = c.atrasoBaseMs;
@@ -1155,7 +1156,7 @@ function separadorAtrasoMs() {
     return Math.round(Math.min(15000, Math.max(0, atraso)));
 }
 
-// o proximo quadro e pedido logo que o anterior termina
+// próximo quadro
 function separadorProximoAtraso(inicioQuadro) {
     if (!separadorMotor.getConfig().motorLocal) return configVisao.intervaloMs || 400;
     return Math.max(20, 120 - (Date.now() - inicioQuadro));
@@ -1238,7 +1239,7 @@ let selagem2Online = false;
 let ultimoEstadoSelagem2 = { temperatura: 0, setpoint: 0, potencia: 0, habilitado: false, seguranca: 'ok' };
 let ultimaSegurancaSelagem2Avisada = 'ok';
 
-// o historico guarda objetos { hora, texto, classe, usuario, tipo }; linhas em texto puro "[hh:mm:ss] mensagem" viram objeto
+// histórico de logs
 function logParaObjeto(item) {
     if (item && typeof item === 'object' && typeof item.texto === 'string') return item;
     const bruto = String(typeof item === 'string' ? item : (item && item.texto) || '');
@@ -1281,7 +1282,7 @@ function registrarLogDeAcesso(nomeUsuario, tipoEvento) {
     io.emit('novo_log_servidor', log);
 }
 
-// configurações do servidor
+// configurações
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://192.168.4.1'; 
 const MQTT_TOPIC_ATUAL = 'esteira/velocidade/atual';
 const MQTT_TOPIC_SET = 'esteira/velocidade/set';
@@ -1359,7 +1360,7 @@ function limitarNumero(valor, minimo, maximo, padrao) {
     return Math.min(maximo, Math.max(minimo, n));
 }
 
-// aceita qualquer objeto e devolve uma configuracao completa e valida
+// configuração válida
 function normalizarConfigDispenser(entrada) {
     const base = JSON.parse(JSON.stringify(CONFIG_PADRAO_DISPENSER));
     const e = entrada && typeof entrada === 'object' ? entrada : {};
@@ -1451,7 +1452,7 @@ function liberarMotoresDispenser() {
 
 const TOPICOS_REINICIAR = { esteira: 'esteira/reiniciar', selagem1: 'selagem/reiniciar', selagem2: 'selagem2/reiniciar', selagem2motor: 'selagem2/motor/reiniciar', selagem1motor: 'selagem/motores/reiniciar' };
 
-// selagem 2 agora tem 2 ESP32
+// selagem 2
 const MQTT_TOPIC_SELAGEM2_MOTOR_STATUS = 'selagem2/motor/status';
 let selagem2MotorOnline = false;
 let ultimaMsgSelagem2Motor = 0;
@@ -1467,11 +1468,11 @@ env.addGlobal('url_for', function(dir, file) {
 });
 
 app.set('view engine', 'html');
-// alexa - skill "dark coders"
+// alexa
 const Alexa = require('ask-sdk-core');
 const { ExpressAdapter } = require('ask-sdk-express-adapter');
 
-// cole aqui o ID da sua skill
+// ID da skill
 const ALEXA_SKILL_ID = 'amzn1.ask.skill.588fe905-2c30-4573-9a32-30a4fe4bf076';
 
 const NUMEROS_POR_EXTENSO_VOZ = {
@@ -1485,7 +1486,7 @@ const NUMEROS_POR_EXTENSO_VOZ = {
 function converterNumerosFalados(texto) {
     const palavras = Object.keys(NUMEROS_POR_EXTENSO_VOZ).join('|');
     let t = texto;
-    // "cento e cinquenta e cinco" -> junta as partes somando
+    // número por extenso
     const regexComposto = new RegExp(`\\b(${palavras})((?:\\s+e\\s+(?:${palavras}))+)\\b`, 'g');
     t = t.replace(regexComposto, (trecho) => {
         const total = trecho.split(/\s+e\s+/).reduce((soma, p) => soma + (NUMEROS_POR_EXTENSO_VOZ[p.trim()] || 0), 0);
@@ -1504,7 +1505,7 @@ function normalizarPedidoVoz(texto) {
     return t.replace(/\s*por\s*cento/g, '%').replace(/\s+/g, ' ');
 }
 
-// entende o pedido e devolve um comando, ou null se for pergunta
+// entender pedido
 function interpretarComandoServidor(textoOriginal) {
     const t = normalizarPedidoVoz(textoOriginal);
 
@@ -1521,7 +1522,7 @@ function interpretarComandoServidor(textoOriginal) {
     // desligar tudo
     if (ehDesligar && /\b(tudo|maquina|todos)\b/.test(t)) return { tipo: 'desligar_tudo' };
 
-    // motores das selagens
+    // motores
     if (/\bmotor\b/.test(t) && /selagem/.test(t)) {
         let id = 's1m1';
         if (numeroSelagem === 2) id = 's2m';
@@ -1531,7 +1532,7 @@ function interpretarComandoServidor(textoOriginal) {
         if (ehLigar) return { tipo: 'motor', id, valor: 50 };
     }
 
-    // temperatura / aquecimento das selagens
+    // temperatura
     if (/temperatura|graus|aquec|esquent|resistencia|selagem/.test(t)) {
         if (numero !== null && /temperatura|graus|selagem/.test(t)) {
             return { tipo: 'temperatura', numero: numeroSelagem, valor: Math.min(250, numero) };
@@ -1540,7 +1541,7 @@ function interpretarComandoServidor(textoOriginal) {
         if (ehLigar) return { tipo: 'aquecimento', numero: numeroSelagem, valor: true };
     }
 
-    // esteira / velocidade
+    // esteira
     if (/velocidade|esteira|potencia/.test(t)) {
         if (numero !== null) return { tipo: 'velocidade', valor: Math.min(100, numero) };
         if (ehDesligar) return { tipo: 'velocidade', valor: 0 };
@@ -1584,7 +1585,7 @@ function definirAquecimentoServidor(numero, ligar) {
     mqttClient.publish(numero === 2 ? MQTT_TOPIC_SELAGEM2_ATIVAR : MQTT_TOPIC_SELAGEM_ATIVAR, ligar ? '1' : '0');
 }
 
-// executa o comando e devolve a frase que a Alexa vai falar
+// executar comando
 function executarComandoServidor(cmd) {
     if (cmd.tipo === 'velocidade') {
         definirVelocidadeEsteiraServidor(cmd.valor);
@@ -1623,7 +1624,7 @@ function executarComandoServidor(cmd) {
         mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, '1');
         mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, '1');
         mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, '1');
-        mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1'); mqttClient.publish('separador/emergencia', '1'); // alexa -> dispenser
+        mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1'); mqttClient.publish('separador/emergencia', '1'); // dispenser
         ultimaVelocidadeConhecida = '0.00';
         Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => {
             m.velocidade = '0.00';
@@ -1633,7 +1634,7 @@ function executarComandoServidor(cmd) {
         ultimoEstadoSelagem2.habilitado = false;
         io.emit('atualizar_temperatura', ultimoEstadoSelagem);
         io.emit('atualizar_temperatura2', ultimoEstadoSelagem2);
-        io.emit('emergencia_remota', {});   // trava os botoes de quem estiver com o site aberto
+        io.emit('emergencia_remota', {});   // trava dos botões
         registrarLogDaAlexa('PARADA DE EMERGÊNCIA acionada pela Alexa.', 'emergencia');
         return 'Parada de emergência acionada. Todos os motores e aquecimentos foram parados.';
     }
@@ -1648,7 +1649,7 @@ function limparTextoParaAlexa(texto) {
         .replace(/\s{2,}/g, ' ').trim();
 }
 
-// A Alexa espera no maximo ~8 segundos, entao a IA tem 6,5s pra responder
+// tempo da Alexa
 async function responderPerguntaParaAlexa(pergunta) {
     if (!NVIDIA_API_KEY) return limparTextoParaAlexa(buscarMelhorRespostaLocal(pergunta));
     const promptSistema = `${PROMPT_SISTEMA_BASE}\n\nDADOS AO VIVO DA MÁQUINA (agora mesmo):\n${montarContextoAoVivo()}\n\nContexto adicional da base de conhecimento (pode ou não ser relevante):\n${montarContextoRAG(pergunta)}\n\nIMPORTANTE: sua resposta será FALADA pela Alexa. Responda em no máximo 2 frases curtas.`;
@@ -1662,7 +1663,7 @@ async function responderPerguntaParaAlexa(pergunta) {
     return 'Essa demorou demais para eu pensar. Pode perguntar de novo?';
 }
 
-// cada intencao da skill guarda a palavra inicial que a Alexa "come"
+// palavra inicial
 const PREFIXOS_INTENCOES = {
     AjustarIntent: 'mude',
     LigarIntent: 'ligue',
@@ -1675,7 +1676,7 @@ const PREFIXOS_INTENCOES = {
 
 const FRASE_CONTINUAR = ' Mais alguma coisa?';
 
-// a skill tem 5 comandos: ligar com 50, 100, 150 ou 200 g (receitas) e emergencia
+// comandos da skill
 const ALEXA_LIGAR_AQUECIMENTO = true;
 
 function listaDePredefinicoesFalada() {
@@ -1839,7 +1840,7 @@ const construtorSkillAlexa = Alexa.SkillBuilders.custom()
     .addErrorHandlers(AlexaErroHandler);
 if (ALEXA_SKILL_ID) construtorSkillAlexa.withSkillId(ALEXA_SKILL_ID);
 
-// verificacao de seguranca da alexa com certificado guardado
+// verificação
 const tls = require('tls');
 const https = require('https');
 const { X509Certificate } = crypto;
@@ -1955,7 +1956,7 @@ async function verificarPedidoAlexa(cabecalhos, corpoOriginal, envelope) {
 
 const skillAlexa = construtorSkillAlexa.create();
 
-// deixa tudo pronto ao ligar
+// estado inicial
 setTimeout(() => {
     const inicioPreparo = Date.now();
     try { raizesConfiaveis = tls.rootCertificates.map(r => new X509Certificate(r)); } catch (e) {}
@@ -1988,7 +1989,7 @@ app.post('/alexa', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) 
 app.use(express.static(path.join(__dirname, 'public'))); 
 app.use(express.urlencoded({ extended: true })); 
 app.use(express.json({ limit: '5mb' }));
-// segredo da sessão: vem do .env ou fica guardado num arquivo local
+// segredo da sessão
 const arquivoSegredo = path.join(__dirname, '.session_secret');
 function carregarSegredoSessao() {
     if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
@@ -2013,8 +2014,7 @@ const sessionMiddleware = session({
 });
 app.use(sessionMiddleware);
 
-// perfil Visualizador (nivel 4): olha tudo que foi liberado e nao controla nada
-// a trava de verdade fica aqui no servidor; esconder botao na tela nao basta
+// perfil Visualizador
 function registrarLogSegurancaVisualizador(nomeUsuario, descricao) {
     const log = {
         hora: new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }),
@@ -2027,14 +2027,14 @@ function registrarLogSegurancaVisualizador(nomeUsuario, descricao) {
     try { io.emit('novo_log_servidor', log); } catch (e) {}
 }
 
-// unicas escritas que o Visualizador pode fazer: conversar com a IA e preferencias da propria conta
+// escritas permitidas
 const ESCRITAS_DO_VISUALIZADOR = [
     ['POST', /^\/api\/chat$/],
     ['DELETE', /^\/api\/chat\/(limpar|mensagem\/[^/]+)$/],
     ['POST', /^\/api\/usuario\/(acessibilidade|tutorial-visto)$/]
 ];
 
-// rota -> tela que precisa estar liberada (o que nao esta aqui e sempre liberado)
+// rota e tela
 const TELA_DA_ROTA = [
     [/^\/dispenser$|^\/api\/dispenser(\/|$)/, 'dispenser'],
     [/^\/separador$|^\/api\/separador(\/|$)/, 'separador'],
@@ -2057,7 +2057,7 @@ function guardaDoVisualizador(req, res, next) {
     if (!usuario || usuario.nivel !== NIVEL_VISUALIZADOR) return next();
 
     const metodo = req.method, rota = req.path;
-    if (/^\/(api\/sobre|sobre\/(editar|previa))(\/|$)/.test(rota)) return next();     // essas rotas nao existem para quem nao e Dono (404)
+    if (/^\/(api\/sobre|sobre\/(editar|previa))(\/|$)/.test(rota)) return next();     // rotas ocultas
     const leitura = metodo === 'GET' || metodo === 'HEAD';
     if (!leitura && rota !== '/' && !ESCRITAS_DO_VISUALIZADOR.some(([m, rx]) => m === metodo && rx.test(rota))) {
         registrarLogSegurancaVisualizador(nome, `Visualizador ${nome} tentou ${metodo} ${rota} e foi bloqueado.`);
@@ -2077,15 +2077,13 @@ app.use(guardaDoVisualizador);
 console.log(`🔌 Tentando conectar ao broker MQTT em: ${MQTT_BROKER} ...`);
 const mqttClient = mqtt.connect(MQTT_BROKER);
 
-// ================================================================================
-// EMERGENCIA GLOBAL: depois de acionada, NADA se move ate alguem LIBERAR no site
-// ================================================================================
+// emergência global
 const ARQ_EMERGENCIA = process.env.EMERGENCIA_JSON ? path.resolve(process.env.EMERGENCIA_JSON) : path.join(__dirname, 'emergencia_estado.json');
 let emergenciaGlobal = { ativa: false, desde: null, origem: null };
 try { emergenciaGlobal = Object.assign(emergenciaGlobal, JSON.parse(fs.readFileSync(ARQ_EMERGENCIA, 'utf-8'))); } catch (e) {}
 function emergenciaSalvar() { try { fs.writeFileSync(ARQ_EMERGENCIA, JSON.stringify(emergenciaGlobal)); } catch (e) {} }
 
-// comandos de movimento: bloqueados enquanto a emergencia estiver ativa
+// comandos bloqueados
 const REGEX_MOVIMENTO = /(\/set$|\/set_temperatura$|\/ativar$|\/dosar$|\/desviar$|\/teste$|resetar_seguranca$)/;
 const mqttPublicarOriginal = mqttClient.publish.bind(mqttClient);
 
@@ -2111,7 +2109,7 @@ function emergenciaLiberar(quem) {
     try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] ${texto}`); } catch (e) {}
 }
 
-// a esteira avisa o proprio estado (ela guarda a trava mesmo desligada)
+// estado da esteira
 function emergenciaTratarEsteira(valor) {
     if (valor === 'ativa' && !emergenciaGlobal.ativa) emergenciaAtivar('esteira (botao fisico)');
     if (valor === 'liberada' && emergenciaGlobal.ativa) mqttPublicarOriginal('esteira/emergencia', '1');
@@ -2127,16 +2125,14 @@ mqttClient.publish = function (topico, mensagem, ...resto) {
     return mqttPublicarOriginal(topico, mensagem, ...resto);
 };
 
-// ================================================================================
-// CARTOES NFC: so cartao de DONO ou ADM libera a emergencia (decisao sempre do servidor)
-// ================================================================================
+// cartões NFC
 const ARQ_NFC = process.env.CARTOES_NFC_JSON ? path.resolve(process.env.CARTOES_NFC_JSON) : path.join(__dirname, 'cartoes_nfc.json');
-let cartoesNfc = {};                       // { UID: { usuario, criadoEm, criadoPor } }
+let cartoesNfc = {};                       // formato dos cartões
 try { cartoesNfc = JSON.parse(fs.readFileSync(ARQ_NFC, 'utf-8')); } catch (e) {}
 function nfcSalvar() { try { fs.writeFileSync(ARQ_NFC, JSON.stringify(cartoesNfc, null, 2)); } catch (e) { console.warn('NFC: nao consegui salvar:', e.message); } }
 let nfcOnline = false, nfcUltimaMsg = 0;
-let nfcUltimaLeitura = null;               // { uidFinal, hora, resultado }
-let nfcCadastro = null;                    // { usuario, ate, por }
+let nfcUltimaLeitura = null;               // última leitura
+let nfcCadastro = null;                    // cadastro
 let nfcFalhas = [], nfcBloqueadoAte = 0;
 
 function nfcIdCurto(uid) { return crypto.createHash('sha1').update(uid).digest('hex').slice(0, 10); }
@@ -2152,7 +2148,7 @@ function nfcProcessarLeitura(uid) {
     nfcUltimaLeitura = { uidFinal: uid.slice(-4), hora: horaAtualCurta(), resultado: '' };
     if (agora < nfcBloqueadoAte) { nfcResponder('bloqueado'); return; }
 
-    if (nfcCadastro && agora < nfcCadastro.ate) {                       // modo cadastro (so o Dono liga)
+    if (nfcCadastro && agora < nfcCadastro.ate) {                       // modo cadastro
         const existente = cartoesNfc[uid];
         if (existente && existente.usuario !== nfcCadastro.usuario) { nfcResponder('negado'); nfcLog('NFC: cartao ja pertence a ' + existente.usuario + '.'); return; }
         cartoesNfc[uid] = { usuario: nfcCadastro.usuario, criadoEm: new Date().toISOString(), criadoPor: nfcCadastro.por };
@@ -2162,7 +2158,7 @@ function nfcProcessarLeitura(uid) {
 
     const cartao = cartoesNfc[uid];
     const u = cartao ? carregarUsuarios()[cartao.usuario] : null;
-    if (!u || !(Number(u.nivel) <= 2)) {                                // desconhecido ou sem nivel Dono/Adm
+    if (!u || !(Number(u.nivel) <= 2)) {                                // cartão negado
         nfcFalhas = nfcFalhas.filter(t => agora - t < 60000); nfcFalhas.push(agora);
         if (nfcFalhas.length >= 3) { nfcBloqueadoAte = agora + 30000; nfcFalhas = []; nfcLog('NFC: 3 leituras recusadas seguidas. Leitor bloqueado por 30 s.', 'emergencia'); }
         nfcLog('NFC: cartao final ' + uid.slice(-4) + ' NAO autorizado.', 'emergencia'); nfcResponder('negado'); return;
@@ -2189,10 +2185,7 @@ function nfcTratarMqtt(topic, valor) {
 }
 setInterval(() => { if (nfcOnline && Date.now() - nfcUltimaMsg > 15000) nfcOnline = false; }, 3000);
 
-// ================================================================================
-// PAINEL: botoes MAIS/MENOS so funcionam por um tempo depois de passar um cartao de Dono/Adm
-// (a EMERGENCIA do painel vale sempre)
-// ================================================================================
+// painel
 const NFC_JANELA_MS = Number(process.env.NFC_JANELA_MS) || 30000;
 let nfcJanelaAte = 0;
 function nfcJanelaAberta() { return Date.now() < nfcJanelaAte; }
@@ -2202,7 +2195,7 @@ function painelTratarBotao(valor) {
     if (valor !== 'mais' && valor !== 'menos') return;
     if (emergenciaGlobal.ativa) { mqttPublicarOriginal('painel/resultado', 'travado'); return; }
     if (!nfcJanelaAberta()) { mqttPublicarOriginal('painel/resultado', 'sem_permissao'); return; }
-    nfcJanelaAte = Date.now() + NFC_JANELA_MS;                                  // cada uso renova o tempo
+    nfcJanelaAte = Date.now() + NFC_JANELA_MS;                                  // renova o tempo
     receitasTratarBotao(valor);
     mqttPublicarOriginal('painel/resultado', 'ok');
 }
@@ -2244,7 +2237,7 @@ mqttClient.on('offline', () => {
     io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'Cliente MQTT ficou OFFLINE.', tipo: 'sistema' });
 });
 
-// guarda quando foi a ÚLTIMA vez que cada aparelho mandou QUALQUER mensagem
+// sinal de vida
 let ultimaMsgEsteira = 0;
 let ultimaMsgSelagem1 = 0;
 let ultimaMsgSelagem2 = 0;
@@ -2256,7 +2249,7 @@ mqttClient.on('message', (topic, message) => {
     if (topic === 'painel/botao') painelTratarBotao(valor);
     if (topic === 'esteira/botao') receitasTratarBotao(valor);
     if (topic.startsWith('separador/')) separadorTratarMqtt(topic, valor);
-    // dispenser (ESP32 proprio)
+    // dispenser
     if (topic === MQTT_TOPIC_DISP_STATUS || topic === MQTT_TOPIC_DISP_ESTADO || topic === MQTT_TOPIC_DISP_CONCLUIDO) ultimaMsgDispenser = Date.now();
     if (topic === MQTT_TOPIC_DISP_STATUS) {
         const novoStatus = (valor === 'online');
@@ -2279,7 +2272,7 @@ mqttClient.on('message', (topic, message) => {
                 registrarLogDispenser('ESP32 do Dispenser voltou a responder (ONLINE).');
             }
             emitirEstadoDispenser(false);
-        } catch (e) { /* mensagem incompleta: ignora */ }
+        } catch (e) { /* mensagem incompleta */ }
     }
     if (topic === MQTT_TOPIC_DISP_CONCLUIDO) {
         try {
@@ -2300,10 +2293,10 @@ mqttClient.on('message', (topic, message) => {
             io.emit('motor_selagem_sentido', { id, sentido: m.sentido });
         }
     }
-    if (topic.startsWith('selagem/motor')) ultimaMsgSelagem1Motor = Date.now();   // inclui selagem/motores/status
+    if (topic.startsWith('selagem/motor')) ultimaMsgSelagem1Motor = Date.now();   // motores
     if (topic.startsWith('selagem2/motor')) ultimaMsgSelagem2Motor = Date.now();
 
-    // ESP32 dos motores da selagem 1 (separado do aquecimento)
+    // motores da selagem 1
     if (topic === MQTT_TOPIC_SELAGEM1_MOTOR_STATUS) {
         const novoStatus = (valor === 'online');
         if (novoStatus !== selagem1MotorOnline) {
@@ -2318,7 +2311,7 @@ mqttClient.on('message', (topic, message) => {
         io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'ESP32 dos Motores da Selagem 1 voltou a responder (ONLINE).', tipo: 'sistema' });
     }
 
-    // ESP32 do motor da selagem 2 (separado do aquecimento)
+    // motor da selagem 2
     if (topic === MQTT_TOPIC_SELAGEM2_MOTOR_STATUS) {
         const novoStatus = (valor === 'online');
         if (novoStatus !== selagem2MotorOnline) {
@@ -2333,7 +2326,7 @@ mqttClient.on('message', (topic, message) => {
         io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'ESP32 do Motor da Selagem 2 voltou a responder (ONLINE).', tipo: 'sistema' });
     }
 
-    // se o sinal de vida voltou depois de uma queda, volta a ficar online sozinho
+    // volta online
     if (topic === MQTT_TOPIC_ATUAL && !esp32Online) {
         esp32Online = true;
         io.emit('status_esp32', { online: true });
@@ -2445,7 +2438,7 @@ mqttClient.on('message', (topic, message) => {
     }
 });
 
-// watchdog de conexão real
+// vigia
 const LIMITE_ESTEIRA_MS = 8000;
 const LIMITE_SELAGEM_MS = 4000;
 
@@ -2472,14 +2465,14 @@ setInterval(() => {
 // painel de controle
 let estadoOnlineAnterior = { esteira: false, selagem1: false, selagem2: false, selagem2motor: false, selagem1motor: false };
 setInterval(() => {
-    // vigia do ESP32 dos motores da selagem 1
+    // vigia selagem 1
     if (selagem1MotorOnline && (Date.now() - ultimaMsgSelagem1Motor) > 8000) {
         selagem1MotorOnline = false;
         io.emit('status_selagem1motor', { online: false });
         io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'ESP32 dos Motores da Selagem 1 parou de responder, marcado como OFFLINE.', tipo: 'sistema' });
     }
 
-    // vigia do ESP32 do motor da selagem 2
+    // vigia selagem 2
     if (selagem2MotorOnline && (Date.now() - ultimaMsgSelagem2Motor) > 8000) {
         selagem2MotorOnline = false;
         io.emit('status_selagem2motor', { online: false });
@@ -2515,7 +2508,7 @@ setInterval(() => {
     estadoOnlineAnterior = agoraOnline;
 }, 1000);
 
-// middlewares de acesso
+// acesso
 function loginObrigatorio(req, res, next) {
     const usuarioAtivo = req.session.usuario || req.signedCookies.lembrar_usuario;
     if (!usuarioAtivo) return res.redirect('/');
@@ -2536,13 +2529,13 @@ function loginObrigatorio(req, res, next) {
     res.locals.isAdmin = dadosUsuario.nivel === NIVEL_DONO || dadosUsuario.nivel === NIVEL_ADM;
     res.locals.somenteLeitura = dadosUsuario.nivel === NIVEL_VISUALIZADOR;
     res.locals.acessibilidadeAtiva = !!dadosUsuario.acessibilidade;
-    // Visualizador: o tutorial comeca em TODO login (pular vale so para a sessao); os demais so na primeira vez
+    // tutorial
     res.locals.tutorialObrigatorio = dadosUsuario.nivel === NIVEL_VISUALIZADOR ? !(req.session && req.session.tutorialFeito) : !dadosUsuario.tutorialVisto;
     res.locals.permissoes = permissoesEfetivas(dadosUsuario);
     next();
 }
 
-// bloqueia a tela (ou a API da tela) se o usuário não tiver essa permissão
+// bloqueio por tela
 function paginaPermitida(pagina) {
     return (req, res, next) => {
         if (res.locals.permissoes && res.locals.permissoes[pagina]) return next();
@@ -2551,13 +2544,13 @@ function paginaPermitida(pagina) {
     };
 }
 
-// so Dono/Adm de verdade: nem o Visualizador (que le as telas de admin) entra aqui
+// só Dono e Adm
 function adminEstritoObrigatorio(req, res, next) {
     if (!res.locals.isAdmin) return res.status(403).send('Acesso negado. Esta área é restrita a administradores.');
     next();
 }
 
-// Cartoes NFC: Dono/Adm veem tudo; o Visualizador (so se a tela estiver liberada) ve a tela com os numeros mascarados
+// cartões NFC
 function nfcVerObrigatorio(req, res, next) {
     if (res.locals.isAdmin) return next();
     if (res.locals.somenteLeitura && res.locals.permissoes && res.locals.permissoes.nfc && (req.method === 'GET' || req.method === 'HEAD')) return next();
@@ -2579,7 +2572,7 @@ function donoObrigatorio(req, res, next) {
     next();
 }
 
-// limite de tentativas de login por IP
+// tentativas de login
 const tentativasLogin = new Map();
 const MAX_FALHAS_LOGIN = 8;
 const JANELA_LOGIN_MS = 15 * 60 * 1000;
@@ -2599,8 +2592,7 @@ setInterval(() => {
     for (const [ip, t] of tentativasLogin) if (agora > t.ate) tentativasLogin.delete(ip);
 }, 10 * 60 * 1000).unref();
 
-// pagina publica "sobre nos": so texto estatico, sem login e sem nenhum dado da maquina
-// o texto original (data/sobre.json) vem no repositorio; o que o Dono edita fica em data/sobre_editado.json (fora do git, para o git pull nunca dar conflito)
+// sobre nós
 const arquivoSobreBase = process.env.SOBRE_JSON ? path.resolve(process.env.SOBRE_JSON) : path.join(__dirname, 'data', 'sobre.json');
 const arquivoSobreEdicao = process.env.SOBRE_JSON ? arquivoSobreBase : path.join(__dirname, 'data', 'sobre_editado.json');
 const arquivoSobre = () => (fs.existsSync(arquivoSobreEdicao) ? arquivoSobreEdicao : arquivoSobreBase);
@@ -2613,9 +2605,9 @@ app.get('/sobre', (req, res) => {
     res.render('sobre.html', { sobre: sobreDados.carregar(arquivoSobre(), { existeArquivo: existeImgSobre }), icones: iconesSobre });
 });
 
-// ---- editor do conteudo da pagina acima: so o Dono. Para qualquer outro perfil rota e API nao existem (404) ----
+// editor
 const soDono404 = (req, res, next) => (res.locals.isDono ? next() : next('route'));
-const previasSobre = new Map();                                            // rascunho de cada Dono (so na memoria)
+const previasSobre = new Map();                                            // rascunho
 
 app.get('/sobre/editar', loginObrigatorio, soDono404, (req, res) => res.render('sobre_editor.html'));
 app.get('/api/sobre', loginObrigatorio, soDono404, (req, res) => {
@@ -2625,7 +2617,7 @@ app.post('/api/sobre/validar', loginObrigatorio, soDono404, (req, res) => {
     res.json({ erros: sobreDados.validar(req.body && req.body.dados).erros });
 });
 
-// apaga fotos enviadas pelo editor que nao estao mais em uso (nunca mexe em arquivos colocados a mao)
+// fotos sem uso
 function limparFotosSobre(dados) {
     const emUso = new Set([...dados.equipe.map(p => 'equipe/' + p.foto), ...dados.projeto.galeria.map(f => 'projeto/' + f.arquivo)]);
     [['equipe', /^[a-z0-9-]+-[0-9a-f]{6}\.jpg$/], ['projeto', /^[0-9a-f]{6}\.jpg$/]].forEach(([pasta, padrao]) => {
@@ -2654,7 +2646,7 @@ app.post('/api/sobre/restaurar/:id', loginObrigatorio, soDono404, (req, res) => 
     res.json({ sucesso: true, dados: novo, versoes: sobreDados.listarBackups(pastaBackupsSobre) });
 });
 
-// pre-visualizacao: mostra o rascunho sem publicar
+// prévia
 app.post('/api/sobre/previa', loginObrigatorio, soDono404, (req, res) => {
     previasSobre.set(res.locals.usuarioLogado, sobreDados.normalizar(req.body && req.body.dados));
     res.json({ sucesso: true });
@@ -2666,7 +2658,7 @@ app.get('/sobre/previa', loginObrigatorio, soDono404, (req, res) => {
     res.render('sobre.html', { sobre: sobreDados.paraPublico(rascunho, { existeArquivo: existeImgSobre }), icones: iconesSobre, previa: true });
 });
 
-// fotos (opcionais): o tipo de arquivo e conferido pelo conteudo, a imagem e redimensionada e regravada como JPG sem EXIF
+// fotos
 async function prepararFotoSobre(buffer) {
     const jpeg = buffer.length > 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
     const png = buffer.length > 8 && buffer.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
@@ -2676,7 +2668,7 @@ async function prepararFotoSobre(buffer) {
     let img;
     try { img = await Jimp.read(buffer); } catch (err) { const e = new Error('Não consegui abrir essa imagem.'); e.status = 415; throw e; }
     if (img.bitmap.width > 800 || img.bitmap.height > 800) img.scaleToFit(800, 800);
-    const base = new Jimp(img.bitmap.width, img.bitmap.height, 0xFFFFFFFF);          // fundo branco (PNG com transparencia)
+    const base = new Jimp(img.bitmap.width, img.bitmap.height, 0xFFFFFFFF);          // fundo branco
     base.composite(img, 0, 0);
     return base.quality(82).getBufferAsync(Jimp.MIME_JPEG);
 }
@@ -2765,10 +2757,10 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-// api de gerenciamento de usuários
+// usuários
 app.get('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
-    if (res.locals.somenteLeitura) {                           // Visualizador: so nome e perfil
+    if (res.locals.somenteLeitura) {                           // Visualizador
         return res.json({ somenteLeitura: true, paginas: {}, telasVisualizador: {},
             usuarios: Object.keys(usuarios).map(n => ({ usuario: n, nivel: usuarios[n].nivel, nomeNivel: nomeNivel(usuarios[n].nivel), acessibilidade: false, permissoes: {} })) });
     }
@@ -2783,7 +2775,7 @@ app.get('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
     res.json({ usuarios: lista, paginas: PAGINAS_CONFIGURAVEIS, telasVisualizador: TELAS_VISUALIZADOR });
 });
 
-// define quais telas um Operário pode acessar (Dono ou Administrador)
+// permissões do Operário
 app.post('/api/usuarios/:usuario/permissoes', loginObrigatorio, adminObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
     const alvo = usuarios[req.params.usuario];
@@ -2831,7 +2823,7 @@ app.post('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
     }
 
     const { salt, hash } = gerarHashSenha(senha);
-    // usuário novo começa sem ter visto o tutorial
+    // tutorial novo
     usuarios[chave] = { salt, hash, nivel: nivelSolicitado, acessibilidade: !!acessibilidade, tutorialVisto: false };
     if (nivelSolicitado === NIVEL_VISUALIZADOR) usuarios[chave].telasPermitidas = Object.keys(TELAS_VISUALIZADOR);
     salvarUsuarios(usuarios);
@@ -2885,7 +2877,7 @@ app.post('/api/usuarios/:usuario/nivel', loginObrigatorio, donoObrigatorio, (req
     res.json({ sucesso: true });
 });
 
-// define quais telas um Visualizador enxerga (so o Dono)
+// telas do Visualizador
 app.post('/api/usuarios/:usuario/telas', loginObrigatorio, donoObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
     const alvo = usuarios[req.params.usuario];
@@ -2935,14 +2927,14 @@ app.post('/api/usuario/acessibilidade', loginObrigatorio, (req, res) => {
     res.json({ sucesso: true, ativo: usuario.acessibilidade });
 });
 
-// marca que esse usuário já viu o tutorial
+// tutorial visto
 app.post('/api/usuario/tutorial-visto', loginObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
     const usuario = usuarios[res.locals.usuarioLogado];
 
     if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado.' });
 
-    if (usuario.nivel === NIVEL_VISUALIZADOR) {                 // nao grava: no proximo login o tutorial comeca de novo
+    if (usuario.nivel === NIVEL_VISUALIZADOR) {                 // sem gravar
         if (req.session) req.session.tutorialFeito = true;
         return res.json({ sucesso: true });
     }
@@ -2952,7 +2944,7 @@ app.post('/api/usuario/tutorial-visto', loginObrigatorio, (req, res) => {
     res.json({ sucesso: true });
 });
 
-// api do chat
+// chat
 app.get('/api/chat/historico', loginObrigatorio, paginaPermitida('chat'), (req, res) => {
     const usuario = res.locals.usuarioLogado;
     res.json(historicosChat[usuario] || []);
@@ -3028,7 +3020,7 @@ app.delete('/api/chat/limpar', loginObrigatorio, paginaPermitida('chat'), (req, 
     res.json({ sucesso: true });
 });
 
-// api da visão computacional
+// visão
 app.get('/api/visao/config', loginObrigatorio, adminObrigatorio, (req, res) => {
     res.json(configVisao);
 });
@@ -3072,7 +3064,7 @@ app.get('/api/visao/verificacoes', loginObrigatorio, (req, res) => {
     res.json(historicoVerificacoesIA);
 });
 
-// api dos produtos de referência
+// produtos
 app.get('/api/visao/produtos', loginObrigatorio, (req, res) => {
     res.json(produtosReferenciaCache.map(p => ({ id: p.id, nome: p.nome, imagem: p.base64 })));
 });
@@ -3125,12 +3117,12 @@ app.delete('/api/visao/produtos/:id', loginObrigatorio, adminObrigatorio, (req, 
     res.json({ sucesso: true });
 });
 
-// rota dos logs e da produção
+// logs e produção
 app.get('/api/logs/:data', loginObrigatorio, (req, res) => {
     const arquivo = path.join(pastaLogs, `${req.params.data}.json`);
     let lista = [];
     try { if (fs.existsSync(arquivo)) lista = JSON.parse(fs.readFileSync(arquivo, 'utf-8')); } catch (e) {}
-    res.json(Array.isArray(lista) ? lista.map(logParaObjeto) : []);   // conserta tambem linhas antigas salvas como texto
+    res.json(Array.isArray(lista) ? lista.map(logParaObjeto) : []);   // logs antigos
 });
 
 app.get('/api/producao/historico', loginObrigatorio, (req, res) => {
@@ -3156,14 +3148,14 @@ setInterval(() => {
 
 app.get('/dispenser', loginObrigatorio, paginaPermitida('dispenser'), (req, res) => res.render('dispenser.html'));
 
-// --- emergencia global: estado e liberacao (so o site libera) ---
+// emergência
 app.get('/api/emergencia', loginObrigatorio, (req, res) => res.json(emergenciaGlobal));
 
-// --- cartoes NFC: tela e API (so Dono/Adm veem; so o Dono cadastra e apaga) ---
+// cartões NFC
 app.get('/nfc', loginObrigatorio, nfcVerObrigatorio, (req, res) => res.render('nfc.html'));
 app.get('/api/nfc/estado', loginObrigatorio, nfcVerObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
-    const mascarar = !res.locals.isAdmin;                       // Visualizador: sem o final do numero dos cartoes
+    const mascarar = !res.locals.isAdmin;                       // sem número
     res.json({
         somenteLeitura: mascarar,
         online: nfcOnline,
@@ -3172,7 +3164,7 @@ app.get('/api/nfc/estado', loginObrigatorio, nfcVerObrigatorio, (req, res) => {
         bloqueadoS: Math.max(0, Math.ceil((nfcBloqueadoAte - Date.now()) / 1000)),
         janelaS: Math.max(0, Math.ceil((nfcJanelaAte - Date.now()) / 1000)),
         podeCadastrar: !mascarar && res.locals.nivelUsuario === 1,
-        // quem esta logado primeiro; depois os outros Donos e os Adms, cada grupo em ordem alfabetica
+        // ordem da lista
         elegiveis: mascarar ? [] : nfcOrdenarElegiveis(Object.keys(usuarios).filter(n => Number(usuarios[n].nivel) <= 2), usuarios, res.locals.usuarioLogado),
         usuarioAtual: res.locals.usuarioLogado || null,
         cartoes: Object.keys(cartoesNfc).map(uid => ({
@@ -3204,7 +3196,7 @@ app.post('/api/emergencia/liberar', loginObrigatorio, adminEstritoObrigatorio, (
     res.json(emergenciaGlobal);
 });
 
-// receitas (niveis de 50/100/150/200 g) + botoes fisicos + modelo 3d
+// receitas
 const ARQ_RECEITAS = process.env.RECEITAS_JSON ? path.resolve(process.env.RECEITAS_JSON) : path.join(__dirname, 'receitas.json');
 const RECEITAS_PADRAO = {
     botoesAtivos: true,
@@ -3285,7 +3277,7 @@ function receitasTratarBotao(valor) {
     if (valor === 'menos') receitasAplicar(Math.max(0, receitas.atual - 1), 'botao MENOS');
 }
 
-// receita selecionada: qualquer perfil logado ve no topo do site (so leitura)
+// receita atual
 app.get('/api/receita-atual', loginObrigatorio, (req, res) => {
     const n = receitas.niveis[receitas.atual];
     res.json({ indice: receitas.atual, gramas: n ? n.gramas : null });
@@ -3314,7 +3306,7 @@ app.get('/api/modelo3d', loginObrigatorio, (req, res) => {
     } catch (e) { res.json([]); }
 });
 
-// separador (fase 2)
+// separador
 app.get('/separador', loginObrigatorio, paginaPermitida('separador'), (req, res) => res.render('separador.html'));
 
 function separadorConfigCompleta() {
@@ -3405,7 +3397,7 @@ app.post('/api/separador/servo/ref-velocidade', loginObrigatorio, adminObrigator
     res.json({ sucesso: true, velRefEsteira: v });
 });
 
-// status do sistema (internet, vigia, raspberry e dispositivos)
+// status do sistema
 const { execFile: execFileSistema } = require('child_process');
 const osSistema = require('os');
 const ARQ_REDE_JSON = process.env.FLOWPACK_REDE_JSON || '/var/lib/flowpack/rede.json';
@@ -3450,7 +3442,7 @@ function sistemaLerThrottled(cb) {
 
 app.get('/sistema', loginObrigatorio, adminObrigatorio, paginaPermitida('sistema'), (req, res) => res.render('sistema.html'));
 
-// estado (online/offline) de todas as placas; usado no Dashboard (LEDs) e em Status do Sistema
+// dispositivos
 function listaDispositivos() {
     return [
         { id: 'esteira', nome: 'Esteira', online: !!esp32Online },
@@ -3466,7 +3458,7 @@ function listaDispositivos() {
 }
 app.get('/api/dispositivos', loginObrigatorio, (req, res) => res.json(listaDispositivos()));
 let ultimaListaDispositivos = '';
-setInterval(() => {                                   // avisa as telas quando alguma placa muda de estado
+setInterval(() => {                                   // aviso de mudança
     const lista = listaDispositivos(), texto = JSON.stringify(lista);
     if (texto !== ultimaListaDispositivos) { ultimaListaDispositivos = texto; io.emit('dispositivos_status', lista); }
 }, 2000);
@@ -3490,7 +3482,7 @@ app.get('/api/sistema/status', loginObrigatorio, adminObrigatorio, (req, res) =>
             if (/falhou|FALHA|FORA/.test(linhasVigia[i])) { vigiaUltimo = { ok: false, linha: linhasVigia[i] }; break; }
         }
 
-        if (res.locals.somenteLeitura) {                       // Visualizador: sem enderecos, nomes de rede nem linhas de log
+        if (res.locals.somenteLeitura) {                       // dados ocultos
             const oculto = v => (v && typeof v === 'object') ? (Array.isArray(v) ? v.map(oculto) : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, oculto(x)]))) : (typeof v === 'string' ? '••••' : v);
             rede = rede ? oculto(rede) : rede;
             if (vigiaUltimo) vigiaUltimo = { ok: vigiaUltimo.ok, linha: '' };
@@ -3615,7 +3607,7 @@ app.post('/api/dispenser/teste', loginObrigatorio, adminObrigatorio, (req, res) 
     res.json({ ok: true });
 });
 
-// manuais em pdf
+// manuais
 const PASTA_MANUAIS = path.join(__dirname, 'manuais');
 const LISTA_MANUAIS = [
     { id: 'maquina',   titulo: 'Manual da Máquina Completa', arquivo: 'Manual_Maquina_FlowPack.pdf',      descricao: 'Visão geral, segurança, operação e sistema de controle.' },
@@ -3647,7 +3639,7 @@ app.get('/manuais/baixar/:id', loginObrigatorio, (req, res) => {
     res.download(caminho, m.arquivo);
 });
 
-// api do painel de controle
+// API do painel
 app.get('/api/painel/estado', loginObrigatorio, adminObrigatorio, (req, res) => {
     const motores = {};
     Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => {
@@ -3663,17 +3655,17 @@ app.get('/api/painel/estado', loginObrigatorio, adminObrigatorio, (req, res) => 
     });
 });
 
-// api da esteira
+// API da esteira
 app.get('/api/esteira/status', loginObrigatorio, (req, res) => {
     res.json({ online: esp32Online, velocidade: ultimaVelocidadeConhecida });
 });
 
-// api da selagem 1
+// API da selagem 1
 app.get('/api/selagem/status', loginObrigatorio, (req, res) => {
     res.json({ online: selagemOnline, estado: ultimoEstadoSelagem });
 });
 
-// api da selagem 2
+// API da selagem 2
 app.get('/api/selagem2/status', loginObrigatorio, (req, res) => {
     res.json({ online: selagem2Online, estado: ultimoEstadoSelagem2 });
 });
@@ -3697,10 +3689,9 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-    // Visualizador so recebe dados: qualquer evento que ele mande para a maquina e descartado
-    // (hoje nenhum evento enviado pelo navegador e so de leitura, entao a lista permitida e vazia)
+    // Visualizador só recebe
     if (socket.data.somenteLeitura) {
-        // eventos que a propria tela dispara sozinha (log de interface e contagem de producao): descarta sem alarde
+        // eventos da tela
         const EVENTOS_AUTOMATICOS = ['novo_log', 'registrar_producao'];
         socket.use(([evento], proximo) => {
             if (EVENTOS_AUTOMATICOS.includes(evento)) return proximo(new Error('descartado'));
@@ -3727,17 +3718,17 @@ io.on('connection', (socket) => {
 
     socket.on('comando_esteira', (data) => {
         if (data.acao === 'velocidade') {
-            // grava o valor comandado na hora
+            // valor comandado
             ultimaVelocidadeConhecida = data.valor.toString();
             io.emit('atualizar_velocidade', { velocidade: ultimaVelocidadeConhecida });
             mqttClient.publish(MQTT_TOPIC_SET, data.valor.toString());
         } else if (data.acao === 'emergencia') {
-            // esteira: o proprio ESP32 gira ao contrario por 1s e para
+            // esteira gira ao contrário
             mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, "1");
             ultimaVelocidadeConhecida = "0.00";
             mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, "1");
             mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, "1");
-            mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, "1"); mqttClient.publish('separador/emergencia', '1'); // site -> dispenser
+            mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, "1"); mqttClient.publish('separador/emergencia', '1'); // site para dispenser
             liberarMotoresDispenser();
             emitirEstadoDispenser(true);
             Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => {
@@ -3783,7 +3774,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // inverter sentido da esteira
+    // inverter sentido
     socket.on('comando_sentido', (data) => {
         const usuarios = carregarUsuarios();
         const dadosUsuario = usuarios[socket.data.usuario];
@@ -3798,7 +3789,7 @@ io.on('connection', (socket) => {
             io.emit('atualizar_temperatura', ultimoEstadoSelagem);
             mqttClient.publish(MQTT_TOPIC_SELAGEM_SET, data.valor.toString());
         } else if (data.acao === 'ativar') {
-            // aquecimento só liga pelo painel de controle
+            // aquecimento pelo painel
         } else if (data.acao === 'resetar_seguranca') {
             mqttClient.publish('selagem/resetar_seguranca', '1');
         }
@@ -3810,7 +3801,7 @@ io.on('connection', (socket) => {
             io.emit('atualizar_temperatura2', ultimoEstadoSelagem2);
             mqttClient.publish(MQTT_TOPIC_SELAGEM2_SET, data.valor.toString());
         } else if (data.acao === 'ativar') {
-            // aquecimento só liga pelo painel de controle
+            // aquecimento pelo painel
         } else if (data.acao === 'resetar_seguranca') {
             mqttClient.publish('selagem2/resetar_seguranca', '1');
         }

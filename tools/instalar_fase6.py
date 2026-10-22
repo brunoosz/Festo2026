@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# FLOWPACK - FASE 6: BOTOES MAIS/MENOS SO COM CARTAO NFC (painel)
-# Uso:  python3 /root/instalar_fase6.py      (rode DEPOIS do instalar_fase5.py)
-# Legenda:  ✅ aplicado   ⏭️  ja estava aplicado   ❌ nao deu (me mande a linha)
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# fase 6
 import os, sys, shutil, subprocess, datetime, base64
 BASE = sys.argv[1] if len(sys.argv) > 1 else "/root/site_esteira"
 SERVER = os.path.join(BASE, "server.js"); VIEWS = os.path.join(BASE, "views")

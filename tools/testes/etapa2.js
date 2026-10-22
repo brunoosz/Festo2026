@@ -1,5 +1,5 @@
-// teste automatico da etapa 2: perfil Visualizador (so olha) e telas liberaveis por usuario
-// uso: node tools/testes/etapa2.js   (ou npm test)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste etapa 2
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');
@@ -42,7 +42,7 @@ const { iniciar } = require('../mock_mqtt');
         site.stdout.on('data', d => { saida += d; }); site.stderr.on('data', d => { saida += d; });
         for (let i = 0; i < 60; i++) { await esperar(250); try { if ((await fetch(B + '/sobre')).status === 200) break; } catch (e) {} }
 
-        // o servidor publica a configuracao do separador logo depois de conectar no MQTT: espera isso passar antes de medir
+        // publicação do servo
         for (let i = 0; i < 40 && !gravado.some(x => x.startsWith('separador/config')); i++) await esperar(250);
         await esperar(300);
 

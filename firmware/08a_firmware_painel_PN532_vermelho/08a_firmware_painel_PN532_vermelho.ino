@@ -1,31 +1,10 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
 #include <Adafruit_PN532.h>
 
-// ============================================================
-// FLOWPACK - PAINEL DE COMANDO: LEITOR DE CARTAO NFC + BOTOES (ESP32 SO PARA ISSO)
-// PN532 V3 (I2C) + buzzer (+ LEDs opcionais)
-//
-// Passe o cartao: o ESP32 manda o numero (UID) ao site, o SITE decide
-// (so cartao de Dono ou Adm libera a emergencia) e o buzzer avisa:
-//   1 bip LONGO (1 s) ............ cartao aceito (emergencia liberada)
-//   3 bips curtos ................ cartao nao autorizado
-//   2 bips curtos ................ o site nao respondeu (nada foi liberado)
-//   4 bips curtos ................ leituras demais (espere 30 s)
-//   2 bips medios ................ cartao CADASTRADO (modo cadastro do site)
-// A decisao e sempre do site: sem resposta, NADA libera (seguro).
-//
-// BOTOES (3): EMERGENCIA (vale SEMPRE) | MAIS | MENOS
-//   MAIS e MENOS so funcionam por 30 s depois de passar um cartao de Dono ou Adm
-//   (o LED verde fica aceso enquanto estiverem liberados; cada uso renova o tempo).
-//   Sem cartao: 1 bip medio ("passe o cartao primeiro") e nada acontece.
-//   Com a emergencia ativa, os botoes MAIS/MENOS ficam bloqueados.
-//   Dica de seguranca: mantenha tambem um botao de emergencia LIGADO NO ESP32 DA ESTEIRA:
-//   ele para a esteira na hora, mesmo sem Wi-Fi.
-// Placa: ESP32 DevKit V1 / D1 R32 (no IDE: "ESP32 Dev Module").
-// Monitor Serial (115200): STATUS, BIP, UID, AJUDA
-// ============================================================
+// painel NFC
 
 const char* ssid = "DarkCoders";
 const char* password = "COLOQUE_A_SENHA_DO_WIFI";
@@ -34,27 +13,27 @@ const char* mqtt_server = "192.168.4.1";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* topic_leitura   = "nfc/leitura";               // UID em hexadecimal
+const char* topic_leitura   = "nfc/leitura";               // UID
 const char* topic_resultado = "nfc/resultado";             // resposta do site
-const char* topic_status    = "nfc/status";                // online / offline (retido)
-const char* topic_emerg     = "esteira/estado_emergencia"; // "ativa" | "liberada" (so para o LED)
+const char* topic_status    = "nfc/status";                // online
+const char* topic_emerg     = "esteira/estado_emergencia"; // estado da emergência
 const char* topic_reiniciar = "nfc/reiniciar";
-const char* topic_painel_botao = "painel/botao";           // mais | menos | emergencia
-const char* topic_painel_resultado = "painel/resultado";   // ok | sem_permissao | travado
+const char* topic_painel_botao = "painel/botao";           // botões
+const char* topic_painel_resultado = "painel/resultado";   // resultado
 
-// ---------------- PINAGEM ----------------
+// pinagem
 #define SDA_PIN 21
 #define SCL_PIN 22
-#define PN532_IRQ 4          // IRQ do PN532
-#define PN532_RESET 5        // RSTPD_N do PN532
-#define PIN_BUZZER 25        // buzzer (por transistor: veja a pinagem)
-#define PIN_LED_VERDE 26     // opcional: aceso enquanto MAIS/MENOS estao liberados
-#define PIN_LED_VERM 27      // opcional: aceso enquanto a emergencia esta ativa
-#define BTN_EMERGENCIA 32    // botoes: um fio no pino e o outro no GND
+#define PN532_IRQ 4          // IRQ
+#define PN532_RESET 5        // reset
+#define PIN_BUZZER 25        // buzzer
+#define PIN_LED_VERDE 26     // LED dos botões
+#define PIN_LED_VERM 27      // LED da emergência
+#define BTN_EMERGENCIA 32    // botões
 #define BTN_MAIS 33
 #define BTN_MENOS 14
 
-// buzzer normal (ativo): false. Buzzer passivo (so toca com sinal): true.
+// tipo de buzzer
 #define BUZZER_PASSIVO false
 const int TOM_HZ = 2700;
 
@@ -66,7 +45,7 @@ bool wifiEstavaConectado = false;
 unsigned long ultimaTentativaMqtt = 0;
 unsigned long ultimoStatus = 0;
 
-// ---------------- BUZZER (sequencias sem travar o programa) ----------------
+// buzzer
 struct Passo { int ligadoMs; int desligadoMs; };
 const int MAX_PASSOS = 8;
 Passo seq[MAX_PASSOS];
@@ -100,8 +79,8 @@ void bipNegado()      { Passo p[] = { {120, 120}, {120, 120}, {120, 120} }; toca
 void bipSemResposta() { Passo p[] = { {120, 150}, {120, 150} }; tocar(p, 2); }
 void bipBloqueado()   { Passo p[] = { {80, 80}, {80, 80}, {80, 80}, {80, 80} }; tocar(p, 4); }
 void bipCadastrado()  { Passo p[] = { {250, 150}, {250, 150} }; tocar(p, 2); }
-void bipLeitura()     { Passo p[] = { {40, 0} }; tocar(p, 1); }       // confirma que leu
-void bipSemPermissao() { Passo p[] = { {200, 0} }; tocar(p, 1); }     // botao sem cartao
+void bipLeitura()     { Passo p[] = { {40, 0} }; tocar(p, 1); }       // leitura
+void bipSemPermissao() { Passo p[] = { {200, 0} }; tocar(p, 1); }     // botão sem cartão
 
 void atualizarBuzzer() {
   if (nPassos == 0) return;
@@ -120,12 +99,12 @@ void atualizarBuzzer() {
   if (passoAtual >= nPassos) { nPassos = 0; buzzerEscrever(false); }
 }
 
-// Janela dos botoes MAIS/MENOS: abre quando o site aceita um cartao de Dono/Adm
-const unsigned long JANELA_MS = 30000;      // quanto tempo os botoes ficam liberados depois do cartao (cada uso renova)
+// janela dos botões
+const unsigned long JANELA_MS = 30000;      // tempo dos botões
 unsigned long janelaAte = 0;
 bool janelaAberta() { return millis() < janelaAte; }
 
-// ---------------- LEITURA ----------------
+// leitura
 String ultimoUid = "";
 unsigned long ultimaLeituraMs = 0;
 String uidAguardando = "";
@@ -144,7 +123,7 @@ String uidParaTexto(uint8_t* uid, uint8_t tam) {
 
 void lerCartao() {
   if (!leitorOK) return;
-  if (uidAguardando.length() > 0) return;                 // ainda esperando o site
+  if (uidAguardando.length() > 0) return;                 // esperando o site
 
   uint8_t uid[7]; uint8_t tam = 0;
   if (!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &tam, 60)) return;
@@ -152,7 +131,7 @@ void lerCartao() {
   String texto = uidParaTexto(uid, tam);
   unsigned long agora = millis();
 
-  // o mesmo cartao parado no leitor nao conta de novo por 2 s
+  // cartão repetido
   if (texto == ultimoUid && agora - ultimaLeituraMs < 2000) { ultimaLeituraMs = agora; return; }
   ultimoUid = texto; ultimaLeituraMs = agora;
 
@@ -189,8 +168,7 @@ void verificarTimeout() {
   }
 }
 
-// ---------------- BOTOES DO PAINEL (anti-ruido) ----------------
-// EMERGENCIA vale sempre. MAIS e MENOS so funcionam com a JANELA aberta (cartao de Dono/Adm passado).
+// botões do painel
 
 struct Botao {
   int pino;
@@ -283,7 +261,7 @@ void lerBotoes() {
   }
 }
 
-// ---------------- SITE (MQTT) ----------------
+// site
 bool emergenciaAtiva = false;
 
 void callbackMqtt(char* topic, byte* payload, unsigned int length) {
@@ -293,8 +271,8 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
   String t = String(topic);
   if (t == topic_resultado) tratarResultado(m);
   else if (t == topic_painel_resultado) {
-    if (m == "ok") janelaAte = millis() + JANELA_MS;                        // o uso renova o tempo
-    else { janelaAte = 0; bipSemPermissao(); }                              // sem_permissao / travado
+    if (m == "ok") janelaAte = millis() + JANELA_MS;                        // renova o tempo
+    else { janelaAte = 0; bipSemPermissao(); }                              // sem permissão
   }
   else if (t == topic_emerg) { emergenciaAtiva = (m == "ativa"); if (emergenciaAtiva) janelaAte = 0; }
   else if (t == topic_reiniciar) { Serial.println("Reiniciando..."); delay(200); ESP.restart(); }
@@ -324,7 +302,7 @@ void gerenciarMqtt() {
   else { Serial.print("falha (codigo "); Serial.print(client.state()); Serial.println(")"); }
 }
 
-// ---------------- SERIAL ----------------
+// serial
 void processarComando(String c) {
   c.trim(); c.toUpperCase();
   if (c == "STATUS") {
@@ -342,7 +320,7 @@ void processarComando(String c) {
   else if (c.length()) { Serial.println("Comando desconhecido. Digite AJUDA."); }
 }
 
-// ---------------- SETUP / LOOP ----------------
+// setup e loop
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_BUZZER, OUTPUT);

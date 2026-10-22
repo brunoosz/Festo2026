@@ -1,25 +1,12 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Preferences.h>
 
-// ============================================================
-// FLOWPACK - DISPENSER DE GRAOS
-// ESP32 + 2 drivers BTS7960 (um para cada motor) + 2 motores DC 24V de 90 RPM
-//
-// Cada comando gira o motor em 1/4 de volta (ou varios quartos
-// seguidos): gira por um tempo curto, FREIA e espera um instante.
-//
-// Motor de 90 RPM = 1,5 volta por segundo.
-// 1/4 de volta a 100% leva cerca de 167 ms (15000 / RPM).
-// O tempo exato se acerta no teste (botao TESTAR 1/4 DE VOLTA no site).
-// Os parametros (velocidade, tempo, sentido) vem do site.
-// Funciona pelo site e pelo Monitor Serial.
-// ============================================================
+// dispenser
 
 
-// ============================================================
-// REDE (SITE)
-// ============================================================
+// rede
 
 const char* ssid = "DarkCoders";
 const char* password = "COLOQUE_A_SENHA_DO_WIFI";
@@ -43,41 +30,34 @@ unsigned long ultimoEnvioSite = 0;
 unsigned long ultimoRelatorio = 0;
 
 
-// ============================================================
-// PINAGEM DOS 2 DRIVERS BTS7960
-// ============================================================
+// pinagem
 
-// Motor 1 (reservatorio A)
+// motor 1
 #define M1_RPWM 25
 #define M1_LPWM 26
-#define M1_EN   27     // R_EN e L_EN ligados juntos
+#define M1_EN   27     // pinos de ativação
 
-// Motor 2 (reservatorio B)
+// motor 2
 #define M2_RPWM 32
 #define M2_LPWM 33
-#define M2_EN   13     // R_EN e L_EN ligados juntos
+#define M2_EN   13     // pinos de ativação
 
 
-// ============================================================
-// AJUSTES
-// ============================================================
+// ajustes
 
 const int PWM_FREQ = 20000;
 const int PWM_RESOLUCAO = 8;
 
-const unsigned long FREIO_MS = 90;       // tempo de freio no fim de cada quarto
+const unsigned long FREIO_MS = 90;       // tempo de freio
 const int MAX_QUARTOS = 4;
 
-// Valores usados pelos comandos do Monitor Serial
-// (os comandos do site trazem os proprios valores)
+// valores do serial
 int serialPwm = 100;
-unsigned long serialTempoMs = 170;   // ~1/4 de volta a 90 RPM, 100% de forca
+unsigned long serialTempoMs = 170;   // um quarto de volta
 unsigned long serialPausaMs = 250;
 
 
-// ============================================================
-// MOTORES
-// ============================================================
+// motores
 
 const int F_PARADO = 0;
 const int F_GIRANDO = 1;
@@ -89,10 +69,10 @@ struct Motor {
   int pinRPWM;
   int pinLPWM;
   int pinEN;
-  int canalR;                 // usado so no pacote ESP32 2.x
+  int canalR;                 // só ESP32 2.x
   int canalL;
   const char* chaveMemoria;
-  bool sentidoSerial;         // sentido usado nos comandos do Serial (salvo na memoria)
+  bool sentidoSerial;         // sentido
 
   bool ativo;
   int quartosTotal;
@@ -119,9 +99,7 @@ int limitar(int v, int minimo, int maximo) {
 }
 
 
-// ============================================================
-// PWM (compativel com pacote ESP32 2.x e 3.x)
-// ============================================================
+// PWM
 
 void configurarPwm(Motor& m) {
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
@@ -143,23 +121,22 @@ void escreverPwm(Motor& m, bool ladoR, int duty) {
 #endif
 }
 
-// Gira no sentido pedido com a forca pedida (0 a 100%)
+// girar motor
 void girar(Motor& m, bool invertido, int pwmPct) {
   int duty = (limitar(pwmPct, 0, 100) * 255) / 100;
   digitalWrite(m.pinEN, HIGH);
-  escreverPwm(m, invertido, 0);      // zera o lado que nao sera usado
-  escreverPwm(m, !invertido, duty);  // normal = RPWM · invertido = LPWM
+  escreverPwm(m, invertido, 0);      // zerar lado
+  escreverPwm(m, !invertido, duty);  // sentido normal
 }
 
-// Freio ativo: driver ligado com os dois lados em zero
-// (os dois fios do motor ficam no GND e ele para rapido)
+// freio ativo
 void freiar(Motor& m) {
   escreverPwm(m, true, 0);
   escreverPwm(m, false, 0);
   digitalWrite(m.pinEN, HIGH);
 }
 
-// Solta o motor (driver desligado: sem forca e sem freio)
+// soltar motor
 void soltar(Motor& m) {
   escreverPwm(m, true, 0);
   escreverPwm(m, false, 0);
@@ -167,9 +144,7 @@ void soltar(Motor& m) {
 }
 
 
-// ============================================================
-// SITE: publicacao
-// ============================================================
+// publicação
 
 void publicarEstado() {
 
@@ -200,10 +175,7 @@ void publicarConcluido(int numeroMotor, int quartos) {
 }
 
 
-// ============================================================
-// DOSAGEM: maquina de estados (sem delay, o Serial e o site
-// continuam respondendo enquanto o motor gira)
-// ============================================================
+// dosagem
 
 void iniciarQuarto(Motor& m) {
   girar(m, m.invertido, m.pwmPct);
@@ -303,7 +275,7 @@ void atualizarMotor(int indice) {
   }
 }
 
-// Para tudo na hora (sem reverso: o rotor so precisa parar)
+// parar tudo
 void emergencia(const String& origem) {
 
   for (int i = 0; i < QTD_MOTORES; i++) {
@@ -332,9 +304,7 @@ void pararTudoParaReiniciar() {
 }
 
 
-// ============================================================
-// COMANDOS DO MONITOR SERIAL
-// ============================================================
+// comandos do serial
 
 void mostrarAjuda() {
 
@@ -482,9 +452,7 @@ void processarComando(String comando) {
 }
 
 
-// ============================================================
-// SITE: comandos que chegam pelo MQTT
-// ============================================================
+// comandos do site
 
 void callbackMqtt(char* topic, byte* payload, unsigned int length) {
 
@@ -497,7 +465,7 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
 
   if (topico == topic_dosar) {
 
-    // Formato: motor;quartos;forca;tempoMs;invertido;pausaMs
+    // formato do comando
     int motor = 0, quartos = 0, forca = 0, invertido = 0;
     unsigned long tempo = 0, pausa = 0;
 
@@ -523,9 +491,7 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
 }
 
 
-// ============================================================
-// SITE: WiFi e MQTT sem travar o resto do programa
-// ============================================================
+// Wi-Fi e MQTT
 
 void gerenciarWifi() {
 
@@ -580,9 +546,7 @@ void gerenciarMqtt() {
 }
 
 
-// ============================================================
-// SETUP
-// ============================================================
+// setup
 
 void setup() {
 
@@ -620,9 +584,7 @@ void setup() {
 }
 
 
-// ============================================================
-// LOOP
-// ============================================================
+// loop
 
 void loop() {
 
@@ -639,7 +601,7 @@ void loop() {
 
   for (int i = 0; i < QTD_MOTORES; i++) atualizarMotor(i);
 
-  // Sinal de vida para o site a cada 1 segundo
+  // sinal de vida
   if (agora - ultimoEnvioSite >= 1000) {
     ultimoEnvioSite = agora;
     publicarEstado();

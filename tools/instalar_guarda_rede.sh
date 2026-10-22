@@ -1,7 +1,6 @@
 #!/bin/bash
-# Instala o guarda-rede e as protecoes do site no Raspberry (rodar como root).
-#   sudo bash instalar_guarda_rede.sh
-# Pode rodar de novo sem problema (nao duplica nada).
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# instalar guarda-rede
 
 P="${PREFIXO:-}"
 SYSTEMCTL="${SYSTEMCTL:-systemctl}"
@@ -14,7 +13,7 @@ erro() { echo "❌ $*"; }
 if [ -z "$P" ] && [ "$(id -u)" != "0" ]; then erro "Rode como root:  sudo bash $0"; exit 1; fi
 if [ ! -f "$ORIGEM/guarda-rede-darkcoders.sh" ]; then erro "Nao achei guarda-rede-darkcoders.sh na mesma pasta deste instalador."; exit 1; fi
 
-# 1) script do guarda-rede
+# script
 mkdir -p "$P/usr/local/bin" "$P/var/lib/flowpack" "$P/etc/systemd/system/site_esteira.service.d"
 if cmp -s "$ORIGEM/guarda-rede-darkcoders.sh" "$P/usr/local/bin/guarda-rede-darkcoders.sh"; then
   pula "Guarda-rede: script ja estava atualizado."
@@ -22,7 +21,7 @@ else
   install -m 755 "$ORIGEM/guarda-rede-darkcoders.sh" "$P/usr/local/bin/guarda-rede-darkcoders.sh" && ok "Guarda-rede: script instalado."
 fi
 
-# 2) servico do guarda-rede
+# serviço
 UNIT="$P/etc/systemd/system/guarda-rede-darkcoders.service"
 cat > "$UNIT.novo" << 'FIM'
 [Unit]
@@ -39,7 +38,7 @@ WantedBy=multi-user.target
 FIM
 if [ -f "$UNIT" ] && cmp -s "$UNIT" "$UNIT.novo"; then rm -f "$UNIT.novo"; pula "Guarda-rede: servico ja existia."; else mv "$UNIT.novo" "$UNIT"; ok "Guarda-rede: servico criado."; fi
 
-# 3) protecao do site: reinicia sozinho se cair e o sistema nao o escolhe quando falta memoria
+# proteção do site
 DROP="$P/etc/systemd/system/site_esteira.service.d/protecao.conf"
 cat > "$DROP.novo" << 'FIM'
 [Service]
@@ -49,7 +48,7 @@ OOMScoreAdjust=-500
 FIM
 if [ -f "$DROP" ] && cmp -s "$DROP" "$DROP.novo"; then rm -f "$DROP.novo"; pula "Site: protecao (reinicio automatico e prioridade de memoria) ja existia."; else mv "$DROP.novo" "$DROP"; ok "Site: reinicia sozinho se cair e e o ultimo a ser derrubado se faltar memoria."; fi
 
-# 4) memoria virtual (swap) se o Raspberry nao tiver nenhuma
+# swap
 if [ "${PULAR_SWAP:-0}" = "1" ]; then
   pula "Swap: pulado."
 elif [ -n "$(swapon --show --noheadings 2>/dev/null)" ]; then
@@ -74,7 +73,7 @@ else
   erro "Swappiness: nao consegui gravar $SW"
 fi
 
-# 5) liga tudo
+# ligar tudo
 "$SYSTEMCTL" daemon-reload
 "$SYSTEMCTL" enable guarda-rede-darkcoders.service > /dev/null 2>&1
 "$SYSTEMCTL" restart guarda-rede-darkcoders.service && ok "Guarda-rede ligado."

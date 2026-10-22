@@ -1,3 +1,4 @@
+{# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/ #}
 {% extends 'base.html' %}
 
 {% block title %}Usuários{% endblock %}
@@ -190,7 +191,7 @@
         let botoesAcao = '';
 
         if (soLeitura) {
-            // Visualizador só olha a lista
+            // Visualizador só olha
         } else if (u.nivel === 4 && souDono) {
             botoesAcao += `<button data-usuario="${u.usuario}" class="btn-telas-usuario text-emerald-600 hover:text-emerald-800 text-xs font-bold mr-3 cursor-pointer">Telas</button>`;
         }
@@ -225,7 +226,7 @@
         return tr;
     }
 
-    // aplica o filtro selecionado e reordena por nível
+    // aplicar filtro
     function renderizarComFiltro() {
         const filtroAtual = filtroNivel.value;
         let lista = [...listaCompletaUsuarios];

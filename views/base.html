@@ -1,3 +1,4 @@
+{# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/ #}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -17,7 +18,7 @@
         @media (max-width: 640px) { .card-painel { padding: 0.85rem; border-radius: 0.65rem; } .titulo-painel { font-size: 0.7rem; margin-bottom: 0.6rem; padding-bottom: 0.4rem; } }
         input, select, textarea { font-size: 16px; }
         @media (min-width: 640px) { input, select, textarea { font-size: 14px; } }
-        /* perfil Visualizador: controles ficam apagados (o bloqueio de verdade e no servidor) */
+        /* controles apagados */
         body.somente-leitura #btn-emergencia-global { display: none !important; }
         body.somente-leitura #conteudo-pagina :is(button, input, select, textarea, [role="button"]):not([data-leitura-ok]):not([data-leitura-ok] *) { opacity: .5; cursor: not-allowed; }
         .leitor-tela-armado { outline: 3px solid #f59e0b !important; outline-offset: 2px; }
@@ -26,7 +27,7 @@
         #tutorial-overlay { z-index: 999999 !important; }
         #tutorial-borda-ativa { position: fixed; inset: 0; z-index: 999990; pointer-events: none; border: 4px solid #3b82f6; box-shadow: inset 0 0 35px rgba(59, 130, 246, 0.55), inset 0 0 8px rgba(59, 130, 246, 0.9), 0 0 20px rgba(59, 130, 246, 0.5); animation: pulso-borda-tutorial 2s ease-in-out infinite; }
         @keyframes pulso-borda-tutorial { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
-        /* emergencia global: mesma moldura do tutorial, em vermelho; vence o azul enquanto estiver ativa */
+        /* moldura vermelha */
         #emergencia-borda { position: fixed; inset: 0; z-index: 999989; pointer-events: none; display: none; border: 4px solid #ef4444; box-shadow: inset 0 0 35px rgba(239, 68, 68, 0.6), inset 0 0 8px rgba(239, 68, 68, 0.95), 0 0 20px rgba(239, 68, 68, 0.55); animation: pulso-borda-emergencia 2s ease-in-out infinite; }
         #emergencia-aviso { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); transform: translateX(-50%); z-index: 999989; pointer-events: none; display: none; max-width: calc(100vw - 100px); background: rgba(185, 28, 28, 0.94); color: #fff; border-radius: 9999px; padding: 6px 14px; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
         @media (max-width: 640px) { #emergencia-aviso { font-size: 10px; padding: 4px 12px; } #emergencia-aviso .emerg-detalhe { display: none; } }
@@ -303,7 +304,7 @@
             });
             globalSocket.on('emergencia_estado', (d) => aplicarEstadoEmergencia(!!(d && d.ativa)));
 
-            // receita selecionada (50, 100, 150, 200 g ou o que estiver em Receitas), sempre visivel no topo
+            // receita no topo
             const receitaTopo = document.getElementById('receita-topo'), receitaTopoValor = document.getElementById('receita-topo-valor');
             function mostrarReceitaTopo(gramas) {
                 if (!receitaTopo || gramas === null || gramas === undefined) return;
@@ -314,7 +315,7 @@
             if (receitaTopo && receitaTopo.dataset.clicavel === 'sim') { receitaTopo.style.cursor = 'pointer'; receitaTopo.addEventListener('click', () => { window.location.href = '/receitas'; }); }
             fetch('/api/receita-atual').then(r => r.json()).then(d => mostrarReceitaTopo(d.gramas)).catch(() => {});
             globalSocket.on('receita_atual', (d) => { const n = d && d.niveis && d.niveis[d.indice]; if (n) mostrarReceitaTopo(n.gramas); });
-            // quem abre o site no meio da emergencia: confirma com o servidor (o estado guardado no navegador pode estar velho)
+            // emergência aberta
             fetch('/api/emergencia').then(r => r.json()).then(e => aplicarEstadoEmergencia(!!(e && e.ativa))).catch(() => {});
 
             const conteudoPagina = document.getElementById('conteudo-pagina');
@@ -438,7 +439,7 @@
 
             window.definirAcessibilidade = function(ativo) { acessibilidadeAtiva = !!ativo; desarmarElemento(); if (!acessibilidadeAtiva) window.speechSynthesis.cancel(); };
 
-            // alternar tema por comando (voz ou texto)
+            // tema por comando
             window.iaAlternarTema = function(modo) {
                 let atual = localStorage.getItem('tema_flowpack');
                 let novo;
@@ -462,7 +463,7 @@
             });
 
             window.addEventListener('popstate', () => {
-                // o "voltar" que fecha a tela cheia simulada do modelo 3D nao deve recarregar a pagina
+                // voltar da tela cheia
                 if (window.__m3vSimulada || window.__m3vIgnorarPopstate) { window.__m3vIgnorarPopstate = false; return; }
                 navegarPara(window.location.pathname, false);
             });
@@ -538,7 +539,7 @@
                 sessionStorage.setItem(CHAVE_BUFFER_LOGS, JSON.stringify(buffer));
             }
 
-            // emergencia acionada fora do site
+            // emergência externa
             globalSocket.on('emergencia_remota', () => { aplicarEstadoEmergencia(true); });
 
             globalSocket.on('novo_log_servidor', (log) => {
@@ -565,8 +566,7 @@
         </script>
 
         <script>
-            // perfil Visualizador: cliques, teclas e toques em controles da tela nao fazem nada
-            // (o que for so de olhar fica dentro de um elemento com data-leitura-ok)
+            // bloqueio de cliques
             if (window.__somenteLeitura) {
                 (function () {
                     const INTERATIVO = 'button, input, select, textarea, label, summary, [role="button"], [onclick], [contenteditable="true"], .cursor-pointer';
@@ -592,7 +592,7 @@
     </main>
 
     
-<!-- MANUAIS (botao no menu e no topo) -->
+<!-- manuais -->
 <div id="modal-manuais" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[999990] p-3">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-1">
@@ -682,7 +682,7 @@
         const CHAVE_TUTORIAL_ATIVO = 'tutorial_ativo';
         const CHAVE_TUTORIAL_PASSO = 'tutorial_passo';
 
-        // o roteiro (textos e telas) fica em /js/tutorial-roteiro.js; aqui so se escolhe o que cada perfil pode ver
+        // roteiro
         function construirPassosTutorial() {
             const roteiro = window.ROTEIRO_TUTORIAL || [];
             const permissoes = window.__permissoesIniciais || {};
@@ -817,7 +817,7 @@
         btnFecharTutorial.addEventListener('click', encerrarTutorial);
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlayTutorial.classList.contains('hidden')) encerrarTutorial(); });
 
-        // sistema de comando da ia via navegação real
+        // comandos da IA
         const rostoFlutuanteIA = document.getElementById('ia-rosto-flutuante');
 
         window.iaExecutarComandoComNavegacao = function(destino, seletorDestaque, textoFala, tempoTotalMs, seletorClique, retomarVoz) {
@@ -830,7 +830,7 @@
             window.location.href = destino;
         };
 
-        // ao carregar QUALQUER página (recarregamento real)
+        // ao carregar
         (function retomarComandoIAAposNavegacao() {
             if (sessionStorage.getItem('ia_cmd_ativo') !== '1') return;
 

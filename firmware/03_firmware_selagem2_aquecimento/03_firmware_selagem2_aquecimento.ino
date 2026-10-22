@@ -1,17 +1,13 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
 #include <Adafruit_MLX90614.h>
 #include <PID_v1.h>
 
-// ================================================================================
-// SELAGEM 2 (ROTATIVA) - ESP32 DO AQUECIMENTO
-// Fita de NiCr + SSR-25DD + sensor IR GY-906 + PID
-// Controle pelo site (MQTT) e pelo Monitor Serial do Arduino IDE
-// Nada desliga sozinho: temperatura alta ou falha de leitura so geram AVISO
-// ================================================================================
+// selagem 2
 
-// ------------------------------- REDE -------------------------------------------
+// rede
 const char* ssid = "DarkCoders";
 const char* password = "COLOQUE_A_SENHA_DO_WIFI";
 const char* mqtt_server = "192.168.4.1";
@@ -26,22 +22,21 @@ const char* topic_emergencia      = "selagem2/emergencia";
 const char* topic_status          = "selagem2/status_conexao";
 const char* topic_reiniciar       = "selagem2/reiniciar";
 
-// ------------------------------- SENSOR IR (GY-906) ----------------------------
+// sensor IR
 const int PIN_SDA = 21;
 const int PIN_SCL = 22;
 Adafruit_MLX90614 sensor = Adafruit_MLX90614();
 bool sensorEncontrado = false;
 
-// ------------------------------- SSR-25DD ---------------------------------------
+// SSR
 const int SSR_PIN = 25;
 
-// ------------------------------- PID --------------------------------------------
-// Saida do PID em milissegundos: quanto tempo o SSR fica ligado dentro da janela
+// PID
 const unsigned long JANELA_MS = 2000;
 double temperaturaAtual = 0;
-double saidaPID = 0;          // 0 a JANELA_MS
-double potencia = 0;          // 0 a 100% (so pra mostrar)
-double setpoint = 0;          // comeca em 0 ao ligar a placa
+double saidaPID = 0;          // janela do PID
+double potencia = 0;          // saída do PID
+double setpoint = 0;          // partida em 0
 
 double Kp = 12.0;
 double Ki = 0.35;
@@ -50,13 +45,13 @@ double Kd = 20.0;
 PID controlePID(&temperaturaAtual, &saidaPID, &setpoint, Kp, Ki, Kd, DIRECT);
 unsigned long inicioJanela = 0;
 
-// ------------------------------- AVISOS -----------------------------------------
-const double TEMP_MAX_ALVO = 250.0;   // maior alvo aceito
-const double TEMP_AVISO = 260.0;      // acima disso so mostra AVISO no site
+// avisos
+const double TEMP_MAX_ALVO = 250.0;   // alvo máximo
+const double TEMP_AVISO = 260.0;      // só avisa
 bool habilitado = false;
-String estadoSeguranca = "ok";        // "ok" | "erro_sensor" | "temperatura_alta"
+String estadoSeguranca = "ok";        // valores de estado
 
-// ------------------------------- TEMPORIZADORES ---------------------------------
+// temporizadores
 unsigned long ultimaLeituraSensor = 0;
 const unsigned long INTERVALO_LEITURA_MS = 500;
 unsigned long ultimoEnvioDados = 0;
@@ -69,9 +64,7 @@ bool wifiEstavaConectado = false;
 unsigned long ultimaTentativaMqtt = 0;
 const unsigned long INTERVALO_TENTATIVA_MQTT_MS = 5000;
 
-// ================================================================================
-// PUBLICACAO PRO SITE
-// ================================================================================
+// publicações
 void publicarDados() {
   if (!client.connected()) return;
   String payload = "{";
@@ -84,9 +77,7 @@ void publicarDados() {
   client.publish(topic_dados, payload.c_str());
 }
 
-// ================================================================================
-// ACOES (site e Monitor Serial)
-// ================================================================================
+// ações
 void definirSetpoint(double valor, const String& origem) {
   if (valor < 0) valor = 0;
   if (valor > TEMP_MAX_ALVO) valor = TEMP_MAX_ALVO;
@@ -117,9 +108,7 @@ void acionarEmergencia(const String& origem) {
   Serial.print(">>> EMERGENCIA ("); Serial.print(origem); Serial.println("): aquecimento desligado");
 }
 
-// ================================================================================
-// SENSOR: se falhar, so avisa e o PID continua com a ultima leitura valida
-// ================================================================================
+// falha do sensor
 void lerSensor() {
   if (!sensorEncontrado && sensor.begin()) {
     sensorEncontrado = true;
@@ -140,7 +129,7 @@ void lerSensor() {
   estadoSeguranca = (temperaturaAtual >= TEMP_AVISO) ? "temperatura_alta" : "ok";
 }
 
-// Liga/desliga o SSR dentro da janela de tempo conforme o PID
+// controle do SSR
 void controlarAquecimento() {
   if (!habilitado) {
     saidaPID = 0;
@@ -156,9 +145,7 @@ void controlarAquecimento() {
   digitalWrite(SSR_PIN, (agora - inicioJanela) < (unsigned long)saidaPID ? HIGH : LOW);
 }
 
-// ================================================================================
-// MONITOR SERIAL
-// ================================================================================
+// monitor serial
 void mostrarAjuda() {
   Serial.println();
   Serial.println("==================================================");
@@ -222,9 +209,7 @@ void processarSerial() {
   }
 }
 
-// ================================================================================
-// MQTT - mensagens vindas do site
-// ================================================================================
+// mensagens do site
 void callbackMqtt(char* topic, byte* payload, unsigned int length) {
   String mensagem;
   for (unsigned int i = 0; i < length; i++) mensagem += (char)payload[i];
@@ -242,9 +227,7 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
   }
 }
 
-// ================================================================================
-// WIFI E MQTT (nao-bloqueantes)
-// ================================================================================
+// Wi-Fi e MQTT
 void gerenciarWifi() {
   bool conectadoAgora = (WiFi.status() == WL_CONNECTED);
   if (conectadoAgora && !wifiEstavaConectado) {
@@ -288,9 +271,7 @@ void gerenciarMqtt() {
   }
 }
 
-// ================================================================================
-// SETUP E LOOP
-// ================================================================================
+// setup e loop
 void setup() {
   Serial.begin(115200);
   Serial.println();

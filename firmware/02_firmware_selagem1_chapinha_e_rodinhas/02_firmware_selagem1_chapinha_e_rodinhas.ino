@@ -1,3 +1,4 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
@@ -6,33 +7,10 @@
 #include <math.h>
 #include <Preferences.h>
 
-// ============================================================
-// FLOWPACK - SELAGEM 1 COMPLETA (1 ESP32 SO)
-// AQUECIMENTO: CHAPINHA + SSR Fotek SSR-25DA + GY-906 + PID
-// MOTORES: 2 RODINHAS de carrinho (motor TT) que puxam o plastico,
-// uma de cada lado, girando em SENTIDOS OPOSTOS, num driver L298N
-// (placa vermelha): uma roda em cada canal, sempre na mesma velocidade.
-// A logica e a mesma do teste feito no Arduino Uno:
-//   roda A: IN1 alto, IN2 baixo   |   roda B: IN3 baixo, IN4 alto
-//   velocidade maxima = ENA/ENB em 255 (100% no site)
-//
-// O aquecimento, o site, o Painel e a Alexa continuam exatamente iguais.
-// No site, "Motor 1" e "Motor 2" da Selagem 1 comandam as DUAS rodas
-// juntas (mexer em um move o outro).
-// Funciona pelo site (Painel de Controle e Dashboard)
-// e pelo Monitor Serial do Arduino IDE (115200).
-//
-// SEGURANCA (rede eletrica!):
-// - Sensor com defeito ou temperatura >= 170 C: o aquecimento
-//   DESLIGA e fica TRAVADO ate alguem usar RESETAR FALHA
-//   (so libera se o sensor estiver lendo e a chapinha esfriou).
-// - A emergencia do site desliga o aquecimento na hora.
-// ============================================================
+// selagem 1
 
 
-// ============================================================
-// REDE (SITE)
-// ============================================================
+// rede
 
 const char* ssid = "DarkCoders";
 const char* password = "COLOQUE_A_SENHA_DO_WIFI";
@@ -49,14 +27,13 @@ const char* topic_resetar_seguranca = "selagem/resetar_seguranca";
 const char* topic_reiniciar         = "selagem/reiniciar";
 const char* topic_status            = "selagem/status_conexao";
 
-// O site tem os controles "Motor 1" e "Motor 2" da Selagem 1.
-// Como os dois motores estao no mesmo driver, o Motor 2 e um ESPELHO do Motor 1.
+// motores do site
 const char* topic_motor2_vel_set      = "selagem/motor2/velocidade/set";
 const char* topic_motor2_vel_atual    = "selagem/motor2/velocidade/atual";
 const char* topic_motor2_sentido_set  = "selagem/motor2/sentido/set";
 const char* topic_motor2_sentido_atual = "selagem/motor2/sentido/atual";
 
-// Os motores aparecem no site como um dispositivo a parte
+// motores separados
 const char* topic_motores_status    = "selagem/motores/status";
 const char* topic_motores_reiniciar = "selagem/motores/reiniciar";
 
@@ -66,11 +43,9 @@ unsigned long ultimaTentativaMqtt = 0;
 unsigned long ultimoEnvioSite = 0;
 
 
-// ============================================================
-// PINAGEM
-// ============================================================
+// pinagem
 
-// SSR Fotek: terminal 3 (+) neste pino, terminal 4 (-) no GND.
+// SSR
 #define SSR_PIN 23
 
 #define SDA_PIN 21
@@ -80,26 +55,21 @@ unsigned long ultimoEnvioSite = 0;
 #define SSR_OFF LOW
 
 
-// ============================================================
-// SENSOR GY-906 (MLX90614, infravermelho, I2C)
-// ============================================================
+// sensor
 
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 bool sensorOK = false;
 
 
-// ============================================================
-// PID (ganhos da chapinha)
-// ============================================================
+// PID
 
 double temperatura = 0.0;
 
-// Comeca em 0: a chapinha so esquenta depois que alguem
-// definir uma temperatura (site ou Serial).
+// temperatura inicial
 double setpoint = 0.0;
 
-double potencia = 0.0;   // 0 a 100 %
+double potencia = 0.0;   // porcentagem
 
 double Kp = 5.0;
 double Ki = 0.08;
@@ -116,43 +86,35 @@ PID pid(
 );
 
 
-// ============================================================
-// CONTROLE DO SSR (liga/desliga por janela de tempo)
-// ============================================================
+// controle do SSR
 
 const unsigned long JANELA_SSR = 2000;
 
 unsigned long inicioJanela = 0;
 
 
-// ============================================================
-// SEGURANCA
-// ============================================================
+// segurança
 
-// A partir daqui o aquecimento desliga e trava
+// limite de segurança
 const double LIMITE_SEGURANCA = 170.0;
 
-// So libera o RESET se a temperatura estiver abaixo de
-// (LIMITE_SEGURANCA - MARGEM_RESET)
+// reset
 const double MARGEM_RESET = 20.0;
 
-// Maior temperatura alvo aceita
+// temperatura máxima
 const double SETPOINT_MAXIMO = LIMITE_SEGURANCA - 5.0;
 
-// Quantas leituras ruins seguidas (1 por segundo) antes de travar.
-// Evita travar por um piscar do sensor.
+// leituras ruins
 const int LEITURAS_RUINS_PARA_TRAVAR = 3;
 
 
-// ============================================================
-// ESTADOS
-// ============================================================
+// estados
 
 bool aquecimentoAtivo = false;
 
 bool travado = false;
 String motivoFalha = "";
-String tipoFalha = "ok";     // "ok" | "erro_sensor" | "temperatura_alta"
+String tipoFalha = "ok";     // valores de estado
 
 int leiturasRuins = 0;
 
@@ -162,38 +124,32 @@ const unsigned long INTERVALO_LEITURA_MS = 1000;
 unsigned long ultimoRelatorio = 0;
 
 
-// ============================================================
-// RODINHAS (L298N, 2 canais) - pinos, ajustes e dados
-// Velocidade do site de 1 a 100% vai de PWMMIN (forca minima que gira)
-// ate 255. Rampa suave. Na emergencia as rodas PARAM (sem reverso).
-// ============================================================
+// rodinhas
 
 Preferences memoria;
 
-// L298N - canal A (roda A)
-#define RODA_A_EN  25     // ENA (PWM)
+// canal A
+#define RODA_A_EN  25     // ENA
 #define RODA_A_IN1 26
 #define RODA_A_IN2 27
 
-// L298N - canal B (roda B)
-#define RODA_B_EN  32     // ENB (PWM)
+// canal B
+#define RODA_B_EN  32     // ENB
 #define RODA_B_IN3 33
 #define RODA_B_IN4 13
 
 
 
-// ============================================================
-// AJUSTES DOS MOTORES
-// ============================================================
+// ajustes dos motores
 
-int pwmFreq = 1000;          // frequencia do PWM (comando PWMFREQ=; mais baixa = mais forca em baixa velocidade)
+int pwmFreq = 1000;          // frequência do PWM
 const int PWM_RESOLUCAO = 8;
-const int PWM_MAX = 255;      // 100% = maximo real do driver
+const int PWM_MAX = 255;      // máximo do driver
 int pwmMinimo = 100;
-int kickMs = 150;             // pulso inicial de 100% para vencer o atrito (comando KICK=; 0 desliga)
+int kickMs = 150;             // pulso inicial
 bool calibrando = false;
 int calPwm = 0;
-unsigned long calProximo = 0;           // menor forca que ainda move (comando PWMMIN=; fica salvo)
+unsigned long calProximo = 0;           // força mínima
 
 const unsigned long EMERGENCIA_REVERSO_MS = 1000;
 const int EMERGENCIA_REVERSO_PCT_MINIMO = 50;
@@ -206,8 +162,8 @@ struct Roda {
   int pinEN;
   int pinIN1;
   int pinIN2;
-  int canal;                  // usado so no pacote ESP32 2.x
-  bool invertida;             // a roda B gira ao contrario da A (comando RODAB INVERTER)
+  int canal;                  // só ESP32 2.x
+  bool invertida;             // roda B invertida
 };
 
 Roda rodas[2] = {
@@ -241,9 +197,7 @@ Motor motores[] = {
 const int QTD_MOTORES = 1;
 
 
-// ============================================================
-// SITE: envia o estado atual (formato que o site ja usa)
-// ============================================================
+// estado atual
 
 void enviarDadosSite() {
 
@@ -262,9 +216,7 @@ void enviarDadosSite() {
 }
 
 
-// ============================================================
-// DESLIGAR / PARAR / TRAVAR
-// ============================================================
+// parar
 
 void desligarSSR() {
 
@@ -317,9 +269,7 @@ void travar(String tipo, String motivo) {
 }
 
 
-// ============================================================
-// LEITURA DO SENSOR (1 vez por segundo)
-// ============================================================
+// leitura do sensor
 
 bool leituraValida(double leitura) {
 
@@ -372,9 +322,7 @@ void lerSensor() {
 }
 
 
-// ============================================================
-// SETPOINT
-// ============================================================
+// setpoint
 
 void definirSetpoint(double novaTemperatura) {
 
@@ -401,9 +349,7 @@ void definirSetpoint(double novaTemperatura) {
 }
 
 
-// ============================================================
-// LIGAR O AQUECIMENTO
-// ============================================================
+// ligar aquecimento
 
 void iniciarAquecimento() {
 
@@ -448,9 +394,7 @@ void iniciarAquecimento() {
 }
 
 
-// ============================================================
-// RESET DA FALHA
-// ============================================================
+// reset da falha
 
 void resetarFalha() {
 
@@ -516,9 +460,7 @@ void resetarFalha() {
 }
 
 
-// ============================================================
-// PWM (compativel com pacote ESP32 2.x e 3.x)
-// ============================================================
+// PWM
 
 void configurarPwmRodas() {
   for (int i = 0; i < 2; i++) {
@@ -539,7 +481,7 @@ void escreverPwmRoda(int i, int valor) {
 #endif
 }
 
-// Aplica nas DUAS rodas: a roda B gira ao contrario da A
+// duas rodas
 void aplicarMotor(Motor& m, int pwm, bool frente) {
 
   for (int i = 0; i < 2; i++) {
@@ -567,9 +509,7 @@ int pctParaPwm(int pct) {
 }
 
 
-// ============================================================
-// SITE: publicacao
-// ============================================================
+// publicação
 
 void publicarMotor(Motor& m) {
   if (!client.connected()) return;
@@ -592,9 +532,7 @@ void publicarTodosMotores() {
 }
 
 
-// ============================================================
-// ACOES (site e Monitor Serial)
-// ============================================================
+// ações
 
 void definirVelocidadeMotor(Motor& m, int pct, const String& origem) {
 
@@ -629,7 +567,7 @@ void definirSentidoMotor(Motor& m, bool invertido, const String& origem) {
   publicarSentidoMotor(m);
 }
 
-// Para as rodas na hora (sem reverso: o plastico nao deve voltar)
+// parar rodas
 void emergenciaMotores(const String& origem) {
 
   calibrando = false;
@@ -656,7 +594,7 @@ void pararTodosMotores() {
   }
 }
 
-// Rampa suave + troca de sentido segura (desacelera ate parar antes de inverter)
+// rampa
 void atualizarMotor(Motor& m) {
 
   if (m.emReverso) {
@@ -668,7 +606,7 @@ void atualizarMotor(Motor& m) {
     return;
   }
 
-  // segurando o pulso inicial de 100% (vence o atrito para a roda sair do lugar)
+  // pulso inicial
   if (millis() < m.kickFim) {
     aplicarMotor(m, PWM_MAX, m.direcaoAtualFrente);
     return;
@@ -683,7 +621,7 @@ void atualizarMotor(Motor& m) {
   if (direcaoDesejada != m.direcaoAtualFrente && m.pwmAtual > 0) alvo = 0;
   if (m.pwmAtual == 0) m.direcaoAtualFrente = direcaoDesejada;
 
-  // parada total -> velocidade baixa: da o pulso inicial
+  // partida
   if (m.pwmAtual == 0 && alvo > 0 && alvo < PWM_MAX && kickMs > 0) {
     m.pwmAtual = PWM_MAX;
     m.kickFim = millis() + kickMs;
@@ -740,7 +678,7 @@ void inscreverMotores() {
 
 void tratarMensagemMotor(const String& topico, const String& mensagem) {
 
-  // Comandos do "Motor 2" do site: mesmo driver, mesmo efeito
+  // motor 2
   if (topico == topic_motor2_vel_set) {
     float v = mensagem.toFloat();
     int pct = (v <= 1.0) ? (int)round(v * 100) : (int)round(v);
@@ -794,7 +732,7 @@ void mostrarStatusMotores() {
 
 void comandoMotorSerial(String comando) {
 
-  // Aceita M=60, M1=60 ou M2=60: os dois motores sao um so, no mesmo driver
+  // comandos de velocidade
   String resto = comando.substring(1);
 
   if (resto.startsWith("1") || resto.startsWith("2")) resto = resto.substring(1);
@@ -815,11 +753,7 @@ void comandoMotorSerial(String comando) {
   }
 }
 
-// ============================================================
-// TESTE DA FIACAO DO SSR (so para diagnostico)
-// Liga o pino do SSR por 3 segundos, sem passar pelo PID.
-// Se o LED do SSR acender, o fio e o pino estao certos.
-// ============================================================
+// teste do SSR
 
 void testarSSR() {
 
@@ -845,14 +779,9 @@ void testarSSR() {
 }
 
 
-// ============================================================
-// COMANDOS DO MONITOR SERIAL
-// ============================================================
+// comandos do serial
 
-// ============================================================
-// TESTE DAS RODINHAS (a mesma sequencia do teste feito no Arduino Uno)
-// A: IN1 alto / IN2 baixo   B: IN3 baixo / IN4 alto   ENA/ENB no maximo
-// ============================================================
+// teste das rodinhas
 
 void testarRodas() {
 
@@ -869,11 +798,7 @@ void testarRodas() {
   Serial.println("  SIM = fiacao certa. NAO = confira IN1..IN4, ENA/ENB, alimentacao do L298N e o GND comum.");
 }
 
-// ============================================================
-// CALIBRAR: acha a menor forca que faz as rodas girarem
-// Digite CALIBRAR, espere o PWM subir e, quando as DUAS rodas
-// comecarem a girar, digite OK. O valor e salvo (com uma folga).
-// ============================================================
+// calibrar
 
 void terminarCalibracao(bool ok) {
 
@@ -1162,9 +1087,7 @@ void processarComando(String comando) {
 }
 
 
-// ============================================================
-// SITE: comandos que chegam pelo MQTT
-// ============================================================
+// comandos do site
 
 void callbackMqtt(char* topic, byte* payload, unsigned int length) {
 
@@ -1205,9 +1128,7 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
 }
 
 
-// ============================================================
-// SITE: WiFi e MQTT sem travar o resto do programa
-// ============================================================
+// Wi-Fi e MQTT
 
 void gerenciarWifi() {
 
@@ -1269,15 +1190,13 @@ void gerenciarMqtt() {
 }
 
 
-// ============================================================
-// SETUP
-// ============================================================
+// setup
 
 void setup() {
 
   Serial.begin(115200);
 
-  // SSR sempre comeca desligado
+  // SSR desligado
   pinMode(SSR_PIN, OUTPUT);
 
   desligarSSR();
@@ -1343,9 +1262,7 @@ void setup() {
 }
 
 
-// ============================================================
-// LOOP
-// ============================================================
+// loop
 
 void loop() {
 
@@ -1365,7 +1282,7 @@ void loop() {
     processarComando(comando);
   }
 
-  // ---------------- sensor ----------------
+  // sensor
 
   if (agora - ultimaLeitura >= INTERVALO_LEITURA_MS) {
 
@@ -1374,7 +1291,7 @@ void loop() {
     lerSensor();
   }
 
-  // ---------------- PID + SSR ----------------
+  // PID e SSR
 
   if (aquecimentoAtivo && !travado) {
 
@@ -1392,7 +1309,7 @@ void loop() {
     desligarSSR();
   }
 
-  // ---------------- site (sinal de vida) ----------------
+  // sinal de vida
 
   if (agora - ultimoEnvioSite >= 1000) {
 
@@ -1405,7 +1322,7 @@ void loop() {
     if (client.connected()) client.publish(topic_motores_status, "online");
   }
 
-  // ---------------- relatorio no Serial ----------------
+  // relatório
 
   if (agora - ultimoRelatorio >= 1000) {
 

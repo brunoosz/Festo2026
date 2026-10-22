@@ -1,36 +1,37 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 'use strict';
-// motor local do separador
+// motor local
 const fs = require('fs');
 const path = require('path');
 
 const PADRAO = {
-    motorLocal: true,        // false = volta ao metodo antigo (brilho medio + IA da nuvem)
-    eixo: 'x',               // sentido da esteira na imagem
-    sentido: 0,              // 0 = qualquer, 1 = crescente (esq->dir ou cima->baixo), -1 = contrario
-    linha: 0.5,              // onde contar (0 a 1, ao longo do sentido da esteira)
-    limiarFundo: 28,         // quanto uma cor precisa diferir da esteira vazia (0 a 255)
-    fracColuna: 0.22,        // fracao da faixa que precisa estar diferente para contar como objeto
-    alfaFundo: 0.04,         // velocidade com que o fundo se adapta (luz mudando)
-    lacunaFrac: 0.04,        // buracos menores que isso dentro de um objeto sao ignorados
-    larguraMinFrac: 0.05,    // objetos menores que isso sao ignorados (sujeira)
-    saltoMaxFrac: 0.35,      // quanto um objeto pode andar entre dois quadros
-    framesPerdido: 4,        // quadros sem ver um objeto antes de esquecer
-    passo: 2,                // usa 1 pixel a cada N (mais rapido)
-    k: 3,                    // vizinhos usados no reconhecimento
-    limDesconhecido: 0.45,   // distancia maxima para aceitar um produto conhecido
-    larguraTipica: 0,        // largura media de 1 saco (aprendida sozinha)
+    motorLocal: true,        // método antigo
+    eixo: 'x',               // sentido
+    sentido: 0,              // direção
+    linha: 0.5,              // posição da linha
+    limiarFundo: 28,         // diferença de cor
+    fracColuna: 0.22,        // fração da faixa
+    alfaFundo: 0.04,         // adaptação do fundo
+    lacunaFrac: 0.04,        // buracos
+    larguraMinFrac: 0.05,    // sujeira
+    saltoMaxFrac: 0.35,      // movimento máximo
+    framesPerdido: 4,        // quadros perdidos
+    passo: 2,                // amostragem
+    k: 3,                    // vizinhos
+    limDesconhecido: 0.45,   // distância máxima
+    larguraTipica: 0,        // largura do saco
     // servo separador
     servoAtivo: false,
-    atrasoBaseMs: 1200,      // tempo entre a linha de contagem e o servo (na velocidade de referencia)
-    velRefEsteira: 0,        // velocidade da esteira (0 a 1) em que o atraso foi medido
+    atrasoBaseMs: 1200,      // atraso do servo
+    velRefEsteira: 0,        // velocidade de referência
     compensarVelocidade: true,
     tempoAbertoMs: 900,
     anguloEsq: 45,
     anguloCentro: 90,
     anguloDir: 135,
     velocidadeServo: 60,
-    ladoPorClasse: {},       // { "Arroz"
-    ladoDesconhecido: 'C'    // 'E', 'D' ou 'C' (centro = nao desvia)
+    ladoPorClasse: {},       // exemplo de classe
+    ladoDesconhecido: 'C'    // lado
 };
 
 const FRAMES_APRENDER_FUNDO = 8;
@@ -106,7 +107,7 @@ function criarMotorSeparador(opcoes) {
         try { fs.writeFileSync(arquivoTreino, JSON.stringify(treino)); } catch (e) {}
     }
 
-    let treinando = null;   // { classe, restante, total }
+    let treinando = null;   // progresso
 
     function iniciarTreino(classe, quantidade) {
         classe = String(classe || '').trim().slice(0, 40);
@@ -181,13 +182,13 @@ function criarMotorSeparador(opcoes) {
     }
 
     // estado
-    let bg = null;              // fundo (Float32Array, 3 valores por celula)
-    let dims = '';              // para detectar mudanca de tamanho
+    let bg = null;              // fundo
+    let dims = '';              // mudança de tamanho
     let aprender = FRAMES_APRENDER_FUNDO;
     let acumulador = null;
     let acumulados = 0;
     let tracks = [];
-    let fantasmas = [];         // objetos ja contados que sumiram por um instante
+    let fantasmas = [];         // contados recentes
     let proximoId = 1;
     let mudancasGlobais = 0;
     let ultimoFps = 0;
@@ -243,13 +244,13 @@ function criarMotorSeparador(opcoes) {
         const passo = Math.max(1, config.passo | 0);
         const eixoX = config.eixo !== 'y';
 
-        const ao = eixoX ? w : h;       // comprimento ao longo da esteira
-        const pe = eixoX ? h : w;       // comprimento da largura da esteira
+        const ao = eixoX ? w : h;       // comprimento
+        const pe = eixoX ? h : w;       // largura
         const p0 = Math.floor(zi * pe), p1 = Math.max(p0 + passo, Math.ceil(zf * pe));
         const L = Math.ceil(ao / passo), T = Math.max(1, Math.ceil((p1 - p0) / passo));
         const N = L * T;
 
-        // amostra a faixa em celulas
+        // amostragem
         const cur = new Uint8Array(N * 3);
         for (let a = 0; a < L; a++) {
             for (let t = 0; t < T; t++) {
@@ -265,7 +266,7 @@ function criarMotorSeparador(opcoes) {
 
         const sobreposicao = { w, h, eixo: config.eixo, linha: config.linha, banda: [zi, zf], segmentos: [], aprendendo: false, sinal: 0 };
 
-        // aprendendo como a esteira vazia parece
+        // aprendendo fundo
         if (aprender > 0) {
             if (!acumulador) { acumulador = new Float32Array(N * 3); acumulados = 0; }
             for (let i = 0; i < N * 3; i++) acumulador[i] += cur[i];
@@ -279,7 +280,7 @@ function criarMotorSeparador(opcoes) {
             return { sobreposicao, eventos: [] };
         }
 
-        // o que e diferente do fundo
+        // diferença do fundo
         const limiar = config.limiarFundo;
         const contaFg = new Uint16Array(L);
         const fgCel = new Uint8Array(N);
@@ -292,7 +293,7 @@ function criarMotorSeparador(opcoes) {
             }
             contaFg[a] = c;
         }
-        // fracao de cada coluna que difere do fundo, suavizada com as vizinhas
+        // colunas diferentes
         const frac = new Float32Array(L);
         for (let a = 0; a < L; a++) {
             const e = contaFg[Math.max(0, a - 1)], c = contaFg[a], d = contaFg[Math.min(L - 1, a + 1)];
@@ -309,9 +310,9 @@ function criarMotorSeparador(opcoes) {
         for (let a = L - 2; a >= 0; a--) if (!fgCol[a] && fgCol[a + 1] && frac[a] >= baixo) fgCol[a] = 1;
         let nFg = 0;
         for (let a = 0; a < L; a++) if (fgCol[a]) nFg++;
-        sobreposicao.sinal = Math.min(1, sinalMax / Math.max(0.01, alto) / 2);   // 0.5 = no limite, 1 = o dobro do limite
+        sobreposicao.sinal = Math.min(1, sinalMax / Math.max(0.01, alto) / 2);   // fator
 
-        // luz mudou de uma vez (a camera ajustou a exposicao, alguem acendeu a luz)?
+        // luz mudou
         if (nFg / L > 0.85) {
             mudancasGlobais++;
             for (let i = 0; i < N * 3; i++) bg[i] = cur[i];
@@ -319,7 +320,7 @@ function criarMotorSeparador(opcoes) {
             return { sobreposicao, eventos: [] };
         }
 
-        // o fundo acompanha so onde NAO tem objeto
+        // adaptação do fundo
         const alfa = config.alfaFundo;
         if (alfa > 0) {
             for (let a = 0; a < L; a++) {
@@ -333,7 +334,7 @@ function criarMotorSeparador(opcoes) {
             }
         }
 
-        // objetos (trechos seguidos de colunas diferentes)
+        // objetos
         let lacuna = Math.max(1, Math.round(config.lacunaFrac * L));
         if (config.larguraTipica > 0) lacuna = Math.max(lacuna, Math.round(0.3 * config.larguraTipica * L));
         const minimo = Math.max(2, Math.round(config.larguraMinFrac * L));
@@ -368,13 +369,13 @@ function criarMotorSeparador(opcoes) {
                 o.track = melhor;
             } else {
                 const novo = { id: proximoId++, cx: o.cx, anterior: o.cx, larg: o.larg, ini: o.ini, fim: o.fim, perdido: 0, contado: false, visto: agoraMs, v: 0 };
-                // reaparece no lugar onde um objeto ja contado deveria estar? entao e o mesmo
+                // objeto contado
                 for (let k = 0; k < fantasmas.length; k++) {
                     const f = fantasmas[k];
                     const previsto = f.cx + f.v * (agoraMs - f.visto);
                     if (Math.abs(previsto - o.cx) <= f.larg * 0.8 + 0.08) {
-                        if (f.contado) novo.contado = true;      // ja tinha sido contado
-                        else novo.anterior = f.cx;               // sumiu antes de cruzar a linha
+                        if (f.contado) novo.contado = true;      // já contado
+                        else novo.anterior = f.cx;               // sumiu
                         fantasmas.splice(k, 1); break;
                     }
                 }
@@ -390,7 +391,7 @@ function criarMotorSeparador(opcoes) {
 
         sobreposicao.segmentos = objetos.map(o => ({ id: o.track.id, ini: o.ini / L, fim: (o.fim + 1) / L, contado: o.track.contado }));
 
-        // cruzou a linha? conta uma vez
+        // cruzou a linha
         const eventos = [];
         const linha = config.linha;
         for (const o of objetos) {
@@ -402,14 +403,14 @@ function criarMotorSeparador(opcoes) {
             if (!cruzou) continue;
             tr.contado = true;
 
-            // quantos sacos tem neste objeto (dois colados parecem um objeto largo)
+            // sacos no objeto
             let quantidade = 1;
             if (config.larguraTipica > 0 && o.larg > 1.6 * config.larguraTipica) quantidade = Math.max(1, Math.round(o.larg / config.larguraTipica));
             else if (config.larguraTipica <= 0 || o.larg <= 1.3 * config.larguraTipica) {
                 config.larguraTipica = config.larguraTipica > 0 ? 0.85 * config.larguraTipica + 0.15 * o.larg : o.larg;
             }
 
-            // caracteristicas de cor e textura so nas celulas que sao objeto
+            // cor e textura
             let n = 0, sr = 0, sg = 0, sb = 0, ss = 0, sv = 0, sv2 = 0, escuras = 0, claras = 0, sx = 0, sy = 0, total = 0;
             for (let a = o.ini; a <= o.fim; a++) {
                 for (let t = 0; t < T; t++) {
@@ -428,7 +429,7 @@ function criarMotorSeparador(opcoes) {
                 escuras / n, claras / n, n / Math.max(1, total), sx / n, sy / n
             ] : new Array(11).fill(0);
 
-            // recorte colorido do objeto para auditoria
+            // recorte
             const mx = eixoX ? o.ini * passo : p0, my = eixoX ? p0 : o.ini * passo;
             const mw = eixoX ? (o.fim - o.ini + 1) * passo : (p1 - p0), mh = eixoX ? (p1 - p0) : (o.fim - o.ini + 1) * passo;
             const mini = await miniatura(img, mx - 4, my - 4, mw + 8, mh + 8);

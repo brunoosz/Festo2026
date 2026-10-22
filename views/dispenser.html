@@ -1,3 +1,4 @@
+{# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/ #}
 {% extends 'base.html' %}
 
 {% block title %}Dispenser{% endblock %}
@@ -30,20 +31,20 @@
         <p id="disp-aviso" class="hidden mt-3 text-xs font-bold rounded-lg px-3 py-2"></p>
     </div>
 
-    <!-- 1. Qual grão -->
+    <!-- grão -->
     <div class="card-painel">
         <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">1 · Qual grão?</h3>
         <div id="disp-reservatorios" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
     </div>
 
-    <!-- 2. Quantidade -->
+    <!-- quantidade -->
     <div class="card-painel">
         <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">2 · Quantidade</h3>
         <div id="disp-doses" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
         <p id="disp-resumo" class="mt-3 text-xs text-slate-500 min-h-[1.25rem]"></p>
     </div>
 
-    <!-- 3. Dosar -->
+    <!-- dosar -->
     <div class="card-painel">
         <button id="disp-btn-dosar" class="w-full bg-[#10b981] hover:bg-[#059669] active:bg-[#047857] text-white font-black py-4 rounded-xl shadow-md transition cursor-pointer tracking-widest text-lg disabled:opacity-40 disabled:cursor-not-allowed">DOSAR</button>
         <div id="disp-progresso" class="hidden mt-3">
@@ -57,7 +58,7 @@
         </p>
     </div>
 
-    <!-- última dosagem + contadores -->
+    <!-- última dosagem -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="card-painel">
             <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Última dosagem</h3>
@@ -70,7 +71,7 @@
     </div>
 </div>
 
-<!-- configuração (Administrador / Dono) -->
+<!-- configuração -->
 <div id="disp-modal-config" class="hidden fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 overflow-y-auto">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-4 sm:p-6 my-4">
         <div class="flex items-center justify-between mb-1">
@@ -304,7 +305,7 @@
     el('disp-btn-dosar').addEventListener('click', dosar);
     el('disp-btn-parar').addEventListener('click', pararDosagem);
 
-    // configuração (Administrador / Dono)
+    // configuração
     const modal = el('disp-modal-config');
     let cfgEditavel = null;
 

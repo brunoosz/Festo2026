@@ -1,8 +1,8 @@
-// visualizador do modelo 3D da maquina (three.js local), usado no Dashboard e na pagina Modelo 3D
-// uso: const v = Modelo3D.criar({ area, msg, botoes: { girar, vista, estrutura, tela } }); v.carregar(url); v.destruir();
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// visualizador 3D
 (function () {
-    const FOLGA = 1.4;                 // distancia = raio / sin(fov/2) * FOLGA (maquina inteira com folga nas bordas)
-    const DIRECAO = [0.85, 0.6, 1.0];  // de onde a camera olha por padrao
+    const FOLGA = 1.4;                 // distância
+    const DIRECAO = [0.85, 0.6, 1.0];  // direção da câmera
 
     function injetarEstilo() {
         if (document.getElementById('m3v-estilo')) return;
@@ -38,7 +38,7 @@
         function mensagem(t) { if (msg) { msg.style.display = 'flex'; msg.innerHTML = t; } }
         function esconderMsg() { if (msg) msg.style.display = 'none'; }
 
-        // ---------- estados dos botoes (cartao e barra da tela cheia) ----------
+        // estado dos botões
         function marcar() {
             [[botoes.girar, botoesBarra.girar, girar], [botoes.estrutura, botoesBarra.estrutura, estrutura]].forEach(([a, b, on]) => {
                 [a, b].forEach(x => { if (x) { x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); } });
@@ -46,12 +46,12 @@
             if (botoes.tela) botoes.tela.textContent = telaCheia ? 'Sair da tela cheia' : 'Tela cheia';
         }
 
-        // ---------- enquadramento ----------
+        // enquadramento
         function calcularQuadro() {
             if (!camera || !modelo) return;
             const vfov = camera.fov * Math.PI / 180;
             const hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
-            fovEfetivo = Math.min(vfov, hfov);                       // retrato: manda a largura
+            fovEfetivo = Math.min(vfov, hfov);                       // retrato
             distQuadro = raio / Math.sin(fovEfetivo / 2) * FOLGA;
             controls.minDistance = raio * 0.3; controls.maxDistance = Math.max(raio * 4, distQuadro * 1.2);
         }
@@ -76,12 +76,12 @@
             renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
             if (modelo) {
                 calcularQuadro();
-                posicionar(distanciaAtual() / anterior * distQuadro);   // mantem o zoom do usuario em proporcao ao novo quadro
+                posicionar(distanciaAtual() / anterior * distQuadro);   // zoom proporcional
             }
             pedir();
         }
 
-        // ---------- aplicar estados ----------
+        // aplicar estados
         function aplicarEstrutura() {
             if (!modelo) return;
             modelo.traverse(o => { if (o.isMesh && o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.wireframe = estrutura; }); });
@@ -108,7 +108,7 @@
             mostrarBarra();
         }
 
-        // ---------- tela cheia (nativa ou simulada, para iPhone) ----------
+        // tela cheia
         function elementoCheio() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
         function atualizarTelaCheia(ativa) {
             if (telaCheia === ativa) return;
@@ -149,7 +149,7 @@
         function aoTeclar(e) { if (e.key === 'Escape' && simulada) sairSimulada(true); }
         function aoVoltar() { if (simulada && !(history.state && history.state.m3v)) sairSimulada(false); }
 
-        // ---------- barra de botoes da tela cheia (some sozinha apos 4 s) ----------
+        // barra de botões
         function mostrarBarra() {
             if (!barra || !telaCheia) return;
             barra.classList.remove('m3v-oculta');
@@ -173,11 +173,11 @@
                 barra.appendChild(b); botoesBarra[id] = b;
             });
             area.appendChild(barra);
-            const borda = document.createElement('div'); borda.className = 'm3v-borda'; borda.setAttribute('aria-hidden', 'true'); area.appendChild(borda);   // moldura vermelha da emergencia na tela cheia
+            const borda = document.createElement('div'); borda.className = 'm3v-borda'; borda.setAttribute('aria-hidden', 'true'); area.appendChild(borda);   // moldura de emergência
             ['pointerdown', 'pointermove', 'touchstart', 'wheel'].forEach(ev => area.addEventListener(ev, mostrarBarra, { passive: true }));
         }
 
-        // ---------- inicio ----------
+        // início
         async function iniciar() {
             try {
                 T = await import('/vendor3d/three.module.min.js');
@@ -230,7 +230,7 @@
                     modelo.traverse(o => { if (o.isMesh && o.material) { o.material.flatShading = true; o.material.needsUpdate = true; } });
                     scene.add(modelo);
                     const caixa = new T.Box3().setFromObject(modelo), centro = caixa.getCenter(new T.Vector3()), tam = caixa.getSize(new T.Vector3());
-                    modelo.position.sub(centro);                          // gira em torno do proprio centro
+                    modelo.position.sub(centro);                          // centro do modelo
                     const esfera = new T.Box3().setFromObject(modelo).getBoundingSphere(new T.Sphere());
                     raio = esfera.radius || 1;
                     const base = -tam.y / 2, r = Math.max(tam.x, tam.y, tam.z) || 1;
@@ -242,7 +242,7 @@
             });
         }
 
-        // botoes do cartao
+        // botões do cartão
         if (botoes.girar) botoes.girar.addEventListener('click', alternarGirar);
         if (botoes.vista) botoes.vista.addEventListener('click', vista);
         if (botoes.estrutura) botoes.estrutura.addEventListener('click', alternarEstrutura);
@@ -261,7 +261,7 @@
             if (renderer) { renderer.dispose(); try { renderer.forceContextLoss(); } catch (e) {} }
         }
 
-        // quanto da tela a maquina ocupa (0 a 1 em cada eixo), para conferir o enquadramento
+        // ocupação da tela
         function ocupacao() {
             if (!modelo) return null;
             camera.updateMatrixWorld(); modelo.updateMatrixWorld(true);

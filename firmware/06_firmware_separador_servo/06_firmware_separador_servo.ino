@@ -1,26 +1,13 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Preferences.h>
 #include <math.h>
 
-// ============================================================
-// FLOWPACK - SEPARADOR (SERVO)
-// Recebe do site para qual lado desviar cada produto
-// (ESQUERDA / DIREITA), espera o produto chegar ate o servo,
-// segura aberto o tempo certo e volta ao centro.
-//
-// Fila de pedidos: varios produtos seguidos funcionam.
-// Ajustes (angulos, velocidade, tempo aberto) vem da tela
-// "Separador" do site e ficam salvos na memoria do ESP32.
-// Monitor Serial (115200): E, D, C, STATUS, AJUDA.
-// Placa: ESP32 DevKit V1 ou Arduino D1 R32 (no IDE: "ESP32 Dev Module").
-// Servo no GPIO 18 (na D1 R32 e o pino D13).
-// ============================================================
+// separador
 
 
-// ============================================================
-// REDE
-// ============================================================
+// rede
 
 const char* ssid = "DarkCoders";
 const char* password = "COLOQUE_A_SENHA_DO_WIFI";
@@ -31,12 +18,12 @@ PubSubClient client(espClient);
 
 const char* topic_status      = "separador/status";
 const char* topic_estado      = "separador/estado";
-const char* topic_desviar     = "separador/desviar";      // "E;atrasoMs;abertoMs"
-const char* topic_teste       = "separador/teste";        // "E", "D" ou "C"
-const char* topic_config      = "separador/config";       // JSON com os ajustes
+const char* topic_desviar     = "separador/desviar";      // formato do pedido
+const char* topic_teste       = "separador/teste";        // lado
+const char* topic_config      = "separador/config";       // ajustes em JSON
 const char* topic_emergencia  = "separador/emergencia";
 const char* topic_reiniciar   = "separador/reiniciar";
-const char* topic_liberar     = "separador/liberar";      // o site manda "1" para destravar depois da emergencia
+const char* topic_liberar     = "separador/liberar";      // destravar
 
 unsigned long ultimaTentativaWifi = 0;
 bool wifiEstavaConectado = false;
@@ -44,49 +31,42 @@ unsigned long ultimaTentativaMqtt = 0;
 unsigned long ultimoEstado = 0;
 
 
-// ============================================================
-// SERVO (sinal no GPIO 18, alimentacao 5V externa)
-// ============================================================
+// servo
 
 #define SERVO_PIN 18
 
 const int SERVO_FREQ = 50;
 const int SERVO_RES = 14;
-const int SERVO_US_MIN = 500;     // pulso para 0 grau
-const int SERVO_US_MAX = 2400;    // pulso para 180 graus
+const int SERVO_US_MIN = 500;     // pulso mínimo
+const int SERVO_US_MAX = 2400;    // pulso máximo
 
 Preferences memoria;
 
-// Depois de uma emergencia o servo fica TRAVADO no centro (mesmo se desligar e ligar)
-// ate o site mandar separador/liberar.
+// trava do servo
 bool travado = false;
 
 
-// ============================================================
-// AJUSTES (a tela do site muda estes valores)
-// ============================================================
+// ajustes
 
 int angEsq = 45;
 int angCentro = 90;
 int angDir = 135;
-int velocidade = 60;              // 1 a 100
+int velocidade = 60;              // velocidade
 unsigned long abertoPadraoMs = 900;
 
 
-// ============================================================
-// ESTADO DO SERVO E FILA DE PEDIDOS
-// ============================================================
+// estado do servo
 
-float angulo = 90;                // posicao atual
-float alvo = 90;                  // para onde esta indo
-char ladoAtual = 'C';             // 'C' centro, 'E', 'D'
+float angulo = 90;                // posição atual
+float alvo = 90;                  // destino
+char ladoAtual = 'C';             // lado do servo
 unsigned long fimSegurar = 0;
 unsigned long ultimoPasso = 0;
 int ultimoDuty = -1;
 unsigned long ultimoEscrito = 0;
 
 struct Pedido {
-  unsigned long quando;           // millis() em que deve abrir
+  unsigned long quando;           // hora de abrir
   char lado;
   unsigned long aberto;
 };
@@ -96,9 +76,7 @@ Pedido fila[MAX_FILA];
 int nFila = 0;
 
 
-// ============================================================
-// SERVO: escrita do pulso
-// ============================================================
+// escrita do servo
 
 void configurarServo() {
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
@@ -135,15 +113,13 @@ int anguloDoLado(char lado) {
   return angCentro;
 }
 
-// graus por passo de 10 ms (velocidade 100 = 6 graus, 1 = 0,15 grau)
+// passo do servo
 float grausPorPasso() {
   return 0.15 + (velocidade - 1) * (6.0 - 0.15) / 99.0;
 }
 
 
-// ============================================================
-// SALVAR / CARREGAR AJUSTES
-// ============================================================
+// salvar e carregar
 
 void salvarAjustes() {
   memoria.putInt("esq", angEsq);
@@ -162,9 +138,7 @@ void carregarAjustes() {
 }
 
 
-// ============================================================
-// STATUS PARA O SITE
-// ============================================================
+// status
 
 void enviarEstado() {
 
@@ -186,9 +160,7 @@ void enviarEstado() {
 }
 
 
-// ============================================================
-// FILA DE PEDIDOS
-// ============================================================
+// fila de pedidos
 
 void adicionarPedido(char lado, unsigned long atrasoMs, unsigned long abertoMs) {
 
@@ -234,7 +206,7 @@ void limparFilaEVoltar() {
   fimSegurar = 0;
 }
 
-// Procura o pedido vencido mais antigo e decide o que fazer com ele
+// pedido vencido
 void processarFila(unsigned long agora) {
 
   int escolhido = -1;
@@ -248,7 +220,7 @@ void processarFila(unsigned long agora) {
   Pedido p = fila[escolhido];
 
   if (ladoAtual == p.lado) {
-    // ja esta aberto nesse lado: so estende o tempo
+    // já aberto
     if (agora + p.aberto > fimSegurar) fimSegurar = agora + p.aberto;
     removerPedido(escolhido);
     return;
@@ -262,13 +234,11 @@ void processarFila(unsigned long agora) {
     return;
   }
 
-  // esta em outro lado ou voltando: o pedido espera na fila
+  // na fila
 }
 
 
-// ============================================================
-// COMANDOS (site e Serial)
-// ============================================================
+// comandos
 
 void testarLado(char lado) {
 
@@ -442,9 +412,7 @@ void processarComando(String comando) {
 }
 
 
-// ============================================================
-// SITE (MQTT)
-// ============================================================
+// site
 
 void callbackMqtt(char* topic, byte* payload, unsigned int length) {
 
@@ -456,7 +424,7 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
 
   if (topico == topic_desviar) {
 
-    // formato "E;atrasoMs;abertoMs"
+    // formato do pedido
     int p1 = mensagem.indexOf(';');
     int p2 = mensagem.indexOf(';', p1 + 1);
 
@@ -551,9 +519,7 @@ void gerenciarMqtt() {
 }
 
 
-// ============================================================
-// SETUP
-// ============================================================
+// setup
 
 void setup() {
 
@@ -587,9 +553,7 @@ void setup() {
 }
 
 
-// ============================================================
-// LOOP
-// ============================================================
+// loop
 
 void loop() {
 
@@ -605,13 +569,13 @@ void loop() {
 
   processarFila(agora);
 
-  // terminou o tempo aberto: volta ao centro
+  // volta ao centro
   if (ladoAtual != 'C' && fimSegurar != 0 && agora >= fimSegurar) {
     ladoAtual = 'C';
     alvo = angCentro;
   }
 
-  // movimento suave (um passo a cada 10 ms)
+  // movimento suave
   if (agora - ultimoPasso >= 10) {
 
     ultimoPasso = agora;

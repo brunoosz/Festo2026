@@ -1,3 +1,4 @@
+{# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/ #}
 {% extends 'base.html' %}
 
 {% block title %}Dark Coders AI{% endblock %}
@@ -141,7 +142,7 @@
         ];
     }
 
-    // guarda referência dos chips de tema criados
+    // chips de tema
     let chipsTemaAtivos = [];
     function atualizarChipsDeTema() {
         const temaAtual = localStorage.getItem('tema_flowpack');
@@ -384,7 +385,7 @@
     }
     globalSocket.on('atualizar_temperatura2', handlerDadosTemp2);
 
-    // pdf rápido
+    // PDF rápido
     async function baixarRelatorioRapido() {
         if (!window.jspdf) return 'A ferramenta de PDF ainda não carregou, tenta de novo em alguns segundos.';
 
@@ -427,12 +428,12 @@
         }
     }
 
-    // intérprete de comandos
+    // intérprete
     function normalizarTextoComando(texto) {
         return texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     }
 
-    // converte números falados por extenso
+    // números por extenso
     const NUMEROS_EXTENSO = {
         'zero': 0, 'dois': 2, 'duas': 2, 'tres': 3, 'quatro': 4, 'cinco': 5,
         'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10, 'onze': 11, 'doze': 12, 'treze': 13,
@@ -460,7 +461,7 @@
         { padrao: /\blogs?\b/, url: '/logs', seletor: null, nome: 'Logs ao Vivo' }
     ];
 
-    // perfil Visualizador: a IA responde perguntas, mas nao executa comandos que mexem na maquina
+    // Visualizador sem comandos
     function interpretarComando(perguntaOriginal) {
         const comando = interpretarComandoSemTrava(perguntaOriginal);
         if (comando && window.__somenteLeitura && (comando.tipo === 'velocidade' || comando.tipo === 'temperatura')) return { tipo: 'sem_permissao' };
@@ -484,7 +485,7 @@
 
         if (/logs?/.test(t) && /(leia|\ble\b|mostra|mostre|ultimo|ultimos)/.test(t)) return { tipo: 'ler_logs' };
 
-        // perguntas ("qual a temperatura?") vão para a IA responder com os dados ao
+        // perguntas
         const ehPergunta = /^(qual|quais|quanto|quanta|como|o que|por que|porque)\b/.test(t);
 
         // temperatura
@@ -627,7 +628,7 @@
         return COR_OLHO_IDLE;
     }
 
-    // sprites em pixel art
+    // sprites
     const SPRITES = {
         joinha: {
             paleta: { d: '#14532d', o: '#4ade80', l: '#bbf7d0' },
@@ -746,7 +747,7 @@
         ctxRosto.shadowBlur = 0;
     }
 
-    // monta a lista de "gatilhos"
+    // gatilhos
     function prepararGatilhosVisuais(texto) {
         const gatilhos = [];
         for (const m of texto.matchAll(/(\d{1,3})\s*%/g)) {
@@ -778,7 +779,7 @@
         }
     }
 
-    // mantido só para não quebrar chamadas antigas
+    // compatibilidade
     function analisarRespostaParaVisor() {}
 
     function desenharRosto() {
@@ -1128,7 +1129,7 @@
         let intervaloEstimativa = null;
         let inicioFala = 0;
 
-        // velocidade média da voz em pt-BR
+        // velocidade da voz
         const CARACTERES_POR_SEGUNDO = 14;
 
         function avancarAte(indiceCaractere) {

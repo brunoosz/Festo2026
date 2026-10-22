@@ -1,5 +1,5 @@
-// teste automatico da etapa 1: pagina "Sobre nos" e emergencia travada (fase 4)
-// uso: npm test   (sobe um broker MQTT falso e o site em outra porta, com dados temporarios)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste etapa 1
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');

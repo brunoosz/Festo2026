@@ -1,3 +1,4 @@
+{# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/ #}
 {% extends 'base.html' %}
 
 {% block title %}Painel de Controle{% endblock %}
@@ -128,7 +129,7 @@
     const online = { esteira: false, selagem1: false, selagem1motor: false, selagem2: false, selagem2motor: false };
     let emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
 
-    // registro dos ouvintes do socket, pra limpar tudo ao sair da tela
+    // ouvintes do socket
     const ouvintes = [];
     function ouvir(evento, funcao) {
         globalSocket.on(evento, funcao);
@@ -141,12 +142,12 @@
         globalSocket.emit('novo_log', { hora: hora, texto: mensagem, tipo: tipo || 'sistema' });
     }
 
-    // separador (servo): usa as mesmas rotas e eventos da tela Separador
+    // servo
     const servoEl = id => document.getElementById(id);
     const NOME_LADO_SERVO = { E: 'esquerda', D: 'direita', C: 'centro' };
     const CAMPOS_SERVO = ['servo-ativo', 'servo-ang-esq', 'servo-ang-cen', 'servo-ang-dir', 'servo-vel', 'servo-aberto', 'servo-teste-e', 'servo-teste-c', 'servo-teste-d'];
     let servoStatus = { online: false, estado: null };
-    let servoTravado = false;       // emergencia (423)
+    let servoTravado = false;       // emergência 423
     let servoTimerMsg = null;
 
     function servoMensagem(texto, erro) {
@@ -220,7 +221,7 @@
         servoEl(id).addEventListener('click', () => { if (!servoTravado) servoEnviar('/api/separador/servo/teste', { lado }, 'Teste enviado: ' + NOME_LADO_SERVO[lado] + '.'); });
     });
 
-    // motores (esteira + 3 motores das selagens)
+    // motores
     const MOTORES = [
         { id: 'esteira', titulo: 'Esteira', dispositivo: 'esteira', reiniciar: 'REINICIAR ESP32 DA ESTEIRA' },
         { id: 's1m1', titulo: 'Selagem 1 - Motor 1', dispositivo: 'selagem1motor', reiniciar: 'REINICIAR ESP32 DOS MOTORES (1 e 2)' },
@@ -333,7 +334,7 @@
         ctrl.textoSentido.className = 'texto-sentido ' + (sentido === 'invertido' ? 'text-amber-600' : 'text-blue-600');
     }
 
-    // temperaturas (selagem 1 e selagem 2)
+    // temperaturas
     const SELAGENS = [
         { numero: 1, titulo: 'Temperatura da Selagem 1', dispositivo: 'selagem1', eventoDados: 'atualizar_temperatura', eventoComando: 'comando_selagem' },
         { numero: 2, titulo: 'Temperatura da Selagem 2', dispositivo: 'selagem2', eventoDados: 'atualizar_temperatura2', eventoComando: 'comando_selagem2' }
@@ -469,7 +470,7 @@
         atualizarAvisoTemp(numero);
     }
 
-    // conexão, emergência e reinício
+    // conexão
     function aplicarOnline(dispositivo, estaOnline) {
         online[dispositivo] = !!estaOnline;
         const classe = online[dispositivo] ? CLASSE_LED_ON : CLASSE_LED_OFF;
@@ -509,7 +510,7 @@
     function handlerEmergencia() { setTimeout(aplicarEmergencia, 0); }
     btnEmergenciaGlobal.addEventListener('click', handlerEmergencia);
 
-    // estado inicial (valores salvos no servidor) + recarregar
+    // estado inicial
     function buscarEstado() {
         return fetch('/api/painel/estado')
             .then(r => r.json())
@@ -538,7 +539,7 @@
         });
     });
 
-    // atualizações ao vivo
+    // atualizações
     ouvir('status_esp32', (data) => aplicarOnline('esteira', data.online));
     ouvir('status_selagem', (data) => aplicarOnline('selagem1', data.online));
     ouvir('status_selagem2', (data) => aplicarOnline('selagem2', data.online));

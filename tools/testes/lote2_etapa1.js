@@ -1,5 +1,5 @@
-// teste automatico do lote 2, etapa 1: ordem da lista do NFC, 3 novos manuais e arquivos do modelo 3D
-// uso: node tools/testes/lote2_etapa1.js   (ou npm test)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste lote 2
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');
@@ -18,7 +18,7 @@ const pdfFalso = path.join(raiz, 'manuais', 'Manual_Alexa_FlowPack.pdf');
 (async () => {
     const arqUsuarios = path.join(tmp, 'usuarios.json');
     const u = criarUsuariosTeste(arqUsuarios);
-    // mais usuarios, fora de ordem alfabetica, para provar a ordenacao
+    // mais usuários
     Object.assign(u, { zeca: Object.assign({}, u.dono), bia: Object.assign({}, u.dono), carlos: Object.assign({}, u.adm), ana: Object.assign({}, u.adm) });
     fs.writeFileSync(arqUsuarios, JSON.stringify(u, null, 2));
     let site = null, saida = '';

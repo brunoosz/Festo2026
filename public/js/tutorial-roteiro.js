@@ -1,10 +1,5 @@
-// ROTEIRO DO TUTORIAL GUIADO: e aqui que se edita o que o tour mostra, em ordem.
-// Cada passo: { pagina, titulo, texto, alvoSeletor, tela, soAdmin, perfis, exceto }
-//   pagina       tela onde o passo acontece (null = so a caixinha de texto, na tela em que o usuario estiver)
-//   alvoSeletor  seletor CSS do que fica destacado (opcional)
-//   tela         chave de permissao da tela (padrao: o nome da pagina sem a barra); o passo some se o perfil nao pode ver a tela
-//   soAdmin      true = so Dono/Adm      perfis: [4] = so esses niveis      exceto: [4] = todos menos esses niveis
-// Niveis: 1 Dono, 2 Adm, 3 Operario, 4 Visualizador.
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// roteiro do tutorial
 window.ROTEIRO_TUTORIAL = [
     { pagina: null, exceto: [4], titulo: 'Bem-vindo(a) ao tour!', texto: 'Vou te mostrar as principais telas do sistema, uma por uma. Clique em Próximo quando quiser continuar.' },
     { pagina: null, perfis: [4], titulo: 'Bem-vindo(a), Visualizador!', texto: 'Você acompanha tudo em tempo real, mas não controla a máquina. Vou mostrar as telas que você pode ver. Clique em Próximo para continuar ou em Pular para sair (o tour volta no próximo login).' },

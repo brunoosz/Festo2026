@@ -1,12 +1,12 @@
-// teste da skill da Alexa com pedidos simulados (nao precisa de internet nem do certificado da Amazon)
-// uso: node tools/testes/alexa.js
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste da Alexa
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 const path = require('path');
 
 const src = fs.readFileSync(path.join(__dirname, '..', '..', 'server.js'), 'utf8');
-const ini = src.indexOf('// cada intencao da skill guarda');
+const ini = src.indexOf('// palavra inicial');
 const fim = src.indexOf('if (ALEXA_SKILL_ID) construtorSkillAlexa');
 const acoes = [];
 const ctx = {

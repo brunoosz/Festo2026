@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# FLOWPACK - FASE 4: EMERGENCIA TRAVADA (so o site libera)
-# Uso:  python3 /root/instalar_fase4.py      (rode DEPOIS do instalar_fase3.py)
-# Legenda:  ✅ aplicado   ⏭️  ja estava aplicado   ❌ nao deu (me mande a linha)
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# fase 4
 import os, sys, re, base64, shutil, subprocess, datetime
 BASE = sys.argv[1] if len(sys.argv) > 1 else "/root/site_esteira"
 SERVER = os.path.join(BASE, "server.js"); BASEHTML = os.path.join(BASE, "views", "base.html")

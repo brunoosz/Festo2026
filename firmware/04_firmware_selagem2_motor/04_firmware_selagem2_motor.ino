@@ -1,14 +1,11 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Preferences.h>
 
-// ================================================================================
-// SELAGEM 2 (ROTATIVA) - ESP32 DO MOTOR
-// Motor + driver BTS7960 (mesma logica da esteira)
-// Controle pelo site (MQTT) e pelo Monitor Serial do Arduino IDE
-// ================================================================================
+// selagem 2 motor
 
-// ------------------------------- REDE -------------------------------------------
+// rede
 const char* ssid = "DarkCoders";
 const char* password = "COLOQUE_A_SENHA_DO_WIFI";
 const char* mqtt_server = "192.168.4.1";
@@ -23,24 +20,24 @@ const char* topic_status         = "selagem2/motor/status";
 const char* topic_sentido_set    = "selagem2/motor/sentido/set";
 const char* topic_sentido_atual  = "selagem2/motor/sentido/atual";
 const char* topic_reiniciar      = "selagem2/motor/reiniciar";
-const char* topic_emergencia     = "selagem2/emergencia";   // mesma emergencia da selagem 2
+const char* topic_emergencia     = "selagem2/emergencia";   // emergência
 
-// ------------------------------- BTS7960 ----------------------------------------
+// BTS7960
 const int PIN_RPWM = 25;
 const int PIN_LPWM = 26;
-const int PIN_EN   = 27;   // R_EN e L_EN ligados juntos
+const int PIN_EN   = 27;   // pinos de ativação
 
 const int PWM_FREQ = 20000;
 const int PWM_RESOLUCAO = 8;
-const int PWM_MAX = 255;         // 100% no site = 100% real do driver
-const int PWM_MINIMO = 50;       // menor forca que ainda gira (ajustar nos testes)
+const int PWM_MAX = 255;         // 100% real
+const int PWM_MINIMO = 50;       // força mínima
 
 const unsigned long EMERGENCIA_REVERSO_MS = 1000;
 const int EMERGENCIA_REVERSO_PCT_MINIMO = 50;
 const int RAMPA_PASSO = 5;
 const unsigned long RAMPA_INTERVALO_MS = 10;
 
-// ------------------------------- ESTADO -----------------------------------------
+// estado
 int velocidadePct = 0;
 int pwmAtual = 0;
 bool sentidoInvertido = false;
@@ -48,7 +45,7 @@ bool direcaoAtualFrente = true;
 bool emReversoEmergencia = false;
 unsigned long fimReversoEmergencia = 0;
 
-// ------------------------------- TEMPORIZADORES ---------------------------------
+// temporizadores
 unsigned long ultimoEnvioDados = 0;
 const unsigned long INTERVALO_ENVIO_MS = 1000;
 unsigned long ultimoLogSerial = 0;
@@ -59,9 +56,7 @@ bool wifiEstavaConectado = false;
 unsigned long ultimaTentativaMqtt = 0;
 const unsigned long INTERVALO_TENTATIVA_MQTT_MS = 5000;
 
-// ================================================================================
-// PWM (compativel com pacote ESP32 2.x e 3.x)
-// ================================================================================
+// PWM
 void configurarPwm() {
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
   ledcAttach(PIN_RPWM, PWM_FREQ, PWM_RESOLUCAO);
@@ -103,9 +98,7 @@ int pctParaPwm(int pct) {
   return map(pct, 1, 100, PWM_MINIMO, PWM_MAX);
 }
 
-// ================================================================================
-// PUBLICACOES PRO SITE
-// ================================================================================
+// publicações
 void publicarVelocidade() {
   if (!client.connected()) return;
   String valor = String(velocidadePct / 100.0, 2);
@@ -117,9 +110,7 @@ void publicarSentido() {
   client.publish(topic_sentido_atual, sentidoInvertido ? "invertido" : "normal", true);
 }
 
-// ================================================================================
-// ACOES (site e Monitor Serial)
-// ================================================================================
+// ações
 void definirVelocidade(int pct, const String& origem) {
   if (pct < 0) pct = 0;
   if (pct > 100) pct = 100;
@@ -151,7 +142,7 @@ void definirSentido(bool invertido, const String& origem) {
   publicarSentido();
 }
 
-// Rampa suave + troca de sentido segura (desacelera ate parar antes de inverter)
+// rampa
 void atualizarMotor() {
   if (emReversoEmergencia) {
     if (millis() >= fimReversoEmergencia) {
@@ -178,9 +169,7 @@ void atualizarMotor() {
   aplicarMotor(pwmAtual, direcaoAtualFrente);
 }
 
-// ================================================================================
-// MONITOR SERIAL
-// ================================================================================
+// monitor serial
 void mostrarAjuda() {
   Serial.println();
   Serial.println("==================================================");
@@ -249,9 +238,7 @@ void processarSerial() {
   }
 }
 
-// ================================================================================
-// MQTT - mensagens vindas do site
-// ================================================================================
+// mensagens do site
 void callbackMqtt(char* topic, byte* payload, unsigned int length) {
   String mensagem;
   for (unsigned int i = 0; i < length; i++) mensagem += (char)payload[i];
@@ -273,9 +260,7 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
   }
 }
 
-// ================================================================================
-// WIFI E MQTT (nao-bloqueantes)
-// ================================================================================
+// Wi-Fi e MQTT
 void gerenciarWifi() {
   bool conectadoAgora = (WiFi.status() == WL_CONNECTED);
   if (conectadoAgora && !wifiEstavaConectado) {
@@ -320,9 +305,7 @@ void gerenciarMqtt() {
   }
 }
 
-// ================================================================================
-// SETUP E LOOP
-// ================================================================================
+// setup e loop
 void setup() {
   Serial.begin(115200);
   Serial.println();
@@ -357,7 +340,7 @@ void loop() {
   processarSerial();
   atualizarMotor();
 
-  // Sinal de vida pro site a cada 1s
+  // sinal de vida
   if (millis() - ultimoEnvioDados >= INTERVALO_ENVIO_MS) {
     ultimoEnvioDados = millis();
     publicarVelocidade();

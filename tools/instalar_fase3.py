@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-# ==============================================================================
-# FLOWPACK - FASE 3: Receitas (botoes fisicos), Modelo 3D
-# Como usar:   python3 /root/instalar_fase3.py
-# Legenda:  ✅ aplicado   ⏭️  ja estava aplicado   ❌ nao deu (me mande a linha)
-# Pode rodar de novo sem problema.
-# ==============================================================================
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# fase 3
 import os, sys, re, io, base64, shutil, zipfile, subprocess, datetime
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "/root/site_esteira"
@@ -32,7 +28,7 @@ def escrever(destino, conteudo, rotulo):
 escrever(os.path.join(VIEWS, "receitas.html"), dado("receitas.html"), "Pagina Receitas")
 escrever(os.path.join(VIEWS, "modelo3d.html"), dado("modelo3d.html"), "Pagina Modelo 3D")
 
-# visualizador 3D (three.js local, sem internet) e pasta do modelo
+# visualizador 3D
 pub = os.path.join(BASE, "public"); os.makedirs(os.path.join(pub, "modelo"), exist_ok=True)
 if os.path.exists(os.path.join(pub, "vendor3d", "three.module.min.js")):
     res.append("⏭️  Visualizador 3D (three.js): ja estava instalado.")

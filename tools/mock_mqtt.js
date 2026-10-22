@@ -1,5 +1,5 @@
-// broker MQTT de mentira para testar o site sem a maquina
-// uso: npm run mock   (com --sem-esp32 so sobe o broker, sem as placas de mentira)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// broker de teste
 const net = require('net');
 const mqtt = require('mqtt');
 
@@ -64,7 +64,7 @@ function placasDeMentira() {
         pub('dispenser/estado', { m1: { ocupado: false, restantes: 0 }, m2: { ocupado: false, restantes: 0 } });
     }, 1000);
 
-    // painel de mentira: comandos digitados no terminal do mock
+    // painel de mentira
     if (process.stdin.isTTY) {
         require('readline').createInterface({ input: process.stdin }).on('line', linha => {
             const [cmd, arg] = linha.trim().split(/\s+/);

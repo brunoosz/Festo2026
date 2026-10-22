@@ -1,5 +1,5 @@
-// teste automatico: botao Sobre nós ao lado de Manuais e receita selecionada sempre visivel no topo
-// uso: node tools/testes/topo.js   (ou npm test)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste do topo
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');
