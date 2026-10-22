@@ -38,59 +38,31 @@
 <div id="dash3d-card" class="card-painel flex-1 flex flex-col">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
     <h3 style="font-size:12px;font-weight:900;color:#64748b;text-transform:uppercase;letter-spacing:.1em;margin:0">Máquina em 3D</h3>
-    <div style="display:flex;gap:6px">
-      <button id="d3-girar" data-leitura-ok type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Girar</button>
-      <button id="d3-reset" data-leitura-ok type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Vista</button>
-      <button id="d3-tela" data-leitura-ok type="button" style="border:2px solid #1e293b;background:#fff;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer">Tela cheia</button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button id="d3-girar" data-leitura-ok type="button" class="m3v-btn">Girar</button>
+      <button id="d3-reset" data-leitura-ok type="button" class="m3v-btn">Vista</button>
+      <button id="d3-estrutura" data-leitura-ok type="button" class="m3v-btn">Estrutura</button>
+      <button id="d3-tela" data-leitura-ok type="button" class="m3v-btn">Tela cheia</button>
     </div>
   </div>
   <div id="d3-area" style="position:relative;width:100%;flex:1;height:auto;min-height:320px;border-radius:10px;overflow:hidden;background:linear-gradient(#0b1220,#1e293b);touch-action:none">
     <div id="d3-msg" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:13px;font-weight:700;color:#94a3b8">Carregando o modelo 3D...</div>
   </div>
 </div>
+<script src="/js/modelo3d-view.js"></script>
 <script>
 (function () {
-  const el = (id) => document.getElementById(id), area = el('d3-area'), msg = el('d3-msg');
-  let T, renderer, scene, camera, controls, modelo = null, visivel = true, sujo = true, girar = false, raf = 0, vista = null, parado = false;
-  const pedir = () => { sujo = true; };
-  const onResize = () => { if (!renderer) return; const w = area.clientWidth, h = area.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); pedir(); };
-  const falha = (t) => { msg.style.display = 'flex'; msg.innerHTML = t; };
-  async function iniciar() {
+  const el = (id) => document.getElementById(id);
+  const v3d = Modelo3D.criar({ area: el('d3-area'), msg: el('d3-msg'), botoes: { girar: el('d3-girar'), vista: el('d3-reset'), estrutura: el('d3-estrutura'), tela: el('d3-tela') } });
+  (async function () {
     let url = null;
     try { const l = await (await fetch('/api/modelo3d')).json(); if (l.length) url = l[0].url; } catch (e) {}
     if (!url) { try { const h = await fetch('/modelo/maquina.glb', { method: 'HEAD' }); if (h.ok) url = '/modelo/maquina.glb'; } catch (e) {} }
-    if (!url) return falha('Modelo 3D ainda não instalado.<br><small>Coloque maquina.glb em public/modelo.</small>');
-    let GL, OC;
-    try { T = await import('/vendor3d/three.module.min.js'); OC = (await import('/vendor3d/addons/controls/OrbitControls.js')).OrbitControls; GL = (await import('/vendor3d/addons/loaders/GLTFLoader.js')).GLTFLoader; }
-    catch (e) { return falha('Visualizador 3D não instalado (public/vendor3d).'); }
-    try { renderer = new T.WebGLRenderer({ antialias: (window.devicePixelRatio || 1) <= 1, powerPreference: 'low-power' }); }
-    catch (e) { return falha('Este aparelho não abriu o 3D (WebGL indisponível).'); }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5)); area.appendChild(renderer.domElement);
-    scene = new T.Scene(); scene.background = new T.Color(0x0f172a); camera = new T.PerspectiveCamera(40, 1, 0.01, 50);
-    scene.add(new T.HemisphereLight(0xffffff, 0x8899aa, 1.2)); const sol = new T.DirectionalLight(0xffffff, 1.0); sol.position.set(2, 4, 3); scene.add(sol);
-    const topo = new T.DirectionalLight(0xffffff, 0.8); topo.position.set(0, 10, 0.5); scene.add(topo);
-    controls = new OC(camera, renderer.domElement); controls.enableDamping = false; controls.addEventListener('change', pedir);
-    window.addEventListener('resize', onResize); onResize();
-    new GL().load(url, (g) => {
-      modelo = g.scene; modelo.traverse(o => { if (o.isMesh && o.material) { o.material.flatShading = true; o.material.needsUpdate = true; } }); scene.add(modelo);
-      const caixa = new T.Box3().setFromObject(modelo), tam = caixa.getSize(new T.Vector3()), r = Math.max(tam.x, tam.y, tam.z) || 1;
-      // chao e grade pra dar contraste com a maquina
-      const chao = new T.Mesh(new T.CircleGeometry(r * 0.75, 64), new T.MeshBasicMaterial({ color: 0x1e293b })); chao.rotation.x = -Math.PI / 2; chao.position.y = caixa.min.y - 0.002; scene.add(chao);
-      const grade = new T.GridHelper(r * 1.5, 24, 0x475569, 0x334155); grade.position.y = caixa.min.y - 0.001; scene.add(grade);
-      camera.position.set(r * 0.9, r * 0.55, r * 1.0); controls.target.set(0, tam.y * 0.35, 0); controls.update(); vista = { p: camera.position.clone(), t: controls.target.clone() };
-      msg.style.display = 'none'; pedir();
-    }, null, () => falha('Não consegui abrir o modelo (.glb).'));
-    // so desenha quando algo mudou e a caixa esta visivel
-    const laco = () => { raf = requestAnimationFrame(laco); if (parado || !visivel || document.hidden) return; if (girar && modelo) { modelo.rotation.y += 0.004; sujo = true; } if (sujo) { sujo = false; renderer.render(scene, camera); } };
-    laco();
-  }
-  if ('IntersectionObserver' in window) new IntersectionObserver((e) => { visivel = e[0].isIntersecting; if (visivel) pedir(); }).observe(area);
-  el('d3-girar').addEventListener('click', () => { girar = !girar; el('d3-girar').style.background = girar ? '#1e293b' : '#fff'; el('d3-girar').style.color = girar ? '#fff' : '#000'; });
-  el('d3-reset').addEventListener('click', () => { if (vista) { camera.position.copy(vista.p); controls.target.copy(vista.t); if (modelo) modelo.rotation.y = 0; controls.update(); pedir(); } });
-  el('d3-tela').addEventListener('click', () => { if (area.requestFullscreen) area.requestFullscreen(); });
-  iniciar();
-  window.__cleanupPaginaDash3d = window.__cleanupPagina;
-  window.__cleanupPagina = function () { parado = true; cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); if (renderer) renderer.dispose(); if (typeof window.__cleanupPaginaDash3d === 'function') window.__cleanupPaginaDash3d(); };
+    if (!url) { const m = el('d3-msg'); m.style.display = 'flex'; m.innerHTML = 'Modelo 3D ainda não instalado.<br><small>Coloque maquina.glb em public/modelo.</small>'; return; }
+    v3d.carregar(url);
+  })();
+  const limpezaAnterior = window.__cleanupPagina;
+  window.__cleanupPagina = function () { v3d.destruir(); if (typeof limpezaAnterior === 'function') limpezaAnterior(); };
 })();
 </script>
         </div>

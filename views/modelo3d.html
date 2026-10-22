@@ -20,8 +20,8 @@
             </div>
             <div class="flex gap-2 flex-wrap items-center">
                 <select id="m3-lista" data-leitura-ok class="m3-btn" style="display:none"></select>
-                <button id="m3-girar" data-leitura-ok class="m3-btn on">Girar sozinho</button>
-                <button id="m3-reset" data-leitura-ok class="m3-btn">Resetar vista</button>
+                <button id="m3-girar" data-leitura-ok class="m3-btn">Girar sozinho</button>
+                <button id="m3-reset" data-leitura-ok class="m3-btn">Vista</button>
                 <button id="m3-estrutura" data-leitura-ok class="m3-btn">Estrutura</button>
                 <button id="m3-tela" data-leitura-ok class="m3-btn">Tela cheia</button>
             </div>
@@ -32,92 +32,21 @@
     </div>
 </div>
 
+<script src="/js/modelo3d-view.js"></script>
 <script>
 (function () {
     const el = (id) => document.getElementById(id);
-    const area = el('m3-area'), msg = el('m3-msg');
-    let chao = null, grade = null, THREE, renderer, scene, camera, controls, modelo = null, raf = 0, estrutura = false, girar = true, pronto = false, vistaInicial = null;
-    const onResize = () => { if (!renderer) return; const w = area.clientWidth, h = area.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); };
-
-    function mensagem(t) { msg.style.display = 'flex'; msg.innerHTML = t; }
-    function esconder() { msg.style.display = 'none'; }
-
-    async function iniciar() {
-        try {
-            THREE = await import('/vendor3d/three.module.min.js');
-            const { OrbitControls } = await import('/vendor3d/addons/controls/OrbitControls.js');
-            const { GLTFLoader } = await import('/vendor3d/addons/loaders/GLTFLoader.js');
-            window.__m3 = { OrbitControls, GLTFLoader };
-        } catch (e) { mensagem('O visualizador 3D não foi instalado no Raspberry.<br><small>Falta a pasta public/vendor3d (rode o instalar_fase3.py com o vendor3d.zip na mesma pasta).</small>'); return; }
-        try {
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        } catch (e) { mensagem('Este aparelho não conseguiu abrir o 3D (WebGL indisponível).'); return; }
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        area.appendChild(renderer.domElement);
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0f172a);
-        camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.2));
-        const topo = new THREE.DirectionalLight(0xffffff, 0.8); topo.position.set(0, 10, 0.5); scene.add(topo);
-        const sol = new THREE.DirectionalLight(0xffffff, 1.4); sol.position.set(3, 6, 4); scene.add(sol);
-        const sol2 = new THREE.DirectionalLight(0xffffff, 0.6); sol2.position.set(-4, 3, -3); scene.add(sol2);
-        controls = new window.__m3.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; controls.autoRotate = true; controls.autoRotateSpeed = 1.2;
-        window.addEventListener('resize', onResize); onResize();
-        pronto = true;
-        const loop = () => { raf = requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); };
-        loop();
-    }
-
-    function enquadrar() {
-        const caixa = new THREE.Box3().setFromObject(modelo);
-        const tamanho = caixa.getSize(new THREE.Vector3()), centro = caixa.getCenter(new THREE.Vector3());
-        modelo.position.sub(centro);
-        // chao e grade pra dar contraste com a maquina
-        if (chao) { scene.remove(chao); scene.remove(grade); }
-        const rb = Math.max(tamanho.x, tamanho.y, tamanho.z) || 1, base = -tamanho.y / 2;
-        chao = new THREE.Mesh(new THREE.CircleGeometry(rb * 0.6, 64), new THREE.MeshBasicMaterial({ color: 0x1e293b })); chao.rotation.x = -Math.PI / 2; chao.position.y = base - rb * 0.002; scene.add(chao);
-        grade = new THREE.GridHelper(rb * 1.1, 22, 0x475569, 0x334155); grade.position.y = base - rb * 0.001; scene.add(grade);
-        const raio = Math.max(tamanho.x, tamanho.y, tamanho.z) || 1;
-        camera.near = raio / 100; camera.far = raio * 100; camera.updateProjectionMatrix();
-        camera.position.set(raio * 0.85, raio * 0.6, raio * 1.0);
-        controls.target.set(0, 0, 0); controls.update();
-        vistaInicial = { pos: camera.position.clone(), alvo: controls.target.clone() };
-    }
-
-    function carregar(url) {
-        mensagem('Carregando o modelo...');
-        const loader = new window.__m3.GLTFLoader();
-        loader.load(url, (gltf) => {
-            if (modelo) scene.remove(modelo);
-            modelo = gltf.scene; scene.add(modelo); enquadrar(); esconder();
-        }, (p) => { if (p.total) msg.innerHTML = 'Carregando o modelo... ' + Math.round(p.loaded / p.total * 100) + '%'; },
-        () => mensagem('Não consegui abrir este modelo. Ele precisa estar no formato .glb.'));
-    }
-
-    async function principal() {
+    const msg = el('m3-msg');
+    const v3d = Modelo3D.criar({ area: el('m3-area'), msg, botoes: { girar: el('m3-girar'), vista: el('m3-reset'), estrutura: el('m3-estrutura'), tela: el('m3-tela') } });
+    (async function () {
         let lista = [];
         try { lista = await (await fetch('/api/modelo3d')).json(); } catch (e) {}
-        if (!lista.length) { mensagem('O modelo 3D ainda não foi instalado.<br><small>Coloque o arquivo .glb na pasta public/modelo do site.</small>'); return; }
-        await iniciar(); if (!pronto) return;
+        if (!lista.length) { msg.style.display = 'flex'; msg.innerHTML = 'O modelo 3D ainda não foi instalado.<br><small>Coloque o arquivo .glb na pasta public/modelo do site.</small>'; return; }
         const sel = el('m3-lista');
-        if (lista.length > 1) { sel.style.display = ''; sel.innerHTML = lista.map(m => '<option value="' + m.url + '">' + m.nome + '</option>').join(''); sel.addEventListener('change', () => carregar(sel.value)); }
-        carregar(lista[0].url);
-    }
-
-    el('m3-girar').addEventListener('click', () => { girar = !girar; if (controls) controls.autoRotate = girar; el('m3-girar').classList.toggle('on', girar); });
-    el('m3-reset').addEventListener('click', () => { if (vistaInicial) { camera.position.copy(vistaInicial.pos); controls.target.copy(vistaInicial.alvo); controls.update(); } });
-    el('m3-estrutura').addEventListener('click', () => {
-        estrutura = !estrutura; el('m3-estrutura').classList.toggle('on', estrutura);
-        if (modelo) modelo.traverse(o => { if (o.isMesh && o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.wireframe = estrutura; }); });
-    });
-    el('m3-tela').addEventListener('click', () => { if (area.requestFullscreen) area.requestFullscreen(); });
-    principal();
-
-    window.__cleanupPagina = function () {
-        cancelAnimationFrame(raf); window.removeEventListener('resize', onResize);
-        if (renderer) { renderer.dispose(); }
-    };
+        if (lista.length > 1) { sel.style.display = ''; sel.innerHTML = lista.map(m => '<option value="' + m.url + '">' + m.nome + '</option>').join(''); sel.addEventListener('change', () => v3d.carregar(sel.value)); }
+        v3d.carregar(lista[0].url);
+    })();
+    window.__cleanupPagina = function () { v3d.destruir(); };
 })();
 </script>
 {% endblock %}
