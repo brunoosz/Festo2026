@@ -74,7 +74,7 @@
         el('nf-janela').textContent = d.janelaS > 0 ? ('LIBERADOS por mais ' + d.janelaS + ' s') : 'bloqueados (passe um cartão de Dono ou Adm)';
         const b = el('nf-bloq'); if (d.bloqueadoS > 0) { b.textContent = 'Leitor bloqueado por tentativas recusadas: ' + d.bloqueadoS + ' s'; b.classList.remove('nf-oculto'); } else b.classList.add('nf-oculto');
         el('nf-cad').classList.toggle('nf-oculto', !podeCadastrar);
-        if (podeCadastrar && !montouSelect) { el('nf-usuario').innerHTML = d.elegiveis.map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join(''); montouSelect = true; }
+        if (podeCadastrar && !montouSelect) { el('nf-usuario').innerHTML = d.elegiveis.map((n, i) => '<option value="' + esc(n) + '"' + (i === 0 ? ' selected' : '') + '>' + esc(n) + (n === d.usuarioAtual ? ' (você)' : '') + '</option>').join(''); montouSelect = true; }
         const cm = el('nf-cadmsg');
         if (d.cadastro) { cm.textContent = 'Aproxime o cartão de ' + d.cadastro.usuario + ' do leitor... (' + d.cadastro.restanteS + ' s)'; cm.classList.remove('nf-oculto'); el('nf-cancelar').classList.remove('nf-oculto'); el('nf-iniciar').disabled = true; }
         else { cm.classList.add('nf-oculto'); el('nf-cancelar').classList.add('nf-oculto'); el('nf-iniciar').disabled = !d.online; }
