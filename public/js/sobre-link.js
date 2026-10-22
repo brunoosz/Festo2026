@@ -1,4 +1,5 @@
-// reconhece o tipo de um link so pelo texto (nada e buscado na internet); usado pelo editor e conferido no servidor
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// tipo do link
 (function (raiz, fabrica) {
     if (typeof module === 'object' && module.exports) module.exports = fabrica();
     else raiz.SobreLink = fabrica();
@@ -11,7 +12,7 @@
     function numeroInternacional(texto) {
         let d = digitos(texto);
         if (d.length < 8 || d.length > 15) return '';
-        if (d.length <= 11) d = '55' + d;                       // DDD + numero brasileiro
+        if (d.length <= 11) d = '55' + d;                       // número brasileiro
         return d;
     }
     function pareceTelefone(t) { return /^[+(\d][\d\s().\-]{6,}$/.test(t) && digitos(t).length >= 8 && digitos(t).length <= 15; }
@@ -31,11 +32,11 @@
 
     function bonito(slug) {
         const partes = String(slug || '').split(/[-_.]+/).filter(Boolean);
-        while (partes.length > 1 && /^(?=.*\d)[a-z0-9]{5,}$/i.test(partes[partes.length - 1])) partes.pop();   // sufixos de id do LinkedIn
+        while (partes.length > 1 && /^(?=.*\d)[a-z0-9]{5,}$/i.test(partes[partes.length - 1])) partes.pop();   // sufixos
         return partes.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
     }
 
-    // devolve { ok, tipo, rotulo, url, sugestaoNome, extra } ou { ok: false, erro }
+    // resultado
     function detectar(entrada) {
         let t = String(entrada || '').trim();
         if (!t) return { ok: false, erro: 'Cole um endereço, e-mail ou telefone.' };
@@ -68,7 +69,7 @@
         return { ok: true, tipo, rotulo: ROTULOS[tipo], url: url.href, sugestaoNome };
     }
 
-    // confere um link ja pronto (o servidor usa isto ao salvar)
+    // conferir link
     function urlPermitida(url) {
         const t = String(url || '').trim();
         if (/^https?:\/\/[^\s"'<>]+$/i.test(t)) { try { return /^https?:$/.test(new URL(t).protocol); } catch (e) { return false; } }

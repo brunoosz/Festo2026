@@ -1,13 +1,13 @@
-// desenho da visao computacional sobre a imagem da camera (faixa, linha de contagem e caixas)
-// usado pelas telas Separador e Visao, para as duas mostrarem exatamente a mesma coisa
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// overlay da visão
 (function () {
     function criar(canvas, opcoes) {
         const opt = Object.assign({ fundo: true, banda: true }, opcoes || {});
         const ctx = canvas.getContext ? canvas.getContext('2d') : null;
         let imagem = null;
         let overlay = null;
-        let rotulos = {};        // id da caixa -> { texto, ts }
-        let pendentes = [];      // contagens que ainda nao acharam a caixa
+        let rotulos = {};        // caixas
+        let pendentes = [];      // contagens pendentes
 
         function tamanho() {
             if (imagem) return [imagem.naturalWidth || imagem.width, imagem.naturalHeight || imagem.height];
@@ -20,7 +20,7 @@
             return e.motivo === 'desconhecido' ? 'Desconhecido' : 'Sem treino';
         }
 
-        // a contagem acontece quando a caixa cruza a linha: o rotulo vai para a caixa contada mais proxima dela
+        // rótulos
         function casarRotulos() {
             if (!overlay || !pendentes.length) return;
             const agora = Date.now();

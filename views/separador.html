@@ -1,3 +1,4 @@
+{# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/ #}
 {% extends 'base.html' %}
 
 {% block title %}Separador{% endblock %}
@@ -206,8 +207,8 @@
     const ouvintes = [];
     function ouvir(evento, funcao) { globalSocket.on(evento, funcao); ouvintes.push([evento, funcao]); }
 
-    let ultimaImagem = null;       // image do ultimo quadro
-    let overlay = null;            // ultimo overlay do motor
+    let ultimaImagem = null;       // última imagem
+    let overlay = null;            // último overlay
     let config = null;
     let servo = { online: false, estado: null };
     let classes = [];
@@ -232,7 +233,7 @@
     function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
     const NOME_LADO = { E: 'esquerda', D: 'direita', C: 'centro' };
 
-    // desenho da camera (mesmo codigo da tela Visao: public/js/overlay-visao.js)
+    // desenho da câmera
     function desenhar() { vis.desenhar(); }
 
     function atualizarMedidor() {
@@ -299,7 +300,7 @@
         }).join('') : '<p class="sep-dica">Treine os produtos primeiro (passo 1).</p>';
     }
 
-    // formularios
+    // formulários
     function preencherConfig() {
         if (!config) return;
         el('sep-eixo').value = config.eixo; el('sep-sentido').value = String(config.sentido);
@@ -356,7 +357,7 @@
         if (permissaoTotal) { const t = await api('/api/separador/treino'); if (t.ok) { classes = t.dados; renderClasses(); } }
     }
 
-    // acoes (admin)
+    // ações do admin
     function lerLados() { const o = {}; document.querySelectorAll('[data-lado]').forEach(s => { o[s.dataset.lado] = s.value; }); return o; }
     async function salvarDeteccao() {
         const zi = Number(el('sep-zi').value) / 100, zf = Number(el('sep-zf').value) / 100;

@@ -1,5 +1,5 @@
-// teste automatico do lote 3, etapa 2: Visualizador ve tudo em leitura, tutorial a cada login, roteiro novo e IA atualizada
-// uso: node tools/testes/lote3_etapa2.js   (ou npm test)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste lote 3, etapa 2
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');
@@ -68,7 +68,7 @@ const PERGUNTAS = [
         assert.ok((await chamar('GET', '/dashboard', vis)).texto.includes('id="link-nfc"')); ok('o menu dele mostra Cartões NFC');
         assert.ok(!(await chamar('GET', '/dashboard', oper)).texto.includes('id="link-nfc"') && (await chamar('GET', '/nfc', oper)).status === 403); ok('Operário continua sem a tela de cartões');
 
-        // cadastra um cartao (Dono) para ver o mascaramento
+        // cadastro de cartão
         await chamar('POST', '/api/nfc/cadastrar', dono, { usuario: 'dono' }); placa.publish('nfc/leitura', 'AABBCCDD'); await esperar(500);
         placa.publish('nfc/leitura', 'AABBCCDD'); await esperar(400);
         const comoDono = (await chamar('GET', '/api/nfc/estado', dono)).json; assert.strictEqual(comoDono.cartoes[0].final, 'CCDD'); assert.strictEqual(comoDono.podeCadastrar, true);
@@ -110,7 +110,7 @@ const PERGUNTAS = [
         assert.ok(roteiro.some(p => p.perfis && p.perfis.includes(4) && /só de visualização/.test(p.texto))); ok('o tutorial do Visualizador termina dizendo que ele só pode visualizar');
         assert.ok(roteiro.filter(p => p.pagina === '/nfc' && p.soAdmin).length === 1 && roteiro.filter(p => p.perfis && p.perfis.includes(4) && p.pagina === '/nfc').length === 1); ok('há versão do passo do NFC para Dono/Adm e outra (somente leitura) para o Visualizador');
 
-        await esperar(2500);   // a janela dos botoes (aberta pelo cartao do teste) fecha
+        await esperar(2500);   // janela fecha
         console.log('5) IA: 10 perguntas de teste (sem internet: base local) e estado ao vivo');
         for (const [pergunta, ...padroes] of PERGUNTAS) {
             const r = await chamar('POST', '/api/chat', vis, { pergunta }); assert.strictEqual(r.status, 200, pergunta);

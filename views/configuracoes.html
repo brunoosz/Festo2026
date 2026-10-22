@@ -1,3 +1,4 @@
+{# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/ #}
 {% extends 'base.html' %}
 
 {% block title %}Configuração{% endblock %}
@@ -26,7 +27,7 @@
         </button>
     </div>
 
-    <!-- rever o tutorial (todos os perfis) -->
+    <!-- rever tutorial -->
     <div class="card-painel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
             <h3 class="font-bold text-gray-800 text-base sm:text-lg">Tutorial</h3>
@@ -120,7 +121,7 @@
         }
     });
 
-    // toggle de acessibilidade (leitor de tela)
+    // acessibilidade
     const btnAcessibilidade = document.getElementById('btn-acessibilidade');
 
     function atualizarVisualBotaoAcessibilidade(ativo) {
@@ -152,7 +153,7 @@
                     window.definirAcessibilidade(novoEstado);
                 }
                 if (novoEstado) {
-                    // confirma em voz que a leitura de tela foi ativada
+                    // confirmação por voz
                     try {
                         const fala = new SpeechSynthesisUtterance('Leitor de tela ativado.');
                         fala.lang = 'pt-BR';

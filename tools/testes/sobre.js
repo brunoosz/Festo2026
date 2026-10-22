@@ -1,5 +1,5 @@
-// teste automatico da pagina publica "Sobre nos" (5 secoes, cartoes da equipe, dados de data/sobre.json)
-// uso: node tools/testes/sobre.js   (ou npm test)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste Sobre nós
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');
@@ -43,7 +43,7 @@ const dados = {
     };
     const fim = c => { try { site.kill(); } catch (e) {} fs.rmSync(tmp, { recursive: true, force: true }); setTimeout(() => process.exit(c), 300); };
     try {
-        fs.mkdirSync(path.join(tmp, 'img', 'projeto'), { recursive: true }); fs.writeFileSync(path.join(tmp, 'img', 'projeto', 'ok.jpg'), 'x');   // a galeria so mostra arquivos que existem
+        fs.mkdirSync(path.join(tmp, 'img', 'projeto'), { recursive: true }); fs.writeFileSync(path.join(tmp, 'img', 'projeto', 'ok.jpg'), 'x');   // galeria
         fs.writeFileSync(arq, JSON.stringify(dados));
         await subir();
         const pagina = async () => (await fetch(B + '/sobre')).text();

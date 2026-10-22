@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# atualiza o site no raspberry sem perder usuarios, receitas, fotos e configs
-# uso: bash atualizar.sh [branch]   (padrao: main)
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# atualização
 
 set -euo pipefail
 

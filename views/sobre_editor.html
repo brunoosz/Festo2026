@@ -1,3 +1,4 @@
+{# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/ #}
 {% extends 'base.html' %}
 
 {% block title %}Conteúdo{% endblock %}
@@ -94,7 +95,7 @@
     const caminho = (obj, p) => p.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
     function definir(p, v) { const ks = p.split('.'), ultimo = ks.pop(); const alvo = ks.reduce((o, k) => o[k], D); alvo[ultimo] = v; }
 
-    // ---------- estado e avisos ----------
+    // estado e avisos
     function atualizarEstado() {
         const e = el('sbe-estado'), temErro = Object.keys(erros).length > 0;
         if (salvando) { e.textContent = 'Salvando...'; e.className = 'sbe-estado'; }
@@ -105,7 +106,7 @@
     }
     function avisar(t) { el('sbe-aviso').textContent = t || ''; }
 
-    // ---------- validacao no servidor (mensagens ao lado do campo) ----------
+    // validação
     function pintarErros() {
         corpo.querySelectorAll('[data-erro]').forEach(n => { n.textContent = erros[n.dataset.erro] || ''; });
         corpo.querySelectorAll('[data-p]').forEach(n => n.classList.toggle('sbe-invalido', !!erros[n.dataset.p]));
@@ -121,7 +122,7 @@
         }, 350);
     }
 
-    // ---------- pecas de tela ----------
+    // peças de tela
     function campo(rotulo, p, { tipo = 'texto', max, dica, placeholder = '' } = {}) {
         const v = caminho(D, p) || '';
         const entrada = tipo === 'area'
@@ -144,7 +145,7 @@
     }
     function arrastavel(lista, i) { return ' draggable="true" data-arrasto="' + lista + '" data-i="' + i + '"'; }
 
-    // caixinhas de link: cole o endereco e a caixinha aparece
+    // caixinhas de link
     function caixasDeLink(p, rotuloEntrada) {
         const links = caminho(D, p) || [];
         return '<div class="sbe-campo"><label>' + esc(rotuloEntrada || 'Links') + '</label>' +
@@ -164,7 +165,7 @@
             '</div><p class="sbe-erro" data-erro="' + p + '"></p></div>';
     }
 
-    // ---------- secoes ----------
+    // seções
     function htmlSecoes() {
         return '<div class="card-painel"><h3 class="titulo-painel">Ordem e visibilidade das seções</h3><p class="sbe-dica" style="margin-bottom:8px">Use as setas (ou arraste) para mudar a ordem em que aparecem na página.</p>' +
             D.secoes.map((s, i) => '<div class="sbe-item"' + arrastavel('secoes', i) + '><div class="sbe-linha"><span class="sbe-handle">⋮⋮</span><b style="flex:1;font-size:13px">' + esc(NOMES_SECAO[s.id]) + '</b>' +
@@ -235,7 +236,7 @@
     function mudou() { agendarValidacao(); }
     function estrutura() { renderizar(); agendarValidacao(); }
 
-    // ---------- acoes ----------
+    // ações
     function mover(lista, i, d) { const arr = caminho(D, lista), j = i + d; if (j < 0 || j >= arr.length) return; const [x] = arr.splice(i, 1); arr.splice(j, 0, x); estrutura(); }
     function parseData(t) {
         t = String(t || '').toLowerCase().trim(); let m;
@@ -261,7 +262,7 @@
         const novo = corpo.querySelector('[data-aviso-link="' + CSS.escape(lista) + '"]'); if (novo) novo.textContent = erro;
         const campoColar = corpo.querySelector('[data-colar="' + CSS.escape(lista) + '"]'); if (campoColar) campoColar.focus();
     }
-    // quem preenche e-mail, telefone, WhatsApp ou adiciona um link quer que apareca: liga "Mostrar contatos" da pessoa (dá para desligar de novo)
+    // liga contatos
     function ligarContatosSeNecessario(p, valor, forcar) {
         const m = /^equipe\.(\d+)\.(email|telefone|whatsapp|links)/.exec(p);
         if (!m || (!forcar && !String(valor).trim())) return;
@@ -320,7 +321,7 @@
         if (n.dataset && n.dataset.colar) { const t = (e.clipboardData || window.clipboardData).getData('text'); if (t && t.trim()) { e.preventDefault(); adicionarLinks(n.dataset.colar, t); } }
     });
 
-    // arrastar e soltar (as setas continuam valendo em qualquer aparelho)
+    // arrastar e soltar
     corpo.addEventListener('dragstart', e => { const a = e.target.closest('[data-arrasto]'); if (!a) return; arrastando = { lista: a.dataset.arrasto, i: +a.dataset.i }; a.classList.add('arrastando'); try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'x'); } catch (er) {} });
     corpo.addEventListener('dragend', () => { arrastando = null; corpo.querySelectorAll('.arrastando, .alvo').forEach(n => n.classList.remove('arrastando', 'alvo')); });
     corpo.addEventListener('dragover', e => { const a = e.target.closest('[data-arrasto]'); if (arrastando && a && a.dataset.arrasto === arrastando.lista) { e.preventDefault(); corpo.querySelectorAll('.alvo').forEach(n => n.classList.remove('alvo')); a.classList.add('alvo'); } });
@@ -330,7 +331,7 @@
         if (de === para) return; const [x] = arr.splice(de, 1); arr.splice(para, 0, x); estrutura();
     });
 
-    // ---------- fotos ----------
+    // fotos
     function paraJpeg(arquivo) {
         return new Promise((ok, falha) => {
             const url = URL.createObjectURL(arquivo), img = new Image();
@@ -361,7 +362,7 @@
         } catch (e) { dizer(e.message || 'Não foi possível enviar a foto.'); }
     }
 
-    // ---------- carregar, salvar, previa, desfazer, historico ----------
+    // carregar e salvar
     async function carregar() {
         const r = await fetch('/api/sobre'); const j = await r.json();
         D = j.dados; meta = { icones: j.icones, limites: j.limites, max: j.max, versoes: j.versoes }; salvoStr = instantaneo(); erros = {};

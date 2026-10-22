@@ -1,5 +1,5 @@
-// sobe o site no seu computador em modo de teste, sem tocar nos dados reais
-// uso: npm run dev   (em outro terminal: npm run mock)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// preview local
 const fs = require('fs');
 const path = require('path');
 const { criarUsuariosTeste, SENHA_TESTE } = require('./seed_teste');

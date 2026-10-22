@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
-# ==============================================================================
-# INSTALADOR FLOWPACK - Selagem 1 separada + Dispenser + Manuais + Painel
-#
-# Como usar:   python3 /root/instalar_flowpack.py
-#
-# - Faz copia de seguranca do server.js e do base.html antes de mexer.
-# - Pode rodar mais de uma vez: o que ja foi aplicado aparece como "ja estava".
-# - Legenda:  ✅ aplicado   ⏭️  ja estava aplicado   ❌ nao deu (me mande a linha)
-# ==============================================================================
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# instalador
 import os, sys, shutil, subprocess, datetime
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "/root/site_esteira"
@@ -37,7 +30,7 @@ def gravar(caminho, texto):
     open(caminho, "w", encoding="utf-8").write(texto)
 
 def trocar(texto, nome, antigo, novo, marcador, modo="trocar"):
-    # modo: trocar | depois | antes
+    # modo
     if marcador in texto:
         res.append("⏭️  %s: ja estava aplicado." % nome)
         return texto
@@ -51,17 +44,14 @@ def trocar(texto, nome, antigo, novo, marcador, modo="trocar"):
     res.append("✅ %s: aplicado." % nome)
     return texto.replace(antigo, novo, 1)
 
-# ==============================================================================
-# 1) server.js
-# ==============================================================================
+# server.js
 c = ler(CAMINHO_SERVER)
 
 def troca(nome, antigo, novo, marcador):
     global c
     c = trocar(c, nome, antigo, novo, marcador)
 
-# --- 1A) Selagem 1 dividida em 2 ESP32 (aquecimento / motores)
-# (Selagem 1) passam a ser de um ESP32 proprio
+# selagem 1 dividida
 troca("Motor 1 da Selagem 1 num ESP32 próprio",
       "nome: 'Selagem 1 - Motor 1', dispositivo: 'selagem1',",
       "nome: 'Selagem 1 - Motor 1', dispositivo: 'selagem1motor',",
@@ -71,7 +61,7 @@ troca("Motor 2 da Selagem 1 num ESP32 próprio",
       "nome: 'Selagem 1 - Motor 2', dispositivo: 'selagem1motor',",
       "nome: 'Selagem 1 - Motor 2', dispositivo: 'selagem1motor',")
 
-# 2) Reiniciar + estado do novo ESP32
+# reiniciar
 troca("Reiniciar o ESP32 dos motores da Selagem 1",
       "selagem2motor: 'selagem2/motor/reiniciar' };",
       "selagem2motor: 'selagem2/motor/reiniciar', selagem1motor: 'selagem/motores/reiniciar' };",
@@ -85,7 +75,7 @@ troca("Inscrição no status dos motores da Selagem 1",
       ".concat([MQTT_TOPIC_SELAGEM2_MOTOR_STATUS, MQTT_TOPIC_SELAGEM1_MOTOR_STATUS])",
       "MQTT_TOPIC_SELAGEM2_MOTOR_STATUS, MQTT_TOPIC_SELAGEM1_MOTOR_STATUS")
 
-# 3) Mensagens dos motores NAO contam mais como sinal de vida do aquecimento
+# sinal de vida
 troca("Sinal de vida dos motores separado do aquecimento",
       "    if (topic.startsWith('selagem/motor')) ultimaMsgSelagem1 = Date.now();",
       "    if (topic.startsWith('selagem/motor')) ultimaMsgSelagem1Motor = Date.now();   // inclui selagem/motores/status",
@@ -114,7 +104,7 @@ troca("Aquecimento da Selagem 1 só fica online pelos dados dele",
       "    if (topic === MQTT_TOPIC_SELAGEM_DADOS && !selagemOnline) {",
       "    if (topic === MQTT_TOPIC_SELAGEM_DADOS && !selagemOnline) {")
 
-# 4) Vigia de conexao e zerar valores quando cai
+# vigia
 troca("Vigia: lista de dispositivos",
       "let estadoOnlineAnterior = { esteira: false, selagem1: false, selagem2: false, selagem2motor: false };",
       "let estadoOnlineAnterior = { esteira: false, selagem1: false, selagem2: false, selagem2motor: false, selagem1motor: false };",
@@ -139,7 +129,7 @@ troca("Vigia: zerar motores da Selagem 1 ao cair",
       "['selagem1', 'selagem2', 'selagem2motor', 'selagem1motor'].forEach(dispositivo => {",
       "'selagem2motor', 'selagem1motor'].forEach")
 
-# 5) Painel: estado completo + estado ao conectar
+# painel
 troca("API do Painel inclui os motores da Selagem 1",
       "        selagem2motor: { online: selagem2MotorOnline },",
       "        selagem2motor: { online: selagem2MotorOnline },\n        selagem1motor: { online: selagem1MotorOnline },",
@@ -150,7 +140,7 @@ troca("Enviar estado dos motores da Selagem 1 ao conectar",
       "socket.emit('status_selagem1motor'")
 
 
-# --- 1B) Dispenser (estado, mensagens MQTT, rotas) e Manuais
+# dispenser e manuais
 BLOCO_ESTADO = r'''// ================================================================================
 // DISPENSER: ESP32 proprio com 2 motores (driver L298N). O servidor guarda a
 // configuracao (velocidade, tempo de 1/4 de volta etc.) e manda os parametros
@@ -468,7 +458,7 @@ c = trocar(c, "Dispenser: mensagens do ESP32",
 c = trocar(c, "Dispenser: pagina, API e Manuais",
            "// --- API DO PAINEL DE CONTROLE ---", BLOCO_ROTAS, "app.get('/dispenser'", "antes")
 
-# --- 1C) Emergencia tambem para o Dispenser (botao do site e Alexa)
+# emergência do dispenser
 c = trocar(c, "Emergencia do site para o Dispenser",
            'mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, "1");',
            '\n            mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, "1"); // Site -> Dispenser\n            liberarMotoresDispenser();\n            emitirEstadoDispenser(true);',
@@ -483,9 +473,7 @@ else:
 
 gravar(CAMINHO_SERVER, c)
 
-# ==============================================================================
-# 2) base.html (menu Dispenser, botao Manuais)
-# ==============================================================================
+# base.html
 b = ler(CAMINHO_BASE)
 
 LINK_DISPENSER = '''
@@ -580,9 +568,7 @@ b = trocar(b, "Janela de Manuais",
            '<div id="tutorial-borda-ativa" class="hidden"></div>', MODAL_MANUAIS, 'id="modal-manuais"', "antes")
 gravar(CAMINHO_BASE, b)
 
-# ==============================================================================
-# 3) paginas novas e pasta dos manuais
-# ==============================================================================
+# páginas novas
 PAGINA_DISPENSER = r'''{% extends 'base.html' %}
 
 {% block title %}Dispenser{% endblock %}
@@ -1492,9 +1478,7 @@ if not os.path.isdir(PASTA_MANUAIS):
 else:
     res.append("⏭️  Pasta dos manuais: ja existia.")
 
-# ==============================================================================
-# 4) relatorio e checagem de sintaxe
-# ==============================================================================
+# checagem
 print("\n".join(res))
 print()
 ok = subprocess.run(["node", "-c", CAMINHO_SERVER], capture_output=True, text=True)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# FLOWPACK - FASE 5: CARTAO NFC (so Dono/Adm libera a emergencia)
-# Uso:  python3 /root/instalar_fase5.py      (rode DEPOIS do instalar_fase4.py)
-# Legenda:  ✅ aplicado   ⏭️  ja estava aplicado   ❌ nao deu (me mande a linha)
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# fase 5
 import os, sys, re, base64, shutil, subprocess, datetime
 BASE = sys.argv[1] if len(sys.argv) > 1 else "/root/site_esteira"
 SERVER = os.path.join(BASE, "server.js"); VIEWS = os.path.join(BASE, "views"); BASEHTML = os.path.join(VIEWS, "base.html")

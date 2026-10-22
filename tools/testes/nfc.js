@@ -1,5 +1,5 @@
-// teste automatico das fases 5 e 6: cartao NFC e botoes do painel
-// uso: node tools/testes/nfc.js   (ou npm test)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste NFC
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');
@@ -105,7 +105,7 @@ const { iniciar } = require('../mock_mqtt');
         st = (await chamar('GET', '/api/nfc/estado', adm)).json; assert.ok(st.bloqueadoS > 0); ok('a tela mostra o tempo de bloqueio');
 
         console.log('5) Botões MAIS/MENOS do painel (janela de 2,5 s neste teste)');
-        // espera acabar o bloqueio
+        // fim do bloqueio
         await esperar(30500);
         assert.strictEqual((await chamar('POST', '/api/usuarios/adm/nivel', dono, { nivel: 3 })).status, 200);
         assert.strictEqual(await cartao('11223344'), 'nfc:negado'); ok('usuário rebaixado para Operário -> o cartão dele é recusado');

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Coloca o MODELO 3D LEVE dentro do Dashboard (sem tela separada).
-# Uso:  python3 /root/instalar_3d_dashboard.py     (o arquivo maquina.glb pode estar em /root)
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# modelo 3D no Dashboard
 import os, sys, re, io, base64, shutil, zipfile, datetime, subprocess
 BASE = sys.argv[1] if len(sys.argv) > 1 else "/root/site_esteira"
 VIEWS = os.path.join(BASE, "views"); PUB = os.path.join(BASE, "public")

@@ -1,27 +1,13 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Preferences.h>
 #include <math.h>
 
-// ============================================================
-// FLOWPACK - ESTEIRA (1 ESP32 + 1 BTS7960 + BOTAO DE EMERGENCIA)
-//
-// O botao de EMERGENCIA fica AQUI (GPIO 32): para a esteira NA HORA, mesmo sem Wi-Fi, e avisa o site,
-// que para todas as outras placas. DEPOIS DISSO A ESTEIRA FICA TRAVADA (mesmo se desligar e ligar)
-// ate alguem de Dono/Adm LIBERAR (botao DESBLOQUEAR no site ou cartao NFC).
-// Os botoes MAIS e MENOS (receitas) agora ficam no ESP32 do PAINEL (leitor de cartao):
-// so funcionam depois de passar um cartao de Dono ou Adm.
-//
-// Monitor Serial (115200): V=60, INVERTER, EMERGENCIA, STATUS, AJUDA
-//
-// Placa: ESP32 DEVKIT V1 (no Arduino IDE: "ESP32 Dev Module").
-// Todos os pinos usados existem na DevKit V1 de 30 ou de 38 pinos.
-// ============================================================
+// esteira
 
 
-// ============================================================
-// REDE
-// ============================================================
+// rede
 
 const char* ssid = "DarkCoders";
 const char* password = "COLOQUE_A_SENHA_DO_WIFI";
@@ -37,9 +23,9 @@ const char* topic_set_sentido   = "esteira/sentido/set";
 const char* topic_atual_sentido = "esteira/sentido/atual";
 const char* topic_emergencia    = "esteira/emergencia";
 const char* topic_reiniciar     = "esteira/reiniciar";
-const char* topic_botao         = "esteira/botao";      // "emergencia" | "mais" | "menos"
-const char* topic_liberar       = "esteira/liberar";    // o site manda "1" para destravar
-const char* topic_estado_emerg  = "esteira/estado_emergencia"; // "ativa" | "liberada" (retido)
+const char* topic_botao         = "esteira/botao";      // valores do botão
+const char* topic_liberar       = "esteira/liberar";    // destravar
+const char* topic_estado_emerg  = "esteira/estado_emergencia"; // estado da emergência
 
 unsigned long ultimaTentativaWifi = 0;
 bool wifiEstavaConectado = false;
@@ -50,27 +36,23 @@ unsigned long ultimoEnvioSentido = 0;
 Preferences memoria;
 
 
-// ============================================================
-// PINAGEM
-// ============================================================
+// pinagem
 
 // BTS7960
 #define PIN_RPWM 25
 #define PIN_LPWM 26
-#define PIN_EN   27      // R_EN e L_EN ligados juntos
+#define PIN_EN   27      // pinos de ativação
 
-// Botao de emergencia: um fio no pino, o outro no GND (usa o resistor interno)
+// botão de emergência
 #define BTN_EMERGENCIA 32
 
 
-// ============================================================
-// AJUSTES DO MOTOR
-// ============================================================
+// ajustes do motor
 
 const int PWM_FREQ = 20000;
 const int PWM_RESOLUCAO = 8;
 const int PWM_MAX = 255;
-const int PWM_MINIMO = 50;               // menor forca que ainda move a esteira
+const int PWM_MINIMO = 50;               // força mínima
 
 const unsigned long EMERGENCIA_REVERSO_MS = 1000;
 const int EMERGENCIA_REVERSO_PCT_MINIMO = 50;
@@ -78,7 +60,7 @@ const int EMERGENCIA_REVERSO_PCT_MINIMO = 50;
 const int RAMPA_PASSO = 5;
 const unsigned long RAMPA_INTERVALO_MS = 10;
 
-bool emergenciaTravada = false;   // fica salvo na memoria: reiniciar NAO destrava
+bool emergenciaTravada = false;   // trava salva
 int velocidadePct = 0;
 int pwmAtual = 0;
 bool sentidoInvertido = false;
@@ -88,17 +70,13 @@ unsigned long fimReverso = 0;
 unsigned long ultimoPasso = 0;
 
 
-// ============================================================
-// BOTOES (com anti-ruido)
-// ============================================================
+// botões
 
-// Cada botao so vale se: o sistema ligou ha mais de 3 s, o botao ficou
-// SOLTO por 1 s antes (armado) e fica APERTADO sem falhar pelo tempo minimo.
-// Ruido eletrico (picos curtos) e fio solto nao disparam nada.
+// tempo mínimo
 struct Botao {
   int pino;
   const char* nome;
-  unsigned long msMinimo;      // tempo apertado continuo para valer
+  unsigned long msMinimo;      // tempo apertado
   bool armado;
   bool baixo;
   unsigned long inicio;
@@ -117,9 +95,7 @@ unsigned long ultimaAmostraBotoes = 0;
 bool avisouBotaoPreso = false;
 
 
-// ============================================================
-// PWM (ESP32 2.x e 3.x)
-// ============================================================
+// PWM
 
 void configurarPwm() {
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
@@ -166,9 +142,7 @@ int pctParaPwm(int pct) {
 }
 
 
-// ============================================================
-// SITE: publicacao
-// ============================================================
+// publicação
 
 void publicarVelocidade() {
 
@@ -198,9 +172,7 @@ void publicarBotao(const char* nome) {
 }
 
 
-// ============================================================
-// ACOES
-// ============================================================
+// ações
 
 void definirVelocidade(int pct, const char* origem) {
 
@@ -243,8 +215,7 @@ void definirSentido(bool invertido, const char* origem) {
   publicarSentido();
 }
 
-// Para tudo, gira ao contrario por 1 segundo, para e TRAVA.
-// So o site libera (topico esteira/liberar).
+// parada de emergência
 void emergencia(const char* origem) {
 
   if (emergenciaTravada) {
@@ -294,7 +265,7 @@ void liberarEmergencia(const char* origem) {
   publicarEstadoEmergencia();
 }
 
-// Rampa suave e troca de sentido segura
+// rampa
 void atualizarMotor() {
 
   if (emReverso) {
@@ -325,9 +296,7 @@ void atualizarMotor() {
 }
 
 
-// ============================================================
-// BOTOES
-// ============================================================
+// botões
 
 void botaoApertado(const char* nome, unsigned long duracaoMs) {
 
@@ -398,9 +367,7 @@ void lerBotoes() {
 }
 
 
-// ============================================================
-// MONITOR SERIAL
-// ============================================================
+// monitor serial
 
 void mostrarStatus() {
 
@@ -440,9 +407,7 @@ void processarComando(String comando) {
 }
 
 
-// ============================================================
-// SITE (MQTT)
-// ============================================================
+// site
 
 void callbackMqtt(char* topic, byte* payload, unsigned int length) {
 
@@ -532,9 +497,7 @@ void gerenciarMqtt() {
 }
 
 
-// ============================================================
-// SETUP / LOOP
-// ============================================================
+// setup e loop
 
 void setup() {
 
@@ -583,7 +546,7 @@ void loop() {
 
   atualizarMotor();
 
-  // sinal de vida: o site considera a esteira offline se ficar 8s sem mensagem
+  // sinal de vida
   if (millis() - ultimoEnvio >= 1000) {
     ultimoEnvio = millis();
     publicarVelocidade();

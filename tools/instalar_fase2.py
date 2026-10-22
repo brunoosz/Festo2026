@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
-# ==============================================================================
-# FLOWPACK - FASE 2: Separador (visao local + servo) e tela Status do Sistema
-#
-# Como usar:   python3 /root/instalar_fase2.py
-# Legenda:  ✅ aplicado   ⏭️  ja estava aplicado   ❌ nao deu (me mande a linha)
-# Pode rodar de novo sem problema.
-# ==============================================================================
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# fase 2
 import os, sys, re, base64, shutil, subprocess, datetime
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "/root/site_esteira"
@@ -139,7 +134,7 @@ aplicar("Servidor: emergencia tambem leva o servo ao centro", "separador/emergen
 aplicar("Servidor: estado do servo ao abrir a pagina", "socket.emit('separador_servo'", f_socket)
 open(SERVER, "w", encoding="utf-8").write(c)
 
-# ---------------- menu ----------------
+# menu
 caminho_base = os.path.join(VIEWS, "base.html")
 b = open(caminho_base, encoding="utf-8").read()
 

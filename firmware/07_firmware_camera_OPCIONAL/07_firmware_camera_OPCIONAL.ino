@@ -1,24 +1,10 @@
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
 #include <WebServer.h>
 #include <WiFi.h>
 #include <esp32cam.h>
 #include "esp_camera.h"
 
-// ============================================================
-// FLOWPACK - ESP32-CAM (AI Thinker) - VERSAO 2 (OPCIONAL)
-//
-// Mesmo endereco de antes (/cam-lo.jpg), mas:
-//  - resolucao fixa (nao troca a cada foto: mais rapido)
-//  - sempre entrega uma foto FRESCA (descarta a foto velha)
-//  - TRAVA a exposicao e o balanco de branco depois de aquecer:
-//    a luz da imagem deixa de "respirar" e some o falso disparo
-//  - reconecta sozinha se o Wi-Fi cair
-//
-// Enderecos:
-//   /cam-lo.jpg   foto 320x240 (a que o site usa)
-//   /travar       trava a exposicao agora (use com a esteira VAZIA e a luz do jeito final)
-//   /auto         volta para exposicao automatica
-//   /status       mostra se esta travada, Wi-Fi e tempo ligada
-// ============================================================
+// câmera
 
 const char* WIFI_SSID = "DarkCoders";
 const char* WIFI_PASS = "COLOQUE_A_SENHA_DO_WIFI";
@@ -36,7 +22,7 @@ void travarExposicao() {
   sensor_t* s = esp_camera_sensor_get();
   if (!s) return;
 
-  // deixa a camera ler a luz atual e congela esses valores
+  // exposição
   int exposicao = s->status.aec_value;
   int ganho = s->status.agc_gain;
 
@@ -73,7 +59,7 @@ void exposicaoAutomatica() {
 
 void servirFoto() {
 
-  // descarta uma foto (a camera guarda a anterior) e entrega a mais nova
+  // foto nova
   auto velha = esp32cam::capture();
   velha.reset();
 
@@ -158,7 +144,7 @@ void setup() {
     }
   }
 
-  // aquece 2 segundos com exposicao automatica e depois trava
+  // aquecer
   unsigned long aquecer = millis();
   while (millis() - aquecer < 2000) {
     auto f = esp32cam::capture();
@@ -195,7 +181,7 @@ void loop() {
 
   server.handleClient();
 
-  // se o Wi-Fi cair, tenta voltar sem reiniciar a camera
+  // reconectar
   if (WiFi.status() != WL_CONNECTED && millis() - ultimoWifi > 10000) {
     ultimoWifi = millis();
     Serial.println("Wi-Fi caiu, reconectando...");

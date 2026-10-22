@@ -1,5 +1,5 @@
-// teste automatico do lote 3, etapa 1: moldura vermelha da emergencia (camada global, estado e prioridade sobre o azul)
-// uso: node tools/testes/lote3_etapa1.js   (ou npm test)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste lote 3, etapa 1
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');

@@ -1,4 +1,5 @@
-// cria usuarios de teste so para o ambiente local (nunca mexe no usuarios.json real)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// usuários de teste
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');

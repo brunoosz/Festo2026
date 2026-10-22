@@ -1,9 +1,6 @@
 #!/bin/bash
-# Guarda-rede Dark Coders
-# Mantem a internet do celular (USB) chegando no Raspberry e, se cair, conserta sozinho.
-# Passos: descobre a causa (sem celular / sem IP / celular mudo / sem dados / rota errada),
-# tenta o conserto certo, refaz o NAT e avisa no ntfy. Escreve o estado em rede.json
-# (a tela "Status do Sistema" do site le esse arquivo).
+# GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+# guarda-rede
 
 DIR="${GUARDA_DIR:-/var/lib/flowpack}"
 LOG="${GUARDA_LOG:-/var/log/guarda-rede.log}"
@@ -22,7 +19,7 @@ data()   { date '+%F %T'; }
 log()    { echo "$(data) $*" >> "$LOG"; }
 avisar() { curl -s -m 10 -H "Title: $1" -H "Priority: ${3:-default}" -d "$2" "https://ntfy.sh/$TOPICO_NTFY" > /dev/null 2>&1; }
 
-# ---------- estado guardado entre as rodadas ----------
+# estado entre rodadas
 FALHAS=0; QUEDA_INICIO=0; NIVEL=0; NOTIFICADO=0
 QUEDAS_HOJE=0; DIA=""; ULTIMA_QUEDA=""; ULTIMA_RECUP=""; ULTIMO_MOTIVO=""
 [ -f "$CTR" ] && . "$CTR"
@@ -40,13 +37,13 @@ ULTIMO_MOTIVO="$ULTIMO_MOTIVO"
 FIM
 }
 
-# ---------- consultas ----------
+# consultas
 existe_iface() { [ -e "$SYS/class/net/$1" ]; }
 ip_da()        { ip -4 -o addr show dev "$1" 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -1; }
 gateway_da()   { ip route show default dev "$1" 2>/dev/null | awk '/default/ {for(i=1;i<=NF;i++) if($i=="via") {print $(i+1); exit}}'; }
 rota_padrao_iface() { ip route show default 2>/dev/null | awk '/default/ {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}'; }
 
-# retorna 0 se algum alvo respondeu pela interface; guarda a latencia em LATENCIA
+# retorna 0 se respondeu
 LATENCIA=""
 internet_por() {
   local iface="$1" alvo saida
@@ -60,7 +57,7 @@ internet_por() {
   return 1
 }
 
-# ---------- consertos ----------
+# consertos
 renovar_dhcp() {
   local iface="$1"
   log "  acao: renovando o endereco (DHCP) em $iface"
@@ -100,7 +97,7 @@ reaplicar_nat() {
   systemctl restart darkcoders-nat.service > /dev/null 2>&1
 }
 
-# ---------- escrita do estado para o site ----------
+# escrita do estado
 escrever_json() {
   local internet="$1" uplink="$2" ip="$3" gw="$4" lat="$5" motivo="$6" acao="$7"
   cat > "$EST.tmp" << FIM
@@ -109,13 +106,13 @@ FIM
   mv "$EST.tmp" "$EST"
 }
 
-# ---------- uma rodada ----------
+# uma rodada
 ciclo() {
   local hoje atual escolhida="" iface gw ip motivo="ok" acao="" nivel_desejado
   hoje=$(date +%F)
   if [ "$DIA" != "$hoje" ]; then DIA="$hoje"; QUEDAS_HOJE=0; fi
 
-  # 1) acha uma interface que realmente leva ate a internet
+  # interface com internet
   atual=$(rota_padrao_iface)
   for iface in $atual $IFACES; do
     [ -z "$iface" ] && continue
@@ -125,7 +122,7 @@ ciclo() {
   done
 
   if [ -n "$escolhida" ]; then
-    # a rota padrao aponta para outra interface? corrige
+    # rota padrão
     if [ -n "$atual" ] && [ "$atual" != "$escolhida" ]; then
       gw=$(gateway_da "$escolhida"); [ -z "$gw" ] && gw=$(ip route show dev "$escolhida" 2>/dev/null | awk '/default/ {print $3; exit}')
       if [ -n "$gw" ]; then
@@ -135,7 +132,7 @@ ciclo() {
       fi
     fi
     ip=$(ip_da "$escolhida"); gw=$(gateway_da "$escolhida")
-    [ -n "$gw" ] && ping -c 1 -W 1 -I "$escolhida" "$gw" > /dev/null 2>&1   # keepalive do celular
+    [ -n "$gw" ] && ping -c 1 -W 1 -I "$escolhida" "$gw" > /dev/null 2>&1   # keepalive
 
     if [ "$FALHAS" -ge 2 ]; then
       local dur=$(( $(agora) - QUEDA_INICIO ))
@@ -151,7 +148,7 @@ ciclo() {
     return 0
   fi
 
-  # 2) sem internet: descobre o motivo
+  # sem internet
   FALHAS=$((FALHAS + 1))
   [ "$FALHAS" -eq 1 ] && QUEDA_INICIO=$(agora)
   iface=""
@@ -171,13 +168,13 @@ ciclo() {
     log "QUEDA: sem internet ha ~$((FALHAS * INTERVALO))s. Motivo provavel: $motivo (interface: ${iface:-nenhuma})"
   fi
 
-  # 3) conserta, do mais leve para o mais forte
+  # consertar
   if [ "$FALHAS" -ge 2 ]; then
     nivel_desejado=0
     [ "$FALHAS" -ge 2 ] && nivel_desejado=1
     [ "$FALHAS" -ge 4 ] && nivel_desejado=2
     [ "$FALHAS" -ge 6 ] && nivel_desejado=3
-    # depois do nivel 3, repete o nivel 3 a cada 8 rodadas
+    # repetir nível 3
     if [ "$FALHAS" -gt 6 ] && [ $(( (FALHAS - 6) % 8 )) -eq 0 ]; then nivel_desejado=3; NIVEL=2; fi
     if [ "$nivel_desejado" -gt "$NIVEL" ] && [ -n "$iface" ]; then
       NIVEL=$nivel_desejado
@@ -193,7 +190,7 @@ ciclo() {
     [ "$motivo" = "tethering_desligado" ] && acao="aguardando_celular"
   fi
 
-  # 4) avisa uma vez por queda (depois de ~1 minuto)
+  # aviso de queda
   if [ "$FALHAS" -ge 4 ] && [ "$NOTIFICADO" = "0" ]; then
     NOTIFICADO=1
     case "$motivo" in

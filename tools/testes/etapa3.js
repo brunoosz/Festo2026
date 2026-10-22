@@ -1,5 +1,5 @@
-// teste automatico da etapa 3: servo no Painel de Controle e caixas da visao compartilhadas entre as telas
-// uso: node tools/testes/etapa3.js   (ou npm test)
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// teste etapa 3
 const { spawn } = require('child_process');
 const assert = require('assert');
 const fs = require('fs');
@@ -19,7 +19,7 @@ const ok = m => console.log('  ok   ' + m);
 process.env.MOCK_MQTT_PORT = String(PORTA_MQTT);
 const { iniciar } = require('../mock_mqtt');
 
-// ---------- parte 1: o desenho (public/js/overlay-visao.js) com um canvas de mentira ----------
+// desenho
 function canvasDeMentira() {
     const chamadas = [];
     const ctx = {
@@ -103,7 +103,7 @@ function testarDesenho() {
         const visao = (await chamar('GET', '/visao', adm)).texto;
         assert.ok(visao.includes('id="overlay-camera"') && visao.includes("'separador_overlay'") && visao.includes("'separador_evento'")); ok('a tela Visão recebe a sobreposição e as contagens do separador');
 
-        // servo de mentira: avisa que esta online e informa o estado
+        // servo de mentira
         const esp = mqtt.connect(`mqtt://127.0.0.1:${PORTA_MQTT}`); await new Promise(res => esp.on('connect', res));
         const avisarServo = () => { esp.publish('separador/status', 'online'); esp.publish('separador/estado', JSON.stringify({ lado: 'C', angulo: 90, fila: 0 })); };
         avisarServo(); const batimento = setInterval(avisarServo, 1000); await esperar(600);

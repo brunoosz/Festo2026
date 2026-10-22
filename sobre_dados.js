@@ -1,5 +1,5 @@
-// dados da pagina publica "Sobre nos" (data/sobre.json): leitura, validacao, versoes e backups
-// tudo vira texto simples: o Nunjucks escapa o HTML, aqui so se filtram links, nomes de imagem e tamanhos
+// GitHub: https://github.com/brunoosz | LinkedIn: https://www.linkedin.com/in/brunocamperlingo/
+// dados do Sobre nós
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -23,7 +23,7 @@ function iniciais(nome) {
     return p.length ? (p[0][0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase() : '?';
 }
 
-// ---------- modelo de edicao (aceita o formato antigo e converte) ----------
+// modelo de edição
 function linkNovo(l, max) {
     l = l && typeof l === 'object' ? l : {};
     const url = txt(l.url, MAX.url);
@@ -42,7 +42,7 @@ function linksDoFormatoAntigo(l) {
 
 function pessoaEdicao(p) {
     const r = pessoaEdicaoBase(p);
-    // "mostrar contatos" so fica desligado se a pessoa tem algo a esconder; sem contatos, ligado (assim, ao preencher, aparece)
+    // mostrar contatos
     const temContato = !!(r.email || r.telefone || r.whatsapp || r.links.length);
     const desligado = p && typeof p === 'object' && (p.mostrarContatos === false || (p.mostrarContatos === undefined && p.autorizou === false && temContato));
     r.mostrarContatos = !(desligado && temContato);
@@ -51,7 +51,7 @@ function pessoaEdicao(p) {
 
 function pessoaEdicaoBase(p) {
     p = p && typeof p === 'object' ? p : {};
-    const antigo = p.autorizou !== undefined && p.mostrarContatos === undefined;       // formato antigo: "autorizou"
+    const antigo = p.autorizou !== undefined && p.mostrarContatos === undefined;       // formato antigo
     const semAutorizacao = antigo && p.autorizou !== true;
     const c = p.contato && typeof p.contato === 'object' ? p.contato : {};
     const bruto = semAutorizacao ? {} : p;
@@ -66,7 +66,7 @@ function pessoaEdicaoBase(p) {
         email: semAutorizacao ? '' : txt(p.email !== undefined ? p.email : c.email, MAX.email),
         telefone: semAutorizacao ? '' : telefoneBruto(p.telefone !== undefined ? p.telefone : c.telefone),
         whatsapp: semAutorizacao ? '' : telefoneBruto(p.whatsapp !== undefined ? p.whatsapp : c.whatsapp),
-        mostrarContatos: true,   // ajustado logo abaixo
+        mostrarContatos: true,   // ajuste abaixo
         visivel: p.visivel !== false
     };
 }
@@ -82,7 +82,7 @@ function normalizar(bruto) {
     const d = bruto && typeof bruto === 'object' ? bruto : {};
     const g = d.grupo || {}, pr = d.projeto || {}, co = d.conecte && typeof d.conecte === 'object' ? d.conecte : {};
     let linksGrupo = Array.isArray(co.links) ? co.links : [];
-    if (!Array.isArray(co.links)) {                                    // formato antigo do Conecte-se
+    if (!Array.isArray(co.links)) {                                    // Conecte-se antigo
         if (co.githubProjeto) linksGrupo.push({ tipo: 'github', rotulo: 'GitHub do projeto', url: co.githubProjeto });
         if (co.emailGrupo) linksGrupo.push({ tipo: 'email', url: 'mailto:' + co.emailGrupo });
     }
@@ -108,7 +108,7 @@ function normalizar(bruto) {
     };
 }
 
-// ---------- validacao: erros por campo (o que for invalido nao e salvo) ----------
+// validação
 function validar(bruto) {
     const erros = {};
     const d = bruto && typeof bruto === 'object' ? bruto : {};
@@ -153,7 +153,7 @@ function validar(bruto) {
     return { erros, limpo: normalizar(d) };
 }
 
-// ---------- versao publica: so o que esta visivel e preenchido ----------
+// versão pública
 function paraPublico(edicao, opcoes = {}) {
     const existe = opcoes.existeArquivo || (() => true);
     const linhaLink = l => ({ tipo: l.tipo, rotulo: l.rotulo, url: l.url, externo: /^https?:/.test(l.url) });
@@ -181,7 +181,7 @@ function paraPublico(edicao, opcoes = {}) {
     };
 }
 
-// ---------- arquivo, versoes e backups ----------
+// arquivo e backups
 function lerArquivo(caminho) {
     let bruto = {};
     try { bruto = JSON.parse(fs.readFileSync(caminho, 'utf-8')); } catch (e) {}
@@ -213,8 +213,7 @@ function guardarBackup(caminho, pasta) {
     return nome;
 }
 
-// grava a nova versao (depois de guardar o backup da atual)
-// caminho = onde grava; leitura = de onde vem a versao atual (pode ser o arquivo de origem, ainda nao editado)
+// gravar versão
 function salvar(caminho, pasta, limpo, usuario, leitura) {
     leitura = leitura || caminho;
     guardarBackup(leitura, pasta);
@@ -233,7 +232,7 @@ function restaurar(caminho, pasta, id, usuario, leitura) {
     return salvar(caminho, pasta, antiga, usuario, leitura);
 }
 
-// compatibilidade com o que ja existia: a pagina publica le o arquivo e devolve so o que e publico
+// compatibilidade
 function carregar(caminho, opcoes) { return paraPublico(lerArquivo(caminho), opcoes); }
 
 module.exports = { SECOES, LIMITES, MAX, normalizar, validar, paraPublico, lerArquivo, listarBackups, guardarBackup, salvar, restaurar, carregar, novoId, idSeguro };
