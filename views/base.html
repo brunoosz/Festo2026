@@ -424,7 +424,11 @@
                 navegarPara(url);
             });
 
-            window.addEventListener('popstate', () => { navegarPara(window.location.pathname, false); });
+            window.addEventListener('popstate', () => {
+                // o "voltar" que fecha a tela cheia simulada do modelo 3D nao deve recarregar a pagina
+                if (window.__m3vSimulada || window.__m3vIgnorarPopstate) { window.__m3vIgnorarPopstate = false; return; }
+                navegarPara(window.location.pathname, false);
+            });
             atualizarMenuAtivo(window.location.pathname);
 
             const btnHamburguer = document.getElementById('btn-hamburguer');
@@ -581,7 +585,7 @@
                 linha.className = 'flex items-center gap-3 border border-slate-200 rounded-xl p-3';
                 const botao = m.disponivel
                     ? '<a href="/manuais/baixar/' + m.id + '" class="shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg">Baixar PDF</a>'
-                    : '<span class="shrink-0 bg-slate-100 text-slate-400 text-xs font-bold px-3 py-2 rounded-lg">Em breve</span>';
+                    : '<span class="shrink-0 bg-slate-100 text-slate-400 text-[10px] font-bold px-3 py-2 rounded-lg text-center leading-tight">PDF ainda<br>não adicionado</span>';
                 linha.innerHTML = '<div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-[10px] font-black shrink-0">PDF</div>' +
                     '<div class="min-w-0 flex-1"><div class="font-bold text-sm text-slate-800">' + m.titulo + '</div><div class="text-[11px] text-slate-400">' + m.descricao + (m.disponivel ? ' · ' + formatarTamanho(m.tamanho) : '') + '</div></div>' + botao;
                 lista.appendChild(linha);

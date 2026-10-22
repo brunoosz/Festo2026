@@ -2114,6 +2114,16 @@ function nfcProcessarLeitura(uid) {
     else { nfcLog('NFC: cartao de ' + cartao.usuario + ' lido (nao havia emergencia ativa).'); nfcResponder('ok'); }
 }
 
+function nfcOrdenarElegiveis(nomes, usuarios, logado) {
+    const porNome = (a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
+    const nivel = n => Number(usuarios[n].nivel);
+    return [].concat(
+        nomes.filter(n => n === logado),
+        nomes.filter(n => n !== logado && nivel(n) === 1).sort(porNome),
+        nomes.filter(n => n !== logado && nivel(n) === 2).sort(porNome)
+    );
+}
+
 function nfcTratarMqtt(topic, valor) {
     if (topic === 'nfc/status') { nfcUltimaMsg = Date.now(); nfcOnline = (valor === 'online'); }
     if (topic === 'nfc/leitura') { nfcUltimaMsg = Date.now(); nfcOnline = true; nfcProcessarLeitura(String(valor).toUpperCase().replace(/[^0-9A-F]/g, '')); }
@@ -2991,7 +3001,9 @@ app.get('/api/nfc/estado', loginObrigatorio, adminEstritoObrigatorio, (req, res)
         bloqueadoS: Math.max(0, Math.ceil((nfcBloqueadoAte - Date.now()) / 1000)),
         janelaS: Math.max(0, Math.ceil((nfcJanelaAte - Date.now()) / 1000)),
         podeCadastrar: res.locals.nivelUsuario === 1,
-        elegiveis: Object.keys(usuarios).filter(n => Number(usuarios[n].nivel) <= 2),
+        // quem esta logado primeiro; depois os outros Donos e os Adms, cada grupo em ordem alfabetica
+        elegiveis: nfcOrdenarElegiveis(Object.keys(usuarios).filter(n => Number(usuarios[n].nivel) <= 2), usuarios, res.locals.usuarioLogado),
+        usuarioAtual: res.locals.usuarioLogado || null,
         cartoes: Object.keys(cartoesNfc).map(uid => ({
             id: nfcIdCurto(uid), final: uid.slice(-4), usuario: cartoesNfc[uid].usuario, criadoEm: cartoesNfc[uid].criadoEm,
             nivel: (usuarios[cartoesNfc[uid].usuario] || {}).nivel || null
@@ -3418,7 +3430,10 @@ const LISTA_MANUAIS = [
     { id: 'braco',     titulo: 'Módulo Braço Formador',      arquivo: 'Manual_BracoFormador_FlowPack.pdf', descricao: 'Formação e dobra do plástico.' },
     { id: 'selagem1',  titulo: 'Módulo Selagem 1',           arquivo: 'Manual_Selagem1_FlowPack.pdf',     descricao: 'Selagem transversal.' },
     { id: 'selagem2',  titulo: 'Módulo Selagem 2',           arquivo: 'Manual_Selagem2_FlowPack.pdf',     descricao: 'Selagem rotativa e corte.' },
-    { id: 'esteira',   titulo: 'Módulo Esteira',             arquivo: 'Manual_Esteira_FlowPack.pdf',      descricao: 'Transporte do produto ao longo da linha.' }
+    { id: 'esteira',   titulo: 'Módulo Esteira',             arquivo: 'Manual_Esteira_FlowPack.pdf',      descricao: 'Transporte do produto ao longo da linha.' },
+    { id: 'alexa',     titulo: 'Alexa (comandos de voz)',    arquivo: 'Manual_Alexa_FlowPack.pdf',        descricao: 'Como usar a Alexa para ligar a linha e parar em emergência.' },
+    { id: 'nfc',       titulo: 'Cartão NFC e acesso',        arquivo: 'Manual_NFC_FlowPack.pdf',          descricao: 'Liberar a emergência e os botões do painel com cartão.' },
+    { id: 'painel',    titulo: 'Botões e painel',            arquivo: 'Manual_Botoes_Painel_FlowPack.pdf', descricao: 'Emergência, MAIS/MENOS, buzzer e LEDs do painel.' }
 ];
 
 app.get('/api/manuais', loginObrigatorio, (req, res) => {
