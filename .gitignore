@@ -28,3 +28,5 @@ emergencia_estado.json
 cartoes_nfc.json
 config_separador.json
 entregas/
+data/sobre_editado.json
+data/sobre_backups/

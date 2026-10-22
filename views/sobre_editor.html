@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+
+{% block title %}Conteúdo{% endblock %}
+
+{% block content %}
+<style>
+    .sbe-btn { border: 2px solid #1e293b; background: #fff; color: #1e293b; border-radius: 10px; padding: 9px 14px; font-size: 12px; font-weight: 800; cursor: pointer; min-height: 40px; }
+    .sbe-btn.azul { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .sbe-btn.verm { color: #dc2626; border-color: #dc2626; }
+    .sbe-btn[disabled] { opacity: .45; cursor: not-allowed; }
+    .sbe-ib { border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 8px; width: 38px; height: 38px; font-size: 15px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sbe-ib:hover { background: #f1f5f9; }
+    .sbe-ib[disabled] { opacity: .35; cursor: not-allowed; }
+    .sbe-campo { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+    .sbe-campo > label { font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: .06em; }
+    .sbe-dica { font-size: 11px; color: #94a3b8; }
+    .sbe-in, .sbe-ta { width: 100%; border: 2px solid #e2e8f0; border-radius: 8px; padding: 9px 11px; font-size: 14px; color: #1e293b; background: #fff; }
+    .sbe-in:focus, .sbe-ta:focus { outline: none; border-color: #2563eb; }
+    .sbe-ta { min-height: 84px; resize: vertical; }
+    .sbe-invalido { border-color: #dc2626 !important; }
+    .sbe-erro { font-size: 12px; font-weight: 700; color: #dc2626; min-height: 0; }
+    .sbe-contador { font-size: 11px; color: #94a3b8; text-align: right; }
+    .sbe-secao { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; background: #fff; }
+    .sbe-secao > summary { cursor: pointer; padding: 12px 14px; font-size: 13px; font-weight: 900; color: #1e293b; text-transform: uppercase; letter-spacing: .06em; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+    .sbe-secao > summary::-webkit-details-marker { display: none; }
+    .sbe-secao > summary::after { content: '+'; font-size: 18px; color: #64748b; }
+    .sbe-secao[open] > summary::after { content: '–'; }
+    .sbe-corpo { padding: 4px 14px 14px; }
+    .sbe-item { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 10px; background: #f8fafc; }
+    .sbe-item.arrastando { opacity: .4; }
+    .sbe-item.alvo { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.25); }
+    .sbe-linha { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sbe-grade { display: grid; grid-template-columns: 1fr; gap: 0 12px; }
+    @media (min-width: 640px) { .sbe-grade.dois { grid-template-columns: 1fr 1fr; } }
+    .sbe-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+    .sbe-chip { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 1px solid #cbd5e1; border-radius: 9999px; padding: 3px 4px 3px 10px; font-size: 12px; font-weight: 700; color: #334155; }
+    .sbe-chip button { width: 22px; height: 22px; border-radius: 9999px; border: 0; background: #e2e8f0; cursor: pointer; font-weight: 900; color: #475569; }
+    .sbe-chave { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: #334155; cursor: pointer; user-select: none; }
+    .sbe-chave input { width: 18px; height: 18px; }
+    .sbe-link { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; background: #fff; margin-bottom: 8px; }
+    .sbe-link .ico { width: 30px; height: 30px; border-radius: 8px; background: #eff6ff; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sbe-link .sbe-in { flex: 1 1 140px; padding: 6px 9px; font-size: 13px; }
+    .sbe-url { flex: 1 1 100%; font-size: 11px; color: #94a3b8; word-break: break-all; }
+    .sbe-sug { font-size: 11px; font-weight: 800; color: #2563eb; background: #eff6ff; border: 1px dashed #93c5fd; border-radius: 8px; padding: 3px 8px; cursor: pointer; }
+    .sbe-foto { width: 72px; height: 72px; border-radius: 9999px; object-fit: cover; border: 2px solid #e2e8f0; background: #e2e8f0; }
+    .sbe-foto-iniciais { display: flex; align-items: center; justify-content: center; font-weight: 900; color: #64748b; }
+    .sbe-galeria { width: 96px; height: 72px; border-radius: 8px; object-fit: cover; border: 1px solid #e2e8f0; }
+    .sbe-barra { position: sticky; top: 0; z-index: 20; }
+    .sbe-estado { font-size: 12px; font-weight: 800; }
+    .sbe-estado.sujo { color: #b45309; } .sbe-estado.ok { color: #15803d; } .sbe-estado.erro { color: #dc2626; }
+    .sbe-handle { cursor: grab; color: #94a3b8; font-size: 18px; padding: 0 4px; user-select: none; }
+    .sbe-versao { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #f1f5f9; padding: 8px 0; font-size: 13px; color: #475569; }
+</style>
+
+<div class="flex flex-col gap-4 sm:gap-5 max-w-4xl mx-auto w-full">
+    <div class="card-painel sbe-barra">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h2 class="text-sm sm:text-base font-black text-slate-800 uppercase tracking-wider">Conteúdo da página pública</h2>
+                <p id="sbe-estado" class="sbe-estado ok">Carregando...</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button id="sbe-salvar" type="button" class="sbe-btn azul" disabled>Salvar</button>
+                <button id="sbe-previa" type="button" class="sbe-btn">Ver como ficou</button>
+                <button id="sbe-desfazer" type="button" class="sbe-btn">Desfazer alterações</button>
+            </div>
+        </div>
+        <p id="sbe-aviso" class="sbe-erro" style="margin-top:6px"></p>
+    </div>
+
+    <div id="sbe-corpo"></div>
+
+    <div class="card-painel">
+        <h3 class="titulo-painel">Histórico de versões</h3>
+        <p class="sbe-dica" style="margin-bottom:8px">Guardamos as 10 últimas. Restaurar também guarda a versão atual.</p>
+        <div id="sbe-versoes"></div>
+    </div>
+</div>
+
+<script src="/js/sobre-link.js"></script>
+<script>
+(function () {
+    const el = id => document.getElementById(id);
+    const corpo = el('sbe-corpo');
+    const NOMES_SECAO = { hero: 'Início (nome e frase)', quemSomos: 'Quem somos', projeto: 'O projeto', equipe: 'Equipe', jornada: 'Jornada', conecte: 'Conecte-se conosco' };
+    let D = null, meta = { icones: {}, max: {}, limites: {} }, salvoStr = '', erros = {}, temporizadorValidar = 0, salvando = false, aberto = {};
+    let arrastando = null;
+
+    const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const novoId = () => 'x' + Math.random().toString(16).slice(2, 10);
+    const limpar = obj => JSON.parse(JSON.stringify(obj, (k, v) => (k.charAt(0) === '_' ? undefined : v)));
+    const instantaneo = () => JSON.stringify(limpar(D));
+    const sujo = () => D && instantaneo() !== salvoStr;
+    const caminho = (obj, p) => p.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+    function definir(p, v) { const ks = p.split('.'), ultimo = ks.pop(); const alvo = ks.reduce((o, k) => o[k], D); alvo[ultimo] = v; }
+
+    // ---------- estado e avisos ----------
+    function atualizarEstado() {
+        const e = el('sbe-estado'), temErro = Object.keys(erros).length > 0;
+        if (salvando) { e.textContent = 'Salvando...'; e.className = 'sbe-estado'; }
+        else if (temErro) { e.textContent = 'Corrija os campos marcados em vermelho para poder salvar.'; e.className = 'sbe-estado erro'; }
+        else if (sujo()) { e.textContent = 'Você tem alterações não salvas.'; e.className = 'sbe-estado sujo'; }
+        else { e.textContent = D ? 'Tudo salvo (versão ' + D.versao + (D.atualizadoPor ? ', por ' + D.atualizadoPor : '') + ').' : ''; e.className = 'sbe-estado ok'; }
+        el('sbe-salvar').disabled = salvando || temErro || !sujo();
+    }
+    function avisar(t) { el('sbe-aviso').textContent = t || ''; }
+
+    // ---------- validacao no servidor (mensagens ao lado do campo) ----------
+    function pintarErros() {
+        corpo.querySelectorAll('[data-erro]').forEach(n => { n.textContent = erros[n.dataset.erro] || ''; });
+        corpo.querySelectorAll('[data-p]').forEach(n => n.classList.toggle('sbe-invalido', !!erros[n.dataset.p]));
+        Object.keys(erros).forEach(p => { const n = corpo.querySelector('[data-erro="' + CSS.escape(p) + '"]'); if (n) { const d = n.closest('details'); if (d && !d.open) d.open = true; } });
+        atualizarEstado();
+    }
+    function agendarValidacao() {
+        clearTimeout(temporizadorValidar);
+        atualizarEstado();
+        temporizadorValidar = setTimeout(async () => {
+            try { const r = await fetch('/api/sobre/validar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dados: limpar(D) }) }); erros = (await r.json()).erros || {}; } catch (e) {}
+            pintarErros();
+        }, 350);
+    }
+
+    // ---------- pecas de tela ----------
+    function campo(rotulo, p, { tipo = 'texto', max, dica, placeholder = '' } = {}) {
+        const v = caminho(D, p) || '';
+        const entrada = tipo === 'area'
+            ? '<textarea class="sbe-ta" data-p="' + p + '" data-max="' + (max || '') + '" placeholder="' + esc(placeholder) + '">' + esc(v) + '</textarea>'
+            : '<input class="sbe-in" type="text" data-p="' + p + '" data-max="' + (max || '') + '" value="' + esc(v) + '" placeholder="' + esc(placeholder) + '">';
+        return '<div class="sbe-campo"><label>' + esc(rotulo) + '</label>' + entrada +
+            (max && tipo === 'area' ? '<div class="sbe-contador" data-contador="' + p + '">' + v.length + '/' + max + '</div>' : '') +
+            (dica ? '<div class="sbe-dica">' + esc(dica) + '</div>' : '') + '<p class="sbe-erro" data-erro="' + p + '"></p></div>';
+    }
+    function chave(rotulo, p) { return '<label class="sbe-chave"><input type="checkbox" data-p="' + p + '"' + (caminho(D, p) ? ' checked' : '') + '>' + esc(rotulo) + '</label>'; }
+    function setas(lista, i, total) {
+        return '<button type="button" class="sbe-ib" data-acao="mover" data-lista="' + lista + '" data-i="' + i + '" data-d="-1" aria-label="Subir"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+               '<button type="button" class="sbe-ib" data-acao="mover" data-lista="' + lista + '" data-i="' + i + '" data-d="1" aria-label="Descer"' + (i === total - 1 ? ' disabled' : '') + '>↓</button>';
+    }
+    function chips(rotulo, p, dica) {
+        const itens = caminho(D, p) || [];
+        return '<div class="sbe-campo"><label>' + esc(rotulo) + '</label><div class="sbe-chips">' +
+            itens.map((t, i) => '<span class="sbe-chip">' + esc(t) + '<button type="button" data-acao="chip-tirar" data-lista="' + p + '" data-i="' + i + '" aria-label="Tirar ' + esc(t) + '">×</button></span>').join('') +
+            '</div><input class="sbe-in" type="text" data-chip="' + p + '" placeholder="Digite e aperte Enter"><div class="sbe-dica">' + esc(dica || 'Digite e aperte Enter para adicionar; use o × para tirar.') + '</div><p class="sbe-erro" data-erro="' + p + '"></p></div>';
+    }
+    function arrastavel(lista, i) { return ' draggable="true" data-arrasto="' + lista + '" data-i="' + i + '"'; }
+
+    // caixinhas de link: cole o endereco e a caixinha aparece
+    function caixasDeLink(p, rotuloEntrada) {
+        const links = caminho(D, p) || [];
+        return '<div class="sbe-campo"><label>' + esc(rotuloEntrada || 'Links') + '</label>' +
+            '<div class="sbe-linha"><input class="sbe-in" style="flex:1 1 220px" type="text" data-colar="' + p + '" placeholder="Cole um link, e-mail ou telefone e aperte Enter" autocomplete="off">' +
+            '<button type="button" class="sbe-btn azul" data-acao="link-add" data-lista="' + p + '" aria-label="Adicionar link">+</button></div>' +
+            '<p class="sbe-erro" data-aviso-link="' + p + '"></p>' +
+            '<div style="margin-top:8px">' + links.map((l, i) =>
+                '<div class="sbe-link"' + arrastavel(p, i) + '><span class="sbe-handle" title="Arraste para mudar a ordem">⋮⋮</span><span class="ico">' + (meta.icones[l.tipo] || meta.icones.site || '') + '</span>' +
+                '<input class="sbe-in" type="text" data-p="' + p + '.' + i + '.rotulo" value="' + esc(l.rotulo) + '" aria-label="Nome da caixinha">' +
+                setas(p, i, links.length) +
+                '<label class="sbe-chave"><input type="checkbox" data-p="' + p + '.' + i + '.visivel"' + (l.visivel ? ' checked' : '') + '>Mostrar</label>' +
+                '<button type="button" class="sbe-ib" data-acao="remover" data-lista="' + p + '" data-i="' + i + '" aria-label="Remover link" data-confirmar="Remover esta caixinha de link?">×</button>' +
+                '<div class="sbe-url">' + esc(l.url) + '</div>' +
+                (l._sug ? '<button type="button" class="sbe-sug" data-acao="usar-nome" data-lista="' + p + '" data-i="' + i + '">Usar o nome sugerido: ' + esc(l._sug) + '</button>' : '') +
+                (l._extra ? '<button type="button" class="sbe-sug" data-acao="add-whatsapp" data-lista="' + p + '" data-i="' + i + '">Adicionar também o WhatsApp deste número</button>' : '') +
+                '<p class="sbe-erro" data-erro="' + p + '.' + i + '.url" style="flex:1 1 100%"></p></div>').join('') +
+            '</div><p class="sbe-erro" data-erro="' + p + '"></p></div>';
+    }
+
+    // ---------- secoes ----------
+    function htmlSecoes() {
+        return '<div class="card-painel"><h3 class="titulo-painel">Ordem e visibilidade das seções</h3><p class="sbe-dica" style="margin-bottom:8px">Use as setas (ou arraste) para mudar a ordem em que aparecem na página.</p>' +
+            D.secoes.map((s, i) => '<div class="sbe-item"' + arrastavel('secoes', i) + '><div class="sbe-linha"><span class="sbe-handle">⋮⋮</span><b style="flex:1;font-size:13px">' + esc(NOMES_SECAO[s.id]) + '</b>' +
+                chave('Mostrar na página', 'secoes.' + i + '.visivel') + setas('secoes', i, D.secoes.length) + '</div></div>').join('') + '</div>';
+    }
+    function aba(id, titulo, conteudo) { return '<details class="sbe-secao" data-aba="' + id + '"' + (aberto[id] ? ' open' : '') + '><summary>' + esc(titulo) + '</summary><div class="sbe-corpo">' + conteudo + '</div></details>'; }
+
+    function htmlHero() { return campo('Nome do grupo', 'grupo.nome', { max: 80 }) + campo('Frase', 'grupo.frase', { max: 200, dica: 'Uma frase curta que aparece logo abaixo do nome.' }) + campo('Curso', 'grupo.curso', { max: 200 }); }
+    function htmlProjeto() {
+        const proc = D.projeto.processo.map((e, i) => '<div class="sbe-item"' + arrastavel('projeto.processo', i) + '><div class="sbe-linha"><span class="sbe-handle">⋮⋮</span><b style="flex:1;font-size:12px">Etapa ' + (i + 1) + '</b>' + setas('projeto.processo', i, D.projeto.processo.length) +
+            '<button type="button" class="sbe-ib" data-acao="remover" data-lista="projeto.processo" data-i="' + i + '" data-confirmar="Remover esta etapa?" aria-label="Remover etapa">×</button></div><div class="sbe-grade dois" style="margin-top:8px">' +
+            campo('Nome', 'projeto.processo.' + i + '.nome', { max: 60 }) + campo('Descrição curta', 'projeto.processo.' + i + '.texto', { max: 160 }) + '</div></div>').join('');
+        const gal = D.projeto.galeria.map((f, i) => '<div class="sbe-item"' + arrastavel('projeto.galeria', i) + '><div class="sbe-linha"><span class="sbe-handle">⋮⋮</span><img class="sbe-galeria" src="/img/projeto/' + esc(f.arquivo) + '" alt="">' +
+            '<div style="flex:1 1 160px">' + campo('Legenda', 'projeto.galeria.' + i + '.legenda', { max: 160 }) + '</div>' + setas('projeto.galeria', i, D.projeto.galeria.length) +
+            '<button type="button" class="sbe-ib" data-acao="remover" data-lista="projeto.galeria" data-i="' + i + '" data-confirmar="Tirar esta foto da galeria?" aria-label="Remover foto">×</button></div></div>').join('');
+        return campo('O problema', 'projeto.problema', { tipo: 'area', max: 1500, dica: 'Escreva 2 a 4 frases.' }) + campo('A solução', 'projeto.solucao', { tipo: 'area', max: 1500, dica: 'Escreva 2 a 4 frases.' }) +
+            campo('Como integramos tudo', 'projeto.integracao', { tipo: 'area', max: 1500 }) + chips('Tecnologias', 'projeto.tecnologias') +
+            '<div class="sbe-campo"><label>Como funciona a linha (etapas)</label>' + proc + '<div><button type="button" class="sbe-btn" data-acao="etapa-add">Adicionar etapa</button></div></div>' +
+            '<div class="sbe-campo"><label>Galeria de fotos (opcional, até 12)</label>' + gal + '<div><label class="sbe-btn" style="display:inline-block">Enviar foto<input type="file" accept="image/*" data-envio="galeria" style="display:none"></label></div><p class="sbe-erro" data-erro="projeto.galeria"></p><p class="sbe-erro" data-aviso-envio="galeria"></p></div>';
+    }
+    function htmlPessoa(p, i) {
+        const base = 'equipe.' + i;
+        const foto = p.foto ? '<img class="sbe-foto" src="/img/equipe/' + esc(p.foto) + '" alt="Foto de ' + esc(p.nome) + '">' : '<div class="sbe-foto sbe-foto-iniciais">' + esc((p.nome || '?').trim().charAt(0).toUpperCase()) + '</div>';
+        return '<div class="sbe-item"' + arrastavel('equipe', i) + '><div class="sbe-linha" style="margin-bottom:10px"><span class="sbe-handle">⋮⋮</span><b style="flex:1 1 120px;font-size:13px">' + esc(p.nome || 'Novo integrante') + '</b>' + setas('equipe', i, D.equipe.length) +
+            '<button type="button" class="sbe-ib" data-acao="remover" data-lista="equipe" data-i="' + i + '" data-confirmar="Remover este integrante?" aria-label="Remover integrante">×</button></div>' +
+            '<div class="sbe-linha" style="margin-bottom:10px">' + chave('Aparecer na página', base + '.visivel') + chave('Mostrar e-mail, telefone e links', base + '.mostrarContatos') + '</div>' +
+            '<div class="sbe-linha" style="margin-bottom:10px">' + foto + '<div><label class="sbe-btn" style="display:inline-block">' + (p.foto ? 'Trocar foto' : 'Enviar foto') + '<input type="file" accept="image/*" data-envio="equipe" data-i="' + i + '" style="display:none"></label> ' +
+            (p.foto ? '<button type="button" class="sbe-btn verm" data-acao="foto-tirar" data-i="' + i + '">Remover foto</button>' : '') + '<div class="sbe-dica">Opcional. JPG, PNG ou WEBP até 3 MB. Sem foto aparecem as iniciais.</div><p class="sbe-erro" data-aviso-envio="equipe-' + i + '"></p></div></div>' +
+            campo('Nome', base + '.nome', { max: 120 }) + campo('Descrição curta', base + '.descricao', { tipo: 'area', max: 600, dica: '1 a 2 frases sobre a pessoa.' }) + chips('Principais habilidades', base + '.habilidades') +
+            campo('Contribuição no projeto', base + '.contribuicao', { tipo: 'area', max: 600, dica: '1 a 3 frases.' }) +
+            '<div class="sbe-grade dois">' + campo('E-mail', base + '.email', { max: 120, placeholder: 'nome@exemplo.com' }) + campo('Telefone', base + '.telefone', { max: 40, placeholder: '(11) 91234-5678' }) + campo('WhatsApp', base + '.whatsapp', { max: 40, placeholder: '(11) 91234-5678' }) + '</div>' +
+            caixasDeLink(base + '.links', 'Links (LinkedIn, GitHub, Instagram, site...)') + '</div>';
+    }
+    function htmlEquipe() {
+        return '<p class="sbe-dica" style="margin-bottom:8px">Arraste ou use as setas para mudar a ordem das pessoas. Até ' + (meta.limites.equipe || 12) + ' integrantes.</p>' + D.equipe.map(htmlPessoa).join('') +
+            '<button type="button" class="sbe-btn azul" data-acao="pessoa-add"' + (D.equipe.length >= (meta.limites.equipe || 12) ? ' disabled' : '') + '>Adicionar integrante</button><p class="sbe-erro" data-erro="equipe"></p>';
+    }
+    function htmlJornada() {
+        const marcos = D.jornada.map((m, i) => '<div class="sbe-item"' + arrastavel('jornada', i) + '><div class="sbe-linha"><span class="sbe-handle">⋮⋮</span><b style="flex:1;font-size:12px">Marco ' + (i + 1) + '</b>' + setas('jornada', i, D.jornada.length) +
+            '<button type="button" class="sbe-ib" data-acao="remover" data-lista="jornada" data-i="' + i + '" data-confirmar="Remover este marco?" aria-label="Remover marco">×</button></div><div class="sbe-grade dois" style="margin-top:8px">' +
+            campo('Data', 'jornada.' + i + '.data', { max: 40, placeholder: 'Ex.: 03/2026 ou 2026' }) + campo('Título', 'jornada.' + i + '.titulo', { max: 80 }) + '</div>' + campo('Texto', 'jornada.' + i + '.texto', { tipo: 'area', max: 400, dica: '1 a 2 frases.' }) + '</div>').join('');
+        const aprend = D.aprendemos.map((a, i) => '<div class="sbe-linha" style="margin-bottom:8px"' + arrastavel('aprendemos', i) + '><span class="sbe-handle">⋮⋮</span><input class="sbe-in" style="flex:1 1 200px" data-p="aprendemos.' + i + '" value="' + esc(a) + '" maxlength="400">' + setas('aprendemos', i, D.aprendemos.length) +
+            '<button type="button" class="sbe-ib" data-acao="remover" data-lista="aprendemos" data-i="' + i + '" aria-label="Remover item">×</button></div>').join('');
+        return marcos + '<div class="sbe-linha" style="margin-bottom:16px"><button type="button" class="sbe-btn azul" data-acao="marco-add"' + (D.jornada.length >= (meta.limites.jornada || 20) ? ' disabled' : '') + '>Adicionar marco</button><button type="button" class="sbe-btn" data-acao="ordenar-data">Ordenar por data</button></div><p class="sbe-erro" data-erro="jornada"></p>' +
+            '<div class="sbe-campo"><label>O que aprendemos</label>' + aprend + '<div><button type="button" class="sbe-btn" data-acao="aprend-add">Adicionar item</button></div></div>';
+    }
+    function htmlConecte() {
+        const videos = D.conecte.videos.map((v, i) => '<div class="sbe-item"><div class="sbe-linha"><b style="flex:1;font-size:12px">Vídeo ' + (i + 1) + '</b><button type="button" class="sbe-ib" data-acao="remover" data-lista="conecte.videos" data-i="' + i + '" aria-label="Remover vídeo">×</button></div><div class="sbe-grade dois" style="margin-top:8px">' +
+            campo('Título', 'conecte.videos.' + i + '.titulo', { max: 80 }) + campo('Link', 'conecte.videos.' + i + '.url', { max: 300, placeholder: 'https://youtube.com/...' }) + '</div></div>').join('');
+        return caixasDeLink('conecte.links', 'Links do grupo') + '<div class="sbe-campo"><label>Vídeos de demonstração (aparecem como "Em breve" enquanto não houver)</label>' + videos + '<div><button type="button" class="sbe-btn" data-acao="video-add">Adicionar vídeo</button></div></div>';
+    }
+
+    function renderizar() {
+        if (!D) return;
+        corpo.querySelectorAll('details[data-aba]').forEach(d => { aberto[d.dataset.aba] = d.open; });
+        const topo = window.scrollY;
+        corpo.innerHTML = htmlSecoes() +
+            '<div class="card-painel">' + aba('hero', 'Início', htmlHero()) + aba('quemSomos', 'Quem somos', campo('Texto', 'quemSomos', { tipo: 'area', max: 1500, dica: 'Escreva 2 a 4 frases sobre quem é o grupo.' })) +
+            aba('projeto', 'O projeto', htmlProjeto()) + aba('equipe', 'Equipe', htmlEquipe()) + aba('jornada', 'Jornada', htmlJornada()) + aba('conecte', 'Conecte-se conosco', htmlConecte()) + '</div>';
+        pintarErros(); window.scrollTo(0, topo);
+        renderizarVersoes();
+    }
+    function renderizarVersoes() {
+        const v = meta.versoes || [];
+        el('sbe-versoes').innerHTML = v.length ? v.map(x => '<div class="sbe-versao"><span>' + esc(x.atualizadoEm ? new Date(x.atualizadoEm).toLocaleString('pt-BR') : x.id) + (x.atualizadoPor ? ' · ' + esc(x.atualizadoPor) : '') + (x.versao ? ' · versão ' + x.versao : '') + '</span><button type="button" class="sbe-btn" data-restaurar="' + esc(x.id) + '">Restaurar esta versão</button></div>').join('') : '<p class="sbe-dica">Ainda não há versões guardadas.</p>';
+    }
+    function mudou() { agendarValidacao(); }
+    function estrutura() { renderizar(); agendarValidacao(); }
+
+    // ---------- acoes ----------
+    function mover(lista, i, d) { const arr = caminho(D, lista), j = i + d; if (j < 0 || j >= arr.length) return; const [x] = arr.splice(i, 1); arr.splice(j, 0, x); estrutura(); }
+    function parseData(t) {
+        t = String(t || '').toLowerCase().trim(); let m;
+        const meses = { jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12 };
+        if ((m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return +m[3] * 10000 + +m[2] * 100 + +m[1];
+        if ((m = t.match(/^(\d{1,2})\/(\d{4})$/))) return +m[2] * 10000 + +m[1] * 100;
+        if ((m = t.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/))) return +m[1] * 10000 + +m[2] * 100 + (+m[3] || 0);
+        if ((m = t.match(/^([a-zç]{3})[a-z]*\.?\s*(?:de\s*)?(\d{4})$/)) && meses[m[1]]) return +m[2] * 10000 + meses[m[1]] * 100;
+        if ((m = t.match(/^(\d{4})$/))) return +m[1] * 10000;
+        return Infinity;
+    }
+    function adicionarLinks(lista, texto) {
+        const aviso = corpo.querySelector('[data-aviso-link="' + CSS.escape(lista) + '"]'); let erro = '';
+        const arr = caminho(D, lista), max = lista === 'conecte.links' ? (meta.limites.linksGrupo || 12) : (meta.limites.linksPessoa || 10);
+        texto.split(/\r?\n/).map(t => t.trim()).filter(Boolean).forEach(t => {
+            if (arr.length >= max) { erro = 'No máximo ' + max + ' links aqui.'; return; }
+            const r = SobreLink.detectar(t);
+            if (!r.ok) { erro = r.erro; return; }
+            arr.push({ id: novoId(), tipo: r.tipo, rotulo: r.rotulo, url: r.url, visivel: true, _sug: r.sugestaoNome || '', _extra: r.extra || null });
+        });
+        estrutura();
+        const novo = corpo.querySelector('[data-aviso-link="' + CSS.escape(lista) + '"]'); if (novo) novo.textContent = erro;
+        const campoColar = corpo.querySelector('[data-colar="' + CSS.escape(lista) + '"]'); if (campoColar) campoColar.focus();
+    }
+    const ACOES = {
+        mover: b => mover(b.dataset.lista, +b.dataset.i, +b.dataset.d),
+        remover: b => { if (b.dataset.confirmar && !confirm(b.dataset.confirmar)) return; caminho(D, b.dataset.lista).splice(+b.dataset.i, 1); estrutura(); },
+        'chip-tirar': b => { caminho(D, b.dataset.lista).splice(+b.dataset.i, 1); estrutura(); },
+        'link-add': b => { const campoColar = corpo.querySelector('[data-colar="' + CSS.escape(b.dataset.lista) + '"]'); const t = campoColar.value; if (!t.trim()) { campoColar.focus(); return; } adicionarLinks(b.dataset.lista, t); },
+        'usar-nome': b => { const l = caminho(D, b.dataset.lista)[+b.dataset.i]; l.rotulo = l.tipo === 'linkedin' || l.tipo === 'github' ? l.rotulo + ' · ' + l._sug : l._sug; l._sug = ''; estrutura(); },
+        'add-whatsapp': b => { const arr = caminho(D, b.dataset.lista), l = arr[+b.dataset.i]; arr.splice(+b.dataset.i + 1, 0, { id: novoId(), tipo: 'whatsapp', rotulo: 'WhatsApp', url: l._extra.url, visivel: true }); l._extra = null; estrutura(); },
+        'pessoa-add': () => { const id = novoId(); D.equipe.push({ id, nome: '', foto: '', descricao: '', habilidades: [], contribuicao: '', links: [], email: '', telefone: '', whatsapp: '', mostrarContatos: true, visivel: true }); aberto.equipe = true; estrutura(); },
+        'foto-tirar': b => { D.equipe[+b.dataset.i].foto = ''; estrutura(); },
+        'etapa-add': () => { D.projeto.processo.push({ nome: '', texto: '' }); estrutura(); },
+        'marco-add': () => { D.jornada.push({ id: novoId(), data: '', titulo: '', texto: '' }); estrutura(); },
+        'ordenar-data': () => { const com = D.jornada.map((m, i) => ({ m, i, k: parseData(m.data) })); com.sort((a, b) => (a.k === b.k ? a.i - b.i : a.k - b.k)); D.jornada = com.map(x => x.m); estrutura(); },
+        'aprend-add': () => { D.aprendemos.push(''); estrutura(); },
+        'video-add': () => { D.conecte.videos.push({ titulo: '', url: '' }); estrutura(); }
+    };
+
+    corpo.addEventListener('click', e => { const b = e.target.closest('[data-acao]'); if (b && !b.disabled && ACOES[b.dataset.acao]) { e.preventDefault(); ACOES[b.dataset.acao](b); } });
+    corpo.addEventListener('input', e => {
+        const n = e.target;
+        if (n.dataset.p && n.type !== 'checkbox') {
+            definir(n.dataset.p, n.value);
+            const c = corpo.querySelector('[data-contador="' + CSS.escape(n.dataset.p) + '"]'); if (c) c.textContent = n.value.length + '/' + (n.dataset.max || '');
+            mudou();
+        }
+    });
+    corpo.addEventListener('change', e => {
+        const n = e.target;
+        if (n.dataset.p && n.type === 'checkbox') { definir(n.dataset.p, n.checked); mudou(); }
+        if (n.dataset.envio && n.files && n.files[0]) { enviarFoto(n.dataset.envio, n.files[0], n.dataset.i); n.value = ''; }
+    });
+    corpo.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        const n = e.target;
+        if (n.dataset.chip) {
+            e.preventDefault(); const t = n.value.trim().replace(/,$/, ''); if (!t) return;
+            const arr = caminho(D, n.dataset.chip), max = n.dataset.chip.endsWith('habilidades') ? (meta.limites.habilidades || 8) : (meta.limites.tecnologias || 20);
+            if (arr.length >= max) { const er = corpo.querySelector('[data-erro="' + CSS.escape(n.dataset.chip) + '"]'); if (er) er.textContent = 'No máximo ' + max + ' itens.'; return; }
+            arr.push(t.slice(0, 50)); estrutura(); const prox = corpo.querySelector('[data-chip="' + CSS.escape(n.dataset.chip) + '"]'); if (prox) prox.focus();
+        } else if (n.dataset.colar) { e.preventDefault(); if (n.value.trim()) adicionarLinks(n.dataset.colar, n.value); }
+    });
+    corpo.addEventListener('paste', e => {
+        const n = e.target;
+        if (n.dataset && n.dataset.colar) { const t = (e.clipboardData || window.clipboardData).getData('text'); if (t && t.trim()) { e.preventDefault(); adicionarLinks(n.dataset.colar, t); } }
+    });
+
+    // arrastar e soltar (as setas continuam valendo em qualquer aparelho)
+    corpo.addEventListener('dragstart', e => { const a = e.target.closest('[data-arrasto]'); if (!a) return; arrastando = { lista: a.dataset.arrasto, i: +a.dataset.i }; a.classList.add('arrastando'); try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'x'); } catch (er) {} });
+    corpo.addEventListener('dragend', () => { arrastando = null; corpo.querySelectorAll('.arrastando, .alvo').forEach(n => n.classList.remove('arrastando', 'alvo')); });
+    corpo.addEventListener('dragover', e => { const a = e.target.closest('[data-arrasto]'); if (arrastando && a && a.dataset.arrasto === arrastando.lista) { e.preventDefault(); corpo.querySelectorAll('.alvo').forEach(n => n.classList.remove('alvo')); a.classList.add('alvo'); } });
+    corpo.addEventListener('drop', e => {
+        const a = e.target.closest('[data-arrasto]'); if (!arrastando || !a || a.dataset.arrasto !== arrastando.lista) return;
+        e.preventDefault(); const arr = caminho(D, arrastando.lista), de = arrastando.i, para = +a.dataset.i; arrastando = null;
+        if (de === para) return; const [x] = arr.splice(de, 1); arr.splice(para, 0, x); estrutura();
+    });
+
+    // ---------- fotos ----------
+    function paraJpeg(arquivo) {
+        return new Promise((ok, falha) => {
+            const url = URL.createObjectURL(arquivo), img = new Image();
+            img.onload = () => {
+                const lado = Math.max(img.naturalWidth, img.naturalHeight), f = lado > 800 ? 800 / lado : 1;
+                const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * f); c.height = Math.round(img.naturalHeight * f);
+                const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+                URL.revokeObjectURL(url); c.toBlob(b => (b ? ok(b) : falha(new Error('Não consegui converter a imagem.'))), 'image/jpeg', 0.85);
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); falha(new Error('Esse arquivo não é uma imagem.')); };
+            img.src = url;
+        });
+    }
+    async function enviarFoto(tipo, arquivo, i) {
+        const chave = tipo === 'equipe' ? 'equipe-' + i : 'galeria', aviso = () => corpo.querySelector('[data-aviso-envio="' + chave + '"]');
+        const dizer = t => { const n = aviso(); if (n) n.textContent = t; };
+        if (arquivo.size > 3 * 1024 * 1024) { dizer('A imagem tem mais de 3 MB.'); return; }
+        if (tipo === 'galeria' && D.projeto.galeria.length >= (meta.limites.galeria || 12)) { dizer('No máximo 12 fotos na galeria.'); return; }
+        dizer('Enviando...');
+        try {
+            const jpg = await paraJpeg(arquivo);
+            const pessoa = tipo === 'equipe' ? D.equipe[+i] : null;
+            const r = await fetch('/api/sobre/foto/' + (tipo === 'equipe' ? 'equipe?id=' + encodeURIComponent(pessoa.id) : 'projeto'), { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: jpg });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) { dizer(j.erro || 'Não foi possível enviar a foto.'); return; }
+            if (tipo === 'equipe') pessoa.foto = j.arquivo; else D.projeto.galeria.push({ id: novoId(), arquivo: j.arquivo, legenda: '' });
+            estrutura();
+        } catch (e) { dizer(e.message || 'Não foi possível enviar a foto.'); }
+    }
+
+    // ---------- carregar, salvar, previa, desfazer, historico ----------
+    async function carregar() {
+        const r = await fetch('/api/sobre'); const j = await r.json();
+        D = j.dados; meta = { icones: j.icones, limites: j.limites, max: j.max, versoes: j.versoes }; salvoStr = instantaneo(); erros = {};
+        renderizar(); atualizarEstado();
+    }
+    async function salvar() {
+        if (salvando || !sujo()) return;
+        salvando = true; avisar(''); atualizarEstado();
+        try {
+            const r = await fetch('/api/sobre', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dados: limpar(D), versaoBase: D.versao }) });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok) { D = j.dados; meta.versoes = j.versoes; salvoStr = instantaneo(); erros = {}; avisar(''); renderizar(); }
+            else if (r.status === 422) { erros = j.erros || {}; avisar(j.erro || ''); pintarErros(); }
+            else if (r.status === 409) avisar(j.erro + ' (use "Desfazer alterações" para recarregar.)');
+            else avisar(j.erro || 'Não foi possível salvar agora.');
+        } catch (e) { avisar('Sem conexão com o servidor.'); }
+        salvando = false; atualizarEstado();
+    }
+    async function previa() {
+        const aba = window.open('', '_blank');
+        try {
+            const r = await fetch('/api/sobre/previa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dados: limpar(D) }) });
+            if (!r.ok) throw new Error();
+            if (aba) aba.location = '/sobre/previa'; else window.location = '/sobre/previa';
+        } catch (e) { if (aba) aba.close(); avisar('Não consegui montar a pré-visualização.'); }
+    }
+    async function desfazer() { if (sujo() && !confirm('Descartar as alterações não salvas e voltar ao último salvo?')) return; avisar(''); await carregar(); }
+    async function restaurar(id) {
+        if (!confirm('Restaurar esta versão? A versão atual será guardada no histórico.' + (sujo() ? ' As alterações não salvas serão perdidas.' : ''))) return;
+        const r = await fetch('/api/sobre/restaurar/' + encodeURIComponent(id), { method: 'POST' }); const j = await r.json().catch(() => ({}));
+        if (!r.ok) { avisar(j.erro || 'Não foi possível restaurar.'); return; }
+        D = j.dados; meta.versoes = j.versoes; salvoStr = instantaneo(); erros = {}; avisar(''); renderizar(); atualizarEstado();
+    }
+    el('sbe-salvar').addEventListener('click', salvar);
+    el('sbe-previa').addEventListener('click', previa);
+    el('sbe-desfazer').addEventListener('click', desfazer);
+    el('sbe-versoes').addEventListener('click', e => { const b = e.target.closest('[data-restaurar]'); if (b) restaurar(b.dataset.restaurar); });
+    const aoSair = e => { if (sujo()) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', aoSair);
+    window.__cleanupPagina = () => window.removeEventListener('beforeunload', aoSair);
+    carregar().catch(() => { el('sbe-estado').textContent = 'Não consegui carregar.'; el('sbe-estado').className = 'sbe-estado erro'; });
+})();
+</script>
+{% endblock %}

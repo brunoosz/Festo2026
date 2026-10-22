@@ -36,13 +36,14 @@ const dados = {
     let site = null, saida = '';
     const subir = async () => {
         site = spawn('node', ['server.js'], { cwd: raiz, stdio: ['ignore', 'pipe', 'pipe'], env: Object.assign({}, process.env, {
-            PORT: String(PORTA), MQTT_BROKER: 'mqtt://127.0.0.1:18899', SOBRE_JSON: arq, USUARIOS_JSON: path.join(tmp, 'usuarios.json'),
+            PORT: String(PORTA), MQTT_BROKER: 'mqtt://127.0.0.1:18899', SOBRE_JSON: arq, SOBRE_IMG_DIR: path.join(tmp, 'img'), USUARIOS_JSON: path.join(tmp, 'usuarios.json'),
             EMERGENCIA_JSON: path.join(tmp, 'e.json'), RECEITAS_JSON: path.join(tmp, 'r.json'), CARTOES_NFC_JSON: path.join(tmp, 'c.json'), SESSION_SECRET: 'x' }) });
         site.stdout.on('data', d => { saida += d; }); site.stderr.on('data', d => { saida += d; });
         for (let i = 0; i < 60; i++) { await esperar(250); try { if ((await fetch(B + '/sobre')).status === 200) return; } catch (e) {} }
     };
     const fim = c => { try { site.kill(); } catch (e) {} fs.rmSync(tmp, { recursive: true, force: true }); setTimeout(() => process.exit(c), 300); };
     try {
+        fs.mkdirSync(path.join(tmp, 'img', 'projeto'), { recursive: true }); fs.writeFileSync(path.join(tmp, 'img', 'projeto', 'ok.jpg'), 'x');   // a galeria so mostra arquivos que existem
         fs.writeFileSync(arq, JSON.stringify(dados));
         await subir();
         const pagina = async () => (await fetch(B + '/sobre')).text();

@@ -86,6 +86,14 @@
         </form>
     </div>
 
+
+    {% if isDono %}
+    <div class="flex justify-end">
+        <a href="/sobre/editar" aria-label="Mais" data-leitura-ok style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;border:1px solid #cbd5e1;color:#64748b;opacity:.4;transition:opacity .2s">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 <script>

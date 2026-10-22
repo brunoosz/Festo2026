@@ -20,6 +20,8 @@
         .sb-chip { background: #fff; border: 1px solid #e2e8f0; border-radius: 9999px; padding: 0.25rem 0.65rem; font-size: 11px; font-weight: 700; color: #334155; }
         .sb-avatar { width: 4.5rem; height: 4.5rem; border-radius: 9999px; object-fit: cover; flex-shrink: 0; border: 2px solid #e2e8f0; }
         .sb-iniciais { background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.25rem; }
+        .sb-contato svg { flex-shrink: 0; }
+        .sb-previa { position: sticky; top: 0; z-index: 40; background: #fef3c7; color: #92400e; border-bottom: 2px solid #f59e0b; text-align: center; font-size: 12px; font-weight: 800; padding: 6px; text-transform: uppercase; letter-spacing: .05em; }
         .sb-contato { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.35rem 0.65rem; font-size: 12px; font-weight: 700; color: #1e293b; background: #fff; }
         .sb-contato:hover { background: #f1f5f9; border-color: #0284c7; color: #0369a1; }
         .sb-linha { position: relative; padding-left: 1.5rem; border-left: 3px solid #bae6fd; }
@@ -35,6 +37,7 @@
     </script>
 </head>
 <body class="min-h-screen bg-[#f0f4f8] text-gray-800 font-sans">
+{% if previa %}<div class="sb-previa">Pré-visualização: ainda não publicado</div>{% endif %}
 
     <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
         <div class="px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between gap-2">
@@ -53,29 +56,25 @@
             </a>
         </div>
         <nav class="sb-menu px-3 sm:px-6 pb-2 border-t border-gray-100 pt-1" aria-label="Seções da página">
-            <a href="#quem-somos">Quem somos</a>
-            <a href="#projeto">O projeto</a>
-            <a href="#equipe">Equipe</a>
-            <a href="#jornada">Jornada</a>
-            <a href="#contato">Contato</a>
+            {% for s in sobre.secoes %}{% if s.id != 'hero' %}<a href="#{{ s.ancora }}">{{ s.titulo }}</a>{% endif %}{% endfor %}
         </nav>
     </header>
 
     <main class="max-w-5xl mx-auto p-3 sm:p-6 flex flex-col gap-4 sm:gap-6">
+{% macro link(l) %}<a class="sb-contato" href="{{ l.url }}"{% if l.externo %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ icones[l.tipo] | safe }}<span>{{ l.rotulo }}</span></a>{% endmacro %}
 
-        <section class="card-painel flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
+{% for s in sobre.secoes %}
+{% if s.id == 'hero' %}
+        <section id="topo" class="card-painel flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
             <img src="{% if sobre.grupo.logo %}/img/projeto/{{ sobre.grupo.logo }}{% else %}/logo.png{% endif %}" alt="Logo {{ sobre.grupo.nome }}" class="h-20 sm:h-28 w-auto object-contain shrink-0">
             <div class="min-w-0">
                 <h2 class="text-xl sm:text-3xl font-black text-slate-800 uppercase tracking-wider">{{ sobre.grupo.nome }} <span class="text-blue-600">· FlowPack</span></h2>
                 {% if sobre.grupo.frase %}<p class="text-sm sm:text-base text-slate-600 mt-1">{{ sobre.grupo.frase }}</p>{% endif %}
                 {% if sobre.grupo.curso %}<p class="text-[11px] sm:text-xs text-slate-400 mt-2 uppercase tracking-wide">{{ sobre.grupo.curso }}</p>{% endif %}
-                <div class="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
-                    <a href="#projeto" class="bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-md hover:bg-blue-600 transition text-xs tracking-wider">CONHEÇA O PROJETO</a>
-                    <a href="#equipe" class="bg-white border-2 border-slate-800 text-slate-800 font-semibold px-5 py-2.5 rounded-md hover:bg-slate-50 transition text-xs tracking-wider">CONHEÇA A EQUIPE</a>
-                </div>
             </div>
         </section>
 
+{% elif s.id == 'quemSomos' %}
         {% if sobre.quemSomos %}
         <section id="quem-somos" class="card-painel sb-ancora">
             <h3 class="titulo-painel">Quem somos</h3>
@@ -83,6 +82,7 @@
         </section>
         {% endif %}
 
+{% elif s.id == 'projeto' %}
         <section id="projeto" class="flex flex-col gap-4 sm:gap-6 sb-ancora">
             {% if sobre.projeto.problema or sobre.projeto.solucao or sobre.projeto.integracao %}
             <div class="card-painel">
@@ -94,7 +94,6 @@
                 {% if sobre.projeto.integracao %}<p class="text-sm text-slate-600 leading-relaxed mt-4">{{ sobre.projeto.integracao }}</p>{% endif %}
             </div>
             {% endif %}
-
             {% if sobre.projeto.processo | length %}
             <div class="card-painel">
                 <h3 class="titulo-painel">Como funciona a linha</h3>
@@ -102,73 +101,54 @@
                     {% for e in sobre.projeto.processo %}
                     <div class="flex items-start gap-3 border border-slate-200 rounded-lg p-3">
                         <span class="w-7 h-7 bg-blue-600 text-white text-xs font-black rounded-full flex items-center justify-center shrink-0">{{ loop.index }}</span>
-                        <div class="min-w-0">
-                            <p class="text-sm font-bold text-slate-800">{{ e.nome }}</p>
-                            {% if e.texto %}<p class="text-xs text-slate-500">{{ e.texto }}</p>{% endif %}
-                        </div>
+                        <div class="min-w-0"><p class="text-sm font-bold text-slate-800">{{ e.nome }}</p>{% if e.texto %}<p class="text-xs text-slate-500">{{ e.texto }}</p>{% endif %}</div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
-
             {% if sobre.projeto.tecnologias | length %}
             <div class="card-painel">
                 <h3 class="titulo-painel">Tecnologias</h3>
-                <div class="flex flex-wrap gap-2">
-                    {% for t in sobre.projeto.tecnologias %}<span class="sb-chip shadow-sm">{{ t }}</span>{% endfor %}
-                </div>
+                <div class="flex flex-wrap gap-2">{% for t in sobre.projeto.tecnologias %}<span class="sb-chip shadow-sm">{{ t }}</span>{% endfor %}</div>
             </div>
             {% endif %}
-
             <div class="card-painel">
                 <h3 class="titulo-painel">Galeria do protótipo</h3>
                 {% if sobre.projeto.galeria | length %}
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {% for f in sobre.projeto.galeria %}
                     <figure>
-                        <img src="/img/projeto/{{ f.arquivo }}" alt="{{ f.legenda or 'Foto do projeto FlowPack' }}" loading="lazy" class="sb-foto-galeria">
+                        <img src="/img/projeto/{{ f.arquivo }}?v={{ sobre.versao }}" alt="{{ f.legenda or 'Foto do projeto FlowPack' }}" loading="lazy" class="sb-foto-galeria">
                         {% if f.legenda %}<figcaption class="text-xs text-slate-500 mt-1">{{ f.legenda }}</figcaption>{% endif %}
                     </figure>
                     {% endfor %}
                 </div>
-                {% else %}
-                <div class="sb-embreve">Fotos do protótipo e do processo em breve</div>
-                {% endif %}
+                {% else %}<div class="sb-embreve">Fotos do protótipo e do processo em breve</div>{% endif %}
             </div>
         </section>
 
+{% elif s.id == 'equipe' %}
         <section id="equipe" class="card-painel sb-ancora">
             <h3 class="titulo-painel">Conheça a equipe</h3>
             <div class="grid grid-cols-1 lg:grid-cols-2 items-start gap-3 sm:gap-4">
                 {% for p in sobre.equipe %}
                 <article class="border border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-3">
                     <div class="flex items-center gap-3">
-                        {% if p.foto %}
-                        <img src="/img/equipe/{{ p.foto }}" alt="Foto de {{ p.nome }}" loading="lazy" class="sb-avatar">
-                        {% else %}
-                        <div class="sb-avatar sb-iniciais" aria-hidden="true">{{ p.iniciais }}</div>
-                        {% endif %}
+                        {% if p.foto %}<img src="/img/equipe/{{ p.foto }}" alt="Foto de {{ p.nome }}" loading="lazy" class="sb-avatar">
+                        {% else %}<div class="sb-avatar sb-iniciais" aria-hidden="true">{{ p.iniciais }}</div>{% endif %}
                         <h4 class="text-sm sm:text-base font-bold text-slate-800 leading-snug min-w-0">{{ p.nome }}</h4>
                     </div>
                     {% if p.descricao %}<p class="text-sm text-slate-600">{{ p.descricao }}</p>{% endif %}
-                    {% if p.habilidades | length %}
-                    <div class="flex flex-wrap gap-1.5">{% for h in p.habilidades %}<span class="sb-chip">{{ h }}</span>{% endfor %}</div>
-                    {% endif %}
+                    {% if p.habilidades | length %}<div class="flex flex-wrap gap-1.5">{% for h in p.habilidades %}<span class="sb-chip">{{ h }}</span>{% endfor %}</div>{% endif %}
                     {% if p.contribuicao %}<p class="text-xs text-slate-500"><span class="font-black uppercase tracking-wide text-slate-400">No projeto:</span> {{ p.contribuicao }}</p>{% endif %}
-                    {% if p.links | length or p.email or p.telefone or p.whatsapp %}
-                    <div class="flex flex-wrap gap-2 mt-auto">
-                        {% for l in p.links %}<a class="sb-contato" href="{{ l.url }}" target="_blank" rel="noopener noreferrer">{{ l.rotulo }}</a>{% endfor %}
-                        {% if p.email %}<a class="sb-contato" href="mailto:{{ p.email }}">E-mail</a>{% endif %}
-                        {% if p.telefone %}<a class="sb-contato" href="tel:+{{ p.telefone }}">Ligar</a>{% endif %}
-                        {% if p.whatsapp %}<a class="sb-contato" href="https://wa.me/{{ p.whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>{% endif %}
-                    </div>
-                    {% endif %}
+                    {% if p.links | length %}<div class="flex flex-wrap gap-2 mt-auto">{% for l in p.links %}{{ link(l) }}{% endfor %}</div>{% endif %}
                 </article>
                 {% endfor %}
             </div>
         </section>
 
+{% elif s.id == 'jornada' %}
         <section id="jornada" class="flex flex-col gap-4 sm:gap-6 sb-ancora">
             {% if sobre.jornada | length %}
             <div class="card-painel">
@@ -194,29 +174,22 @@
             {% endif %}
         </section>
 
+{% elif s.id == 'conecte' %}
         <section id="contato" class="card-painel sb-ancora">
             <h3 class="titulo-painel">Conecte-se conosco</h3>
-            <div class="flex flex-wrap gap-2">
-                {% if sobre.conecte.github %}<a class="sb-contato" href="{{ sobre.conecte.github }}" target="_blank" rel="noopener noreferrer">GitHub do projeto</a>{% endif %}
-                {% if sobre.conecte.email %}<a class="sb-contato" href="mailto:{{ sobre.conecte.email }}">{{ sobre.conecte.email }}</a>{% endif %}
-                {% for p in sobre.equipe %}{% for l in p.links %}{% if l.rotulo == 'LinkedIn' %}<a class="sb-contato" href="{{ l.url }}" target="_blank" rel="noopener noreferrer">LinkedIn · {{ p.nome.split(' ')[0] }}</a>{% endif %}{% endfor %}{% endfor %}
-            </div>
+            {% if sobre.conecte.links | length %}<div class="flex flex-wrap gap-2">{% for l in sobre.conecte.links %}{{ link(l) }}{% endfor %}</div>{% endif %}
             <div class="mt-4">
                 <p class="text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Vídeos de demonstração e outros projetos</p>
                 {% if sobre.conecte.videos | length %}
-                <div class="flex flex-wrap gap-2">
-                    {% for v in sobre.conecte.videos %}<a class="sb-contato" href="{{ v.url }}" target="_blank" rel="noopener noreferrer">{{ v.titulo or v.url }}</a>{% endfor %}
-                </div>
-                {% else %}
-                <div class="sb-embreve">Em breve</div>
-                {% endif %}
+                <div class="flex flex-wrap gap-2">{% for v in sobre.conecte.videos %}<a class="sb-contato" href="{{ v.url }}" target="_blank" rel="noopener noreferrer">{{ icones['youtube'] | safe }}<span>{{ v.titulo or v.url }}</span></a>{% endfor %}</div>
+                {% else %}<div class="sb-embreve">Em breve</div>{% endif %}
             </div>
         </section>
+{% endif %}
+{% endfor %}
 
         <div class="flex justify-center py-2">
-            <a href="/" class="bg-blue-500 text-white font-semibold px-8 py-3 rounded-md hover:bg-blue-600 active:bg-blue-700 transition duration-200 tracking-wider text-sm">
-                ENTRAR NO SISTEMA
-            </a>
+            <a href="/" class="bg-blue-500 text-white font-semibold px-8 py-3 rounded-md hover:bg-blue-600 active:bg-blue-700 transition duration-200 tracking-wider text-sm">ENTRAR NO SISTEMA</a>
         </div>
         <p class="text-center text-xs text-gray-400 pb-2">{{ sobre.grupo.nome }} x FIAP x FESTO · 2026</p>
     </main>
