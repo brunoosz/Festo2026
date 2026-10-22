@@ -31,9 +31,9 @@ const ok = m => console.log('  ok   ' + m);
         console.log('1) Sobre nós ao lado de Manuais');
         for (const n of ['dono', 'adm', 'operario', 'visualizador']) {
             const h = (await chamar('GET', '/dashboard', await entrar(n))).texto;
-            assert.ok((h.match(/<a href="\/sobre" target="_blank" rel="noopener"/g) || []).length === 2, n);
+            assert.ok((h.match(/<a href="\/sobre" target="_blank" rel="noopener"/g) || []).length === 1, n);
         }
-        ok('todos os perfis têm o botão Sobre nós no topo (ao lado de Manuais) e no menu lateral, abrindo em nova aba');
+        ok('todos os perfis têm o botão Sobre nós no topo, ao lado de Manuais (e só ali; o menu lateral fica só com Manuais), abrindo em nova aba');
 
         console.log('2) Receita selecionada no topo');
         for (const n of ['dono', 'adm', 'operario', 'visualizador']) {
