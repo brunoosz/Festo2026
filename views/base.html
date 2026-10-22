@@ -136,7 +136,7 @@
                     Status do Sistema
                 </a>
                 {% endif %}
-                {% if isAdmin %}
+                {% if permissoes.nfc %}
                 <a href="/nfc" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-nfc">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
                     Cartões NFC
@@ -652,30 +652,23 @@
         </div>
     </div>
 
+    <script src="/js/tutorial-roteiro.js"></script>
     <script>
         const CHAVE_TUTORIAL_ATIVO = 'tutorial_ativo';
         const CHAVE_TUTORIAL_PASSO = 'tutorial_passo';
 
+        // o roteiro (textos e telas) fica em /js/tutorial-roteiro.js; aqui so se escolhe o que cada perfil pode ver
         function construirPassosTutorial() {
-            const passos = [
-                { pagina: null, titulo: 'Bem-vindo(a) ao tour!', texto: 'Vou te mostrar as principais telas do sistema, uma por uma. Clique em Próximo quando quiser continuar.' },
-                { pagina: '/dashboard', titulo: 'Controle da Esteira', texto: 'Este card inteiro controla a VELOCIDADE da esteira em tempo real. Fique à vontade pra mexer — durante o tutorial, nada disso afeta a máquina de verdade.', alvoSeletor: '#card-controle-esteira' },
-                { pagina: '/dashboard', titulo: 'Selagem 1', texto: 'Este é o card da SELAGEM 1, com seu próprio controle de temperatura, independente da Selagem 2.', alvoSeletor: '#card-selagem1' },
-                { pagina: '/dashboard', titulo: 'Selagem 2', texto: 'E este é o card da SELAGEM 2 — totalmente independente da Selagem 1, com seu próprio sensor e controle.', alvoSeletor: '#card-selagem2' },
-                { pagina: '/dashboard', titulo: 'Parada de Emergência', texto: 'Este botão vermelho, sempre visível no topo, para tudo instantaneamente. Tudo que acontece por aqui fica registrado em tempo real na tela de Logs ao Vivo, e também disponível a qualquer momento em Relatórios.', alvoSeletor: '#btn-emergencia-global' },
-                { pagina: '/graficos', titulo: 'Produção em Gráficos', texto: 'Aqui você acompanha a produção em GRÁFICOS, por dia, semana, mês ou ano.', alvoSeletor: '#card-grafico-producao' },
-                { pagina: '/relatorios', titulo: 'Histórico de Eventos', texto: 'Todos os eventos do sistema ficam registrados aqui, incluindo quem fez login e a que horas.' },
-                { pagina: '/relatorios', titulo: 'Exportar em PDF', texto: 'Este botão gera um PDF com o relatório completo do dia selecionado, pronto pra imprimir ou arquivar.', alvoSeletor: '#btn-baixar-pdf' },
-                { pagina: '/visao', titulo: 'Visão Computacional', texto: 'A câmera identifica os produtos passando pela esteira usando inteligência artificial, e conta cada um automaticamente.' },
-                { pagina: '/chat', titulo: 'Dark Coders AI', texto: 'Esta sou eu! Pode me perguntar qualquer coisa sobre o projeto ou o funcionamento do sistema, a qualquer momento.' },
-                { pagina: '/logs', titulo: 'Logs ao Vivo', texto: 'Aqui você vê, em tempo real, cada login, mudança de velocidade, ajuste de temperatura e emergência — cada tipo com uma cor própria.' }
-            ];
-            if (window.__isAdminInicial) passos.push({ pagina: '/usuarios', titulo: 'Usuários', texto: 'Aqui você gerencia os níveis de acesso: Dono, Administrador e Operário, cada um com suas próprias permissões.' });
-            passos.push({ pagina: '/configuracoes', titulo: 'Configurações', texto: 'Por fim, aqui você pode trocar sua senha, ativar o leitor de tela, e ajustar outras preferências.' });
-            passos.push({ pagina: null, titulo: 'Tudo pronto!', texto: 'Esse foi o tour rápido pelo sistema. Você pode reabrir este tutorial a qualquer momento, aqui no Chat.' });
-            // operario so ve no tutorial as telas que tem permissao de abrir
+            const roteiro = window.ROTEIRO_TUTORIAL || [];
             const permissoes = window.__permissoesIniciais || {};
-            return passos.filter(p => !p.pagina || permissoes[p.pagina.slice(1)] !== false);
+            const nivel = window.__nivelUsuarioInicial;
+            return roteiro.filter(p => {
+                if (p.soAdmin && !window.__isAdminInicial) return false;
+                if (p.perfis && !p.perfis.includes(nivel)) return false;
+                if (p.exceto && p.exceto.includes(nivel)) return false;
+                const tela = p.tela || (p.pagina ? p.pagina.slice(1) : null);
+                return !tela || permissoes[tela] !== false;
+            });
         }
 
         const overlayTutorial = document.getElementById('tutorial-overlay');

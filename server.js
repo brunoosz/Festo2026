@@ -73,13 +73,19 @@ const PERMISSOES_PADRAO_OPERARIO = {
 const TELAS_VISUALIZADOR = Object.assign({}, PAGINAS_CONFIGURAVEIS, {
     controle: 'Painel de Controle',
     sistema: 'Status do Sistema',
-    usuarios: 'Usuários'
+    usuarios: 'Usuários',
+    nfc: 'Cartões NFC'
 });
+
+// listas salvas antes da tela Cartões NFC existir (todas as 11 telas antigas ligadas) valem como "todas ligadas"
+const TELAS_VISUALIZADOR_ANTIGAS = Object.keys(TELAS_VISUALIZADOR).filter(t => t !== 'nfc');
 
 function telasDoVisualizador(usuario) {
     const todas = Object.keys(TELAS_VISUALIZADOR);
     if (!Array.isArray(usuario.telasPermitidas)) return todas;
-    return todas.filter(t => usuario.telasPermitidas.includes(t));
+    const lista = usuario.telasPermitidas;
+    if (!lista.includes('nfc') && TELAS_VISUALIZADOR_ANTIGAS.every(t => lista.includes(t))) return todas;
+    return todas.filter(t => lista.includes(t));
 }
 
 function permissoesEfetivas(usuario) {
@@ -97,6 +103,7 @@ function permissoesEfetivas(usuario) {
         efetivas[pagina] = salva;
     });
     ['controle', 'sistema', 'usuarios'].forEach(t => { efetivas[t] = !ehOperario; });
+    efetivas.nfc = usuario.nivel === NIVEL_DONO || usuario.nivel === NIVEL_ADM;
     return efetivas;
 }
 
@@ -409,6 +416,15 @@ const PROMPT_SISTEMA_BASE = `Você é a Dark Coders AI, assistente da máquina F
 SOBRE O PROJETO (use quando for relevante, sem despejar tudo de uma vez):
 A Flow Pack opera em 5 estágios: (1) Esteira transporta o produto; (2) bobina de plástico fornece o filme de selagem; (3) dispenser libera o produto sobre o plástico; (4) o plástico é dobrado e selado horizontalmente; (5) selagem vertical e corte separam uma unidade da outra. O site (Node.js/Express, Raspberry Pi) controla tudo em tempo real via MQTT com os ESP32 da máquina: velocidade, temperatura, gráficos, relatórios e visão computacional.
 
+FATOS ATUALIZADOS DO SISTEMA (responda com base neles):
+- EMERGÊNCIA: acionada pelo botão da esteira, pelo botão do painel, pelo botão do site ou pela Alexa. Trava TUDO (esteira, selagens, dispenser, servo, receitas e botões) até liberar. A esteira e o servo lembram a trava mesmo desligados. Só o Dono ou o Administrador liberam, pelo botão DESBLOQUEAR no site OU passando um cartão NFC cadastrado. Depois de liberar, a esteira continua PARADA. Com a emergência ativa a tela fica com borda vermelha brilhando. Nunca tente mexer na máquina durante a emergência: explique como liberar.
+- PAINEL NFC (ESP32 com leitor de cartão, buzzer, LEDs e 3 botões): passar o cartão de Dono ou Adm libera a emergência (se ativa) e libera MAIS/MENOS por 30 s (LED verde aceso; cada uso renova). Sem cartão, MAIS/MENOS não funcionam (1 bip médio). A EMERGÊNCIA do painel vale sempre. Bips: 1 longo (1 s) cartão aceito; 3 curtos cartão não autorizado; 2 curtos o site não respondeu; 4 curtos leitor bloqueado por 30 s (3 recusas); 2 médios cartão cadastrado; 1 médio botão sem cartão. Só o Dono cadastra e apaga cartões (tela Cartões NFC).
+- RECEITAS: níveis de 50, 100, 150 e 200 g; cada nível guarda a velocidade da esteira, a das selagens e as temperaturas 1 e 2; MAIS/MENOS do painel sobem e descem o nível; Administrador e Dono editam, o Operário só aplica.
+- SEPARADOR: câmera + visão local (conta e reconhece produtos sem internet) + servo SG90 que desvia para o lado certo; a tela tem treino, ajuste de detecção e servo; ângulos e atraso configuráveis.
+- PERFIS: Dono (tudo), Administrador (controla a máquina e gerencia os níveis abaixo), Operário (opera e aplica receitas), Visualizador (só vê todas as telas em leitura e usa a IA; nada de controle). Quem libera a emergência: Dono e Administrador.
+- OUTROS: Status do Sistema (internet, guarda-rede, Raspberry, placas online), modelo 3D da máquina no Dashboard, manuais (os da Alexa, do NFC e dos botões ainda serão adicionados), página pública Sobre nós (equipe e projeto, sem login).
+- Se não souber algo, diga que não sabe. Quem tem perfil Visualizador só pode receber explicações: você nunca executa comando por ele.
+
 COMO CONVERSAR (siga rigorosamente):
 - Converse como uma pessoa normal conversaria — natural, direto, sem parecer um script.
 - Você já se apresentou uma vez quando o usuário abriu o chat. NUNCA repita sua apresentação completa ("Sou a Dark Coders AI...", "Como assistente da Flow Pack...") nas mensagens seguintes — isso é repetitivo e chato. Trate cada mensagem como parte de uma conversa contínua.
@@ -434,7 +450,48 @@ function montarContextoAoVivo() {
         linhas.push(`${m.nome}: velocidade ${isNaN(v) ? 'desconhecida' : Math.round(v * 100) + '%'}, sentido ${m.sentido}.`);
     });
 
+    const e = estadoAoVivoDoPainel();
+    linhas.push(`Emergência: ${e.emergencia ? 'ATIVA (' + e.origem + '), a máquina está travada até o Dono ou Adm liberar' : 'liberada, funcionamento normal'}.`);
+    linhas.push(`Painel NFC: leitor ${e.nfcOnline ? 'online' : 'offline'}; botões MAIS/MENOS ${e.janelaS > 0 ? 'liberados por mais ' + e.janelaS + ' s' : 'bloqueados (precisa passar o cartão)'}.`);
+    linhas.push(`Receita atual: ${e.receitaGramas !== null ? e.receitaGramas + ' g' : 'desconhecida'}. Servo do separador: ${e.servoOnline ? 'online' : 'offline'}.`);
+
     return linhas.join('\n');
+}
+
+// estado ao vivo que a IA conhece (emergencia, painel NFC, janela dos botoes, receita e servo)
+function estadoAoVivoDoPainel() {
+    const nivel = receitas && receitas.niveis && receitas.niveis[receitas.atual];
+    return {
+        emergencia: !!emergenciaGlobal.ativa, origem: emergenciaGlobal.origem || 'origem desconhecida',
+        nfcOnline: !!nfcOnline, janelaS: Math.max(0, Math.ceil((nfcJanelaAte - Date.now()) / 1000)),
+        receitaGramas: nivel ? nivel.gramas : null, servoOnline: !!separadorOnline
+    };
+}
+
+// perguntas sobre o estado de agora respondem com os dados reais, mesmo sem internet
+function respostaAoVivoLocal(normalizada) {
+    const e = estadoAoVivoDoPainel();
+    // pergunta geral ("o que acontece quando...", "como libero...") vai para a base de conhecimento; so o estado de agora usa os dados ao vivo
+    const geral = /\b(quando|o que acontece|o que e|o que faz|para que|pra que|quem|onde|como|qual a diferenca)\b/.test(normalizada);
+    if (!geral && /\b(esta|estao|ainda|agora|tem|ha|ficou)\b/.test(normalizada) && /emergencia|travad/.test(normalizada)) {
+        return e.emergencia
+            ? `A emergência está ATIVA (${e.origem}) e a máquina está travada. Só o Dono ou o Administrador liberam, pelo botão DESBLOQUEAR no site ou passando um cartão NFC cadastrado.`
+            : 'A emergência está liberada: a máquina está pronta para uso.';
+    }
+    if (/(botoes?|mais|menos)/.test(normalizada) && /(liberad|bloquead|funcion|janela|por que|porque)/.test(normalizada) && /(painel|botao|botoes|\bmais\b|\bmenos\b)/.test(normalizada)) {
+        if (e.emergencia) return 'Os botões MAIS e MENOS estão travados porque a emergência está ativa. Libere a emergência primeiro (Dono ou Adm, pelo site ou com cartão NFC).';
+        return e.janelaS > 0 ? `Os botões MAIS e MENOS estão liberados por mais ${e.janelaS} segundos (cada uso renova o tempo).` : 'Os botões MAIS e MENOS estão bloqueados. Passe um cartão de Dono ou Adm no leitor para liberar por 30 segundos.';
+    }
+    if (/(leitor|nfc|cartao|painel)/.test(normalizada) && /(online|conectad|ligad|funcionando|offline|desconectad)/.test(normalizada)) {
+        return `O leitor do painel NFC está ${e.nfcOnline ? 'online' : 'offline'}.`;
+    }
+    if (/(receita|nivel)/.test(normalizada) && /(atual|esta|qual|agora)/.test(normalizada)) {
+        return e.receitaGramas !== null ? `A receita atual é a de ${e.receitaGramas} g.` : 'Não consegui ler a receita atual agora.';
+    }
+    if (/servo/.test(normalizada) && /(online|conectad|ligad|funcionando|offline|desconectad)/.test(normalizada)) {
+        return `O servo do separador está ${e.servoOnline ? 'online' : 'offline'}.`;
+    }
+    return null;
 }
 
 async function perguntarNvidia(promptSistema, perguntaUsuario, historico = []) {
@@ -1989,7 +2046,8 @@ const TELA_DA_ROTA = [
     [/^\/logs$/, 'logs'],
     [/^\/controle$|^\/api\/painel(\/|$)/, 'controle'],
     [/^\/sistema$|^\/api\/sistema(\/|$)/, 'sistema'],
-    [/^\/usuarios$|^\/api\/usuarios(\/|$)/, 'usuarios']
+    [/^\/usuarios$|^\/api\/usuarios(\/|$)/, 'usuarios'],
+    [/^\/nfc$|^\/api\/nfc(\/|$)/, 'nfc']
 ];
 
 function guardaDoVisualizador(req, res, next) {
@@ -2477,7 +2535,8 @@ function loginObrigatorio(req, res, next) {
     res.locals.isAdmin = dadosUsuario.nivel === NIVEL_DONO || dadosUsuario.nivel === NIVEL_ADM;
     res.locals.somenteLeitura = dadosUsuario.nivel === NIVEL_VISUALIZADOR;
     res.locals.acessibilidadeAtiva = !!dadosUsuario.acessibilidade;
-    res.locals.tutorialObrigatorio = !dadosUsuario.tutorialVisto;
+    // Visualizador: o tutorial comeca em TODO login (pular vale so para a sessao); os demais so na primeira vez
+    res.locals.tutorialObrigatorio = dadosUsuario.nivel === NIVEL_VISUALIZADOR ? !(req.session && req.session.tutorialFeito) : !dadosUsuario.tutorialVisto;
     res.locals.permissoes = permissoesEfetivas(dadosUsuario);
     next();
 }
@@ -2495,6 +2554,13 @@ function paginaPermitida(pagina) {
 function adminEstritoObrigatorio(req, res, next) {
     if (!res.locals.isAdmin) return res.status(403).send('Acesso negado. Esta área é restrita a administradores.');
     next();
+}
+
+// Cartoes NFC: Dono/Adm veem tudo; o Visualizador (so se a tela estiver liberada) ve a tela com os numeros mascarados
+function nfcVerObrigatorio(req, res, next) {
+    if (res.locals.isAdmin) return next();
+    if (res.locals.somenteLeitura && res.locals.permissoes && res.locals.permissoes.nfc && (req.method === 'GET' || req.method === 'HEAD')) return next();
+    return res.status(403).send('Acesso negado. Esta área é restrita a administradores.');
 }
 
 function adminObrigatorio(req, res, next) {
@@ -2610,6 +2676,10 @@ app.get('/logout', (req, res) => {
 // api de gerenciamento de usuários
 app.get('/api/usuarios', loginObrigatorio, adminObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
+    if (res.locals.somenteLeitura) {                           // Visualizador: so nome e perfil
+        return res.json({ somenteLeitura: true, paginas: {}, telasVisualizador: {},
+            usuarios: Object.keys(usuarios).map(n => ({ usuario: n, nivel: usuarios[n].nivel, nomeNivel: nomeNivel(usuarios[n].nivel), acessibilidade: false, permissoes: {} })) });
+    }
     const lista = Object.keys(usuarios).map(nome => ({
         usuario: nome,
         nivel: usuarios[nome].nivel,
@@ -2780,6 +2850,10 @@ app.post('/api/usuario/tutorial-visto', loginObrigatorio, (req, res) => {
 
     if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado.' });
 
+    if (usuario.nivel === NIVEL_VISUALIZADOR) {                 // nao grava: no proximo login o tutorial comeca de novo
+        if (req.session) req.session.tutorialFeito = true;
+        return res.json({ sucesso: true });
+    }
     usuario.tutorialVisto = true;
     salvarUsuarios(usuarios);
 
@@ -2816,8 +2890,11 @@ app.post('/api/chat', loginObrigatorio, paginaPermitida('chat'), async (req, res
     const perguntaNormalizada = perguntaRecebida.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     let respostaFinal;
 
+    const respostaViva = REGEX_SAUDACAO.test(perguntaNormalizada) ? null : respostaAoVivoLocal(perguntaNormalizada);
     if (REGEX_SAUDACAO.test(perguntaNormalizada)) {
         respostaFinal = sortear(RESPOSTAS_SAUDACAO);
+    } else if (respostaViva) {
+        respostaFinal = respostaViva;
     } else if (NVIDIA_API_KEY) {
         try {
             const contexto = montarContextoRAG(perguntaRecebida);
@@ -2991,21 +3068,23 @@ app.get('/dispenser', loginObrigatorio, paginaPermitida('dispenser'), (req, res)
 app.get('/api/emergencia', loginObrigatorio, (req, res) => res.json(emergenciaGlobal));
 
 // --- cartoes NFC: tela e API (so Dono/Adm veem; so o Dono cadastra e apaga) ---
-app.get('/nfc', loginObrigatorio, adminEstritoObrigatorio, (req, res) => res.render('nfc.html'));
-app.get('/api/nfc/estado', loginObrigatorio, adminEstritoObrigatorio, (req, res) => {
+app.get('/nfc', loginObrigatorio, nfcVerObrigatorio, (req, res) => res.render('nfc.html'));
+app.get('/api/nfc/estado', loginObrigatorio, nfcVerObrigatorio, (req, res) => {
     const usuarios = carregarUsuarios();
+    const mascarar = !res.locals.isAdmin;                       // Visualizador: sem o final do numero dos cartoes
     res.json({
+        somenteLeitura: mascarar,
         online: nfcOnline,
-        ultimaLeitura: nfcUltimaLeitura,
+        ultimaLeitura: nfcUltimaLeitura ? Object.assign({}, nfcUltimaLeitura, mascarar ? { uidFinal: '••••' } : {}) : null,
         cadastro: nfcCadastro && Date.now() < nfcCadastro.ate ? { usuario: nfcCadastro.usuario, restanteS: Math.ceil((nfcCadastro.ate - Date.now()) / 1000) } : null,
         bloqueadoS: Math.max(0, Math.ceil((nfcBloqueadoAte - Date.now()) / 1000)),
         janelaS: Math.max(0, Math.ceil((nfcJanelaAte - Date.now()) / 1000)),
-        podeCadastrar: res.locals.nivelUsuario === 1,
+        podeCadastrar: !mascarar && res.locals.nivelUsuario === 1,
         // quem esta logado primeiro; depois os outros Donos e os Adms, cada grupo em ordem alfabetica
-        elegiveis: nfcOrdenarElegiveis(Object.keys(usuarios).filter(n => Number(usuarios[n].nivel) <= 2), usuarios, res.locals.usuarioLogado),
+        elegiveis: mascarar ? [] : nfcOrdenarElegiveis(Object.keys(usuarios).filter(n => Number(usuarios[n].nivel) <= 2), usuarios, res.locals.usuarioLogado),
         usuarioAtual: res.locals.usuarioLogado || null,
         cartoes: Object.keys(cartoesNfc).map(uid => ({
-            id: nfcIdCurto(uid), final: uid.slice(-4), usuario: cartoesNfc[uid].usuario, criadoEm: cartoesNfc[uid].criadoEm,
+            id: mascarar ? '' : nfcIdCurto(uid), final: mascarar ? '••••' : uid.slice(-4), usuario: cartoesNfc[uid].usuario, criadoEm: cartoesNfc[uid].criadoEm,
             nivel: (usuarios[cartoesNfc[uid].usuario] || {}).nivel || null
         }))
     });
@@ -3293,11 +3372,16 @@ app.get('/api/sistema/status', loginObrigatorio, adminObrigatorio, (req, res) =>
             if (/falhou|FALHA|FORA/.test(linhasVigia[i])) { vigiaUltimo = { ok: false, linha: linhasVigia[i] }; break; }
         }
 
+        if (res.locals.somenteLeitura) {                       // Visualizador: sem enderecos, nomes de rede nem linhas de log
+            const oculto = v => (v && typeof v === 'object') ? (Array.isArray(v) ? v.map(oculto) : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, oculto(x)]))) : (typeof v === 'string' ? '••••' : v);
+            rede = rede ? oculto(rede) : rede;
+            if (vigiaUltimo) vigiaUltimo = { ok: vigiaUltimo.ok, linha: '' };
+        }
         res.json({
             agora: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
             rede, redeIdadeS,
             guardaRedeInstalado: !!rede,
-            vigia: { linhas: linhasVigia, ultimo: vigiaUltimo },
+            vigia: { linhas: res.locals.somenteLeitura ? [] : linhasVigia, ultimo: vigiaUltimo },
             sistema: {
                 uptimeS: Math.round(osSistema.uptime()), siteUptimeS: Math.round(process.uptime()),
                 load: osSistema.loadavg().map(x => Math.round(x * 100) / 100),
@@ -3323,6 +3407,7 @@ app.get('/api/sistema/status', loginObrigatorio, adminObrigatorio, (req, res) =>
 });
 
 app.get('/api/sistema/log-rede', loginObrigatorio, adminObrigatorio, (req, res) => {
+    if (res.locals.somenteLeitura) return res.type('text/plain').send('(oculto para o seu perfil)');
     res.type('text/plain').send(sistemaUltimasLinhas(ARQ_LOG_REDE, 150).join('\n') || '(sem registros ainda)');
 });
 
