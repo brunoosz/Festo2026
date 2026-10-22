@@ -11,6 +11,10 @@
             '.m3v-btn{border:2px solid #1e293b;background:#fff;color:#1e293b;border-radius:9px;padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer}',
             '.m3v-btn.on{background:#1e293b;color:#fff}',
             '.m3v-cheia{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483000!important;border-radius:0!important;margin:0!important}',
+            '.m3v-borda{position:absolute;inset:0;z-index:4;pointer-events:none;display:none;border:4px solid #ef4444;box-shadow:inset 0 0 35px rgba(239,68,68,.6),inset 0 0 8px rgba(239,68,68,.95);animation:m3v-pulso 2s ease-in-out infinite}',
+            'body.emergencia-ativa .m3v-tela-cheia .m3v-borda{display:block}',
+            '@keyframes m3v-pulso{0%,100%{opacity:.7}50%{opacity:1}}',
+            '@media (prefers-reduced-motion:reduce){.m3v-borda{animation:none;opacity:1}}',
             '.m3v-barra{position:absolute;z-index:5;top:calc(env(safe-area-inset-top,0px) + 10px);right:calc(env(safe-area-inset-right,0px) + 10px);display:none;flex-wrap:wrap;justify-content:flex-end;gap:8px;max-width:calc(100% - 20px);padding:8px;border-radius:14px;background:rgba(15,23,42,.72);transition:opacity .25s}',
             '.m3v-barra.m3v-ativa{display:flex}',
             '.m3v-barra.m3v-oculta{opacity:0;pointer-events:none}',
@@ -110,6 +114,7 @@
             if (telaCheia === ativa) return;
             telaCheia = ativa;
             if (barra) { barra.classList.toggle('m3v-ativa', ativa); }
+            area.classList.toggle('m3v-tela-cheia', ativa);
             marcar();
             if (ativa) mostrarBarra(); else { clearTimeout(temporizadorBarra); simulada = false; }
             setTimeout(aoRedimensionar, 60); setTimeout(aoRedimensionar, 350);
@@ -168,6 +173,7 @@
                 barra.appendChild(b); botoesBarra[id] = b;
             });
             area.appendChild(barra);
+            const borda = document.createElement('div'); borda.className = 'm3v-borda'; borda.setAttribute('aria-hidden', 'true'); area.appendChild(borda);   // moldura vermelha da emergencia na tela cheia
             ['pointerdown', 'pointermove', 'touchstart', 'wheel'].forEach(ev => area.addEventListener(ev, mostrarBarra, { passive: true }));
         }
 
