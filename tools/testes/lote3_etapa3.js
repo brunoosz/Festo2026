@@ -138,7 +138,19 @@ const ok = m => console.log('  ok   ' + m);
         console.log('7) Compatibilidade com o formato antigo');
         const { normalizar } = require('../../sobre_dados');
         const velho = normalizar({ equipe: [{ nome: 'Fulano', autorizou: true, links: { linkedin: 'https://linkedin.com/in/f', github: 'javascript:x' }, contato: { email: 'f@x.com', telefone: '11912345678' } }, { nome: 'Sem Auto', autorizou: false, descricao: 'oculto' }], conecte: { githubProjeto: 'https://github.com/a/b', emailGrupo: 'g@x.com' } });
-        assert.ok(velho.equipe[0].mostrarContatos && velho.equipe[0].links.length === 2 && velho.equipe[0].email === 'f@x.com' && velho.equipe[1].descricao === '' && velho.equipe[1].mostrarContatos === false && velho.conecte.links.length === 2 && velho.secoes.length === 6); ok('o data/sobre.json antigo é convertido sem perder nada permitido (autorizou vira mostrar contatos)');
+        assert.ok(velho.equipe[0].mostrarContatos && velho.equipe[0].links.length === 2 && velho.equipe[0].email === 'f@x.com' && velho.equipe[1].descricao === '' && velho.equipe[1].mostrarContatos === true && velho.conecte.links.length === 2 && velho.secoes.length === 6); ok('o data/sobre.json antigo é convertido sem perder nada permitido (autorizou vira mostrar contatos)');
+
+        console.log('8) Contatos dos outros integrantes aparecem');
+        const doRepo = require('../../sobre_dados').lerArquivo(path.join(raiz, 'data', 'sobre.json'));
+        assert.ok(doRepo.equipe.length >= 5 && doRepo.equipe.every(p => p.mostrarContatos === true)); ok('todos os integrantes do texto original já vêm com "mostrar contatos" ligado');
+        assert.strictEqual(normalizar({ equipe: [{ nome: 'Davi', mostrarContatos: false }] }).equipe[0].mostrarContatos, true); ok('um "desligado" salvo sem nenhum contato volta a ligado (nada a esconder)');
+        assert.strictEqual(normalizar({ equipe: [{ nome: 'Davi', mostrarContatos: false, telefone: '(11) 91234-5678' }] }).equipe[0].mostrarContatos, false); ok('quem desligou de propósito, tendo contatos, continua desligado');
+        v = (await chamar('GET', '/api/sobre', dono)).json.dados; const outro = v.equipe.find(p => p.id === 'caio'); outro.mostrarContatos = true; outro.telefone = '(21) 98888-7777'; outro.whatsapp = '(21) 98888-7777';
+        r = await chamar('PUT', '/api/sobre', dono, { dados: v, versaoBase: v.versao }); assert.strictEqual(r.status, 200);
+        const caio = (await chamar('GET', '/sobre', '')).texto; const cartaoCaio = caio.slice(caio.indexOf('Caio Sem Contato')).split('</article>')[0];
+        assert.ok(cartaoCaio.includes('tel:+5521988887777') && cartaoCaio.includes('wa.me/5521988887777') && cartaoCaio.includes('caio@exemplo.com')); ok('telefone, WhatsApp e e-mail de outro integrante aparecem na página pública');
+        const ed = (await chamar('GET', '/sobre/editar', dono)).texto;
+        assert.ok(ed.includes('ligarContatosSeNecessario') && ed.includes('ligar-contatos') && /escondidos e NÃO aparecem/.test(ed)); ok('o editor liga "mostrar contatos" sozinho ao preencher e avisa quando estiver desligado com contatos');
 
         console.log('\nLOTE 3 ETAPA 3: TUDO OK'); fim(0);
     } catch (e) { console.error('\nFALHOU: ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).join('\n') : e)); console.error(saida.slice(0, 500)); fim(1); }

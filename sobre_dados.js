@@ -41,6 +41,15 @@ function linksDoFormatoAntigo(l) {
 }
 
 function pessoaEdicao(p) {
+    const r = pessoaEdicaoBase(p);
+    // "mostrar contatos" so fica desligado se a pessoa tem algo a esconder; sem contatos, ligado (assim, ao preencher, aparece)
+    const temContato = !!(r.email || r.telefone || r.whatsapp || r.links.length);
+    const desligado = p && typeof p === 'object' && (p.mostrarContatos === false || (p.mostrarContatos === undefined && p.autorizou === false && temContato));
+    r.mostrarContatos = !(desligado && temContato);
+    return r;
+}
+
+function pessoaEdicaoBase(p) {
     p = p && typeof p === 'object' ? p : {};
     const antigo = p.autorizou !== undefined && p.mostrarContatos === undefined;       // formato antigo: "autorizou"
     const semAutorizacao = antigo && p.autorizou !== true;
@@ -57,7 +66,7 @@ function pessoaEdicao(p) {
         email: semAutorizacao ? '' : txt(p.email !== undefined ? p.email : c.email, MAX.email),
         telefone: semAutorizacao ? '' : telefoneBruto(p.telefone !== undefined ? p.telefone : c.telefone),
         whatsapp: semAutorizacao ? '' : telefoneBruto(p.whatsapp !== undefined ? p.whatsapp : c.whatsapp),
-        mostrarContatos: antigo ? p.autorizou === true : p.mostrarContatos !== false,
+        mostrarContatos: true,   // ajustado logo abaixo
         visivel: p.visivel !== false
     };
 }

@@ -190,7 +190,8 @@
         const foto = p.foto ? '<img class="sbe-foto" src="/img/equipe/' + esc(p.foto) + '" alt="Foto de ' + esc(p.nome) + '">' : '<div class="sbe-foto sbe-foto-iniciais">' + esc((p.nome || '?').trim().charAt(0).toUpperCase()) + '</div>';
         return '<div class="sbe-item"' + arrastavel('equipe', i) + '><div class="sbe-linha" style="margin-bottom:10px"><span class="sbe-handle">⋮⋮</span><b style="flex:1 1 120px;font-size:13px">' + esc(p.nome || 'Novo integrante') + '</b>' + setas('equipe', i, D.equipe.length) +
             '<button type="button" class="sbe-ib" data-acao="remover" data-lista="equipe" data-i="' + i + '" data-confirmar="Remover este integrante?" aria-label="Remover integrante">×</button></div>' +
-            '<div class="sbe-linha" style="margin-bottom:10px">' + chave('Aparecer na página', base + '.visivel') + chave('Mostrar e-mail, telefone e links', base + '.mostrarContatos') + '</div>' +
+            '<div class="sbe-linha" style="margin-bottom:10px">' + chave('Aparecer na página', base + '.visivel') + chave('Mostrar e-mail, telefone e links', base + '.mostrarContatos') + '</div><div class="sbe-dica" style="margin:-6px 0 10px">Desligado = e-mail, telefone, WhatsApp e links desta pessoa ficam escondidos na página pública.</div>' +
+            (!p.mostrarContatos && (p.email || p.telefone || p.whatsapp || p.links.length) ? '<div class="sbe-linha" style="margin-bottom:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px"><span class="sbe-erro" style="flex:1 1 200px">Atenção: os contatos desta pessoa estão escondidos e NÃO aparecem na página.</span><button type="button" class="sbe-btn azul" data-acao="ligar-contatos" data-i="' + i + '">Mostrar na página</button></div>' : '') +
             '<div class="sbe-linha" style="margin-bottom:10px">' + foto + '<div><label class="sbe-btn" style="display:inline-block">' + (p.foto ? 'Trocar foto' : 'Enviar foto') + '<input type="file" accept="image/*" data-envio="equipe" data-i="' + i + '" style="display:none"></label> ' +
             (p.foto ? '<button type="button" class="sbe-btn verm" data-acao="foto-tirar" data-i="' + i + '">Remover foto</button>' : '') + '<div class="sbe-dica">Opcional. JPG, PNG ou WEBP até 3 MB. Sem foto aparecem as iniciais.</div><p class="sbe-erro" data-aviso-envio="equipe-' + i + '"></p></div></div>' +
             campo('Nome', base + '.nome', { max: 120 }) + campo('Descrição curta', base + '.descricao', { tipo: 'area', max: 600, dica: '1 a 2 frases sobre a pessoa.' }) + chips('Principais habilidades', base + '.habilidades') +
@@ -255,10 +256,23 @@
             if (!r.ok) { erro = r.erro; return; }
             arr.push({ id: novoId(), tipo: r.tipo, rotulo: r.rotulo, url: r.url, visivel: true, _sug: r.sugestaoNome || '', _extra: r.extra || null });
         });
+        ligarContatosSeNecessario(lista, '', arr.length > 0);
         estrutura();
         const novo = corpo.querySelector('[data-aviso-link="' + CSS.escape(lista) + '"]'); if (novo) novo.textContent = erro;
         const campoColar = corpo.querySelector('[data-colar="' + CSS.escape(lista) + '"]'); if (campoColar) campoColar.focus();
     }
+    // quem preenche e-mail, telefone, WhatsApp ou adiciona um link quer que apareca: liga "Mostrar contatos" da pessoa (dá para desligar de novo)
+    function ligarContatosSeNecessario(p, valor, forcar) {
+        const m = /^equipe\.(\d+)\.(email|telefone|whatsapp|links)/.exec(p);
+        if (!m || (!forcar && !String(valor).trim())) return;
+        const pessoa = D.equipe[+m[1]];
+        if (pessoa && !pessoa.mostrarContatos) {
+            pessoa.mostrarContatos = true;
+            const caixa = corpo.querySelector('[data-p="equipe.' + m[1] + '.mostrarContatos"]'); if (caixa) caixa.checked = true;
+            avisar('Liguei "Mostrar e-mail, telefone e links" para ' + (pessoa.nome || 'esta pessoa') + ', para os contatos aparecerem na página. Você pode desligar de novo.');
+        }
+    }
+
     const ACOES = {
         mover: b => mover(b.dataset.lista, +b.dataset.i, +b.dataset.d),
         remover: b => { if (b.dataset.confirmar && !confirm(b.dataset.confirmar)) return; caminho(D, b.dataset.lista).splice(+b.dataset.i, 1); estrutura(); },
@@ -267,6 +281,7 @@
         'usar-nome': b => { const l = caminho(D, b.dataset.lista)[+b.dataset.i]; l.rotulo = l.tipo === 'linkedin' || l.tipo === 'github' ? l.rotulo + ' · ' + l._sug : l._sug; l._sug = ''; estrutura(); },
         'add-whatsapp': b => { const arr = caminho(D, b.dataset.lista), l = arr[+b.dataset.i]; arr.splice(+b.dataset.i + 1, 0, { id: novoId(), tipo: 'whatsapp', rotulo: 'WhatsApp', url: l._extra.url, visivel: true }); l._extra = null; estrutura(); },
         'pessoa-add': () => { const id = novoId(); D.equipe.push({ id, nome: '', foto: '', descricao: '', habilidades: [], contribuicao: '', links: [], email: '', telefone: '', whatsapp: '', mostrarContatos: true, visivel: true }); aberto.equipe = true; estrutura(); },
+        'ligar-contatos': b => { D.equipe[+b.dataset.i].mostrarContatos = true; estrutura(); },
         'foto-tirar': b => { D.equipe[+b.dataset.i].foto = ''; estrutura(); },
         'etapa-add': () => { D.projeto.processo.push({ nome: '', texto: '' }); estrutura(); },
         'marco-add': () => { D.jornada.push({ id: novoId(), data: '', titulo: '', texto: '' }); estrutura(); },
@@ -280,13 +295,14 @@
         const n = e.target;
         if (n.dataset.p && n.type !== 'checkbox') {
             definir(n.dataset.p, n.value);
+            ligarContatosSeNecessario(n.dataset.p, n.value);
             const c = corpo.querySelector('[data-contador="' + CSS.escape(n.dataset.p) + '"]'); if (c) c.textContent = n.value.length + '/' + (n.dataset.max || '');
             mudou();
         }
     });
     corpo.addEventListener('change', e => {
         const n = e.target;
-        if (n.dataset.p && n.type === 'checkbox') { definir(n.dataset.p, n.checked); mudou(); }
+        if (n.dataset.p && n.type === 'checkbox') { definir(n.dataset.p, n.checked); if (/\.mostrarContatos$/.test(n.dataset.p)) estrutura(); else mudou(); }
         if (n.dataset.envio && n.files && n.files[0]) { enviarFoto(n.dataset.envio, n.files[0], n.dataset.i); n.value = ''; }
     });
     corpo.addEventListener('keydown', e => {
