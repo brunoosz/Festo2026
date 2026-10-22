@@ -3,11 +3,26 @@
     "languageModel": {
       "invocationName": "dark coders",
       "intents": [
-        { "name": "AMAZON.CancelIntent", "samples": [] },
-        { "name": "AMAZON.HelpIntent", "samples": [] },
-        { "name": "AMAZON.StopIntent", "samples": [] },
-        { "name": "AMAZON.NavigateHomeIntent", "samples": [] },
-        { "name": "AMAZON.FallbackIntent", "samples": [] },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
         {
           "name": "LigarMaquinaIntent",
           "slots": [],
@@ -26,7 +41,10 @@
         {
           "name": "PredefinicaoIntent",
           "slots": [
-            { "name": "gramas", "type": "AMAZON.NUMBER" }
+            {
+              "name": "gramas",
+              "type": "AMAZON.NUMBER"
+            }
           ],
           "samples": [
             "{gramas} gramas",
@@ -54,6 +72,64 @@
             "pare tudo",
             "pare a máquina",
             "parar a máquina"
+          ]
+        },
+        {
+          "name": "AumentarIntent",
+          "slots": [
+            {
+              "name": "pedido",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "aumente {pedido}",
+            "aumentar {pedido}",
+            "suba {pedido}",
+            "subir {pedido}"
+          ]
+        },
+        {
+          "name": "DiminuirIntent",
+          "slots": [
+            {
+              "name": "pedido",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "diminua {pedido}",
+            "diminuir {pedido}",
+            "baixe {pedido}",
+            "baixar {pedido}"
+          ]
+        },
+        {
+          "name": "AplicarIntent",
+          "slots": [
+            {
+              "name": "pedido",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "aplique {pedido}",
+            "aplicar {pedido}",
+            "use {pedido}",
+            "usar {pedido}"
+          ]
+        },
+        {
+          "name": "LiberarIntent",
+          "slots": [
+            {
+              "name": "pedido",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "libere {pedido}",
+            "liberar {pedido}"
           ]
         }
       ],

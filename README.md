@@ -35,7 +35,7 @@ A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço
 | Receitas | Níveis de 50, 100, 150 e 200 g com velocidade e temperatura predefinidas. |
 | Produção e Relatórios | Gráficos por hora e por dia e exportação de relatórios em PDF. |
 | Dark Coders AI | Assistente com base de conhecimento local e IA online opcional. Aceita comandos por texto e por voz. |
-| Alexa | Skill própria com cinco comandos: ligar com a receita de 50, 100, 150 ou 200 g e parada de emergência. |
+| Alexa | Skill própria: liga com a receita de 50, 100, 150 ou 200 g, aciona a parada de emergência e troca de receita por voz (aumentar, diminuir, escolher e perguntar). |
 | Logs ao Vivo | Registro em tempo real de tudo o que acontece, com usuário e origem (site, assistente ou Alexa). |
 | Status do Sistema | Internet, Raspberry (temperatura, memória, alimentação) e conexão de cada dispositivo. |
 | Usuários | Quatro níveis de acesso e permissão de telas por usuário. |
@@ -246,7 +246,7 @@ Em **Usuários**, o Dono ou o Administrador define, para cada Operário, quais t
 
 ## Integração com a Alexa
 
-A skill tem cinco comandos. Depois de cada um ela se fecha sozinha, então é preciso abrir de novo para dar outro.
+A skill tem os cinco comandos abaixo (depois de cada um ela se fecha sozinha, então é preciso abrir de novo para dar outro) e também troca de receita por voz.
 
 | Você diz | O que acontece |
 |---|---|
@@ -256,6 +256,16 @@ A skill tem cinco comandos. Depois de cada um ela se fecha sozinha, então é pr
 | "150 gramas" | Igual, com a receita de 150 g. |
 | "200 gramas" | Igual, com a receita de 200 g. |
 | "emergência" | Aciona a Parada de Emergência em todos os módulos e fecha a skill. |
+
+Receitas por voz, dentro da skill:
+
+| Você diz | O que acontece |
+|---|---|
+| "aumente a receita" / "diminua a receita" | Sobe ou desce um nível (50 → 100 → 150 → 200 g) e aplica velocidades e temperaturas do nível. |
+| "aplique a receita de 100 gramas" | Escolhe o nível. |
+| "qual a receita atual" | Diz o nível em uso e o que ele aplica. |
+
+Com a emergência ativa, a Alexa recusa qualquer comando de movimento e explica; ela **nunca libera a emergência** (só Dono ou Administrador, pelo site ou pelo cartão NFC). Opcional: `ALEXA_RECEITA_EXIGE_CARTAO=1` só aceita trocar de receita com a janela do cartão aberta.
 
 Se a máquina estiver travada por uma emergência, a Alexa avisa e não liga nada. As pré-definições são as receitas da tela **Receitas**, então os valores de cada uma (velocidade, motores e temperaturas) são os que estiverem cadastrados lá.
 

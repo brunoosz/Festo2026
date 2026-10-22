@@ -1509,7 +1509,21 @@ function normalizarPedidoVoz(texto) {
 function interpretarComandoServidor(textoOriginal) {
     const t = normalizarPedidoVoz(textoOriginal);
 
+    // liberar emergência não vale por voz
+    if (/\b(libere|liberar|libera|liberacao|destrave|destravar|destrava|desbloqueie|desbloquear|desbloqueia|cancele|cancelar|desligue|desliga|desligar|desative|desativa|desativar|tire|tira|remova)\b/.test(t) && /emergencia/.test(t)) return { tipo: 'liberar_emergencia' };
     if (/emergencia/.test(t)) return { tipo: 'emergencia' };
+
+    // receitas
+    if (/\b(receita|receitas|nivel)\b/.test(t)) {
+        if (/^(como|o que|por que|porque|me explique|explique|me diga|me fale)\b/.test(t)) return null;
+        const ehPergunta = /^(qual|quais|quanto|quanta|que)\b/.test(t);
+        const mGramas = t.match(/\b(\d{2,3})\b/);
+        if (ehPergunta) return /(atual|agora|em uso|ativa|ativo|selecionad|usando)/.test(t) ? { tipo: 'receita_status' } : null;
+        if (/\b(aumente|aumenta|aumentar|suba|sobe|subir|proxima|proximo|mais)\b/.test(t)) return { tipo: 'receita_aumentar' };
+        if (/\b(diminua|diminui|diminuir|baixe|baixa|baixar|reduza|reduz|reduzir|anterior|menos)\b/.test(t)) return { tipo: 'receita_diminuir' };
+        if (mGramas) return { tipo: 'receita_definir', gramas: parseInt(mGramas[1], 10) };
+        return { tipo: 'receita_status' };
+    }
     if (/^(qual|quais|quanto|quanta|como|o que|por que|porque|me explique|explique|me diga|me fale)\b/.test(t)) return null;
 
     const semNumerosDeNome = t.replace(/selagem\s*[12]\b/g, 'selagem').replace(/motor\s*[12]\b/g, 'motor');
@@ -1585,8 +1599,60 @@ function definirAquecimentoServidor(numero, ligar) {
     mqttClient.publish(numero === 2 ? MQTT_TOPIC_SELAGEM2_ATIVAR : MQTT_TOPIC_SELAGEM_ATIVAR, ligar ? '1' : '0');
 }
 
+// receitas da Alexa
+const ALEXA_RECEITA_EXIGE_CARTAO = process.env.ALEXA_RECEITA_EXIGE_CARTAO === '1';   // exige cartão
+
+function textoListaReceitas() {
+    const g = receitas.niveis.map(n => n.gramas);
+    return g.length > 1 ? g.slice(0, -1).join(', ') + ' e ' + g[g.length - 1] : String(g[0]);
+}
+
+function descreverReceitaAlexa(n) {
+    const partes = [];
+    if (n.esteira !== null && n.esteira !== undefined) partes.push(`esteira a ${Math.round(n.esteira * 100)} por cento`);
+    if (n.temp1 !== null && n.temp1 !== undefined) partes.push(`selagem 1 a ${n.temp1} graus`);
+    if (n.temp2 !== null && n.temp2 !== undefined) partes.push(`selagem 2 a ${n.temp2} graus`);
+    return partes.join(', ');
+}
+
+function executarComandoReceitaAlexa(cmd) {
+    if (!cmd.tipo || cmd.tipo.indexOf('receita') !== 0) return null;
+    const niveis = receitas.niveis, atual = receitas.atual;
+
+    if (cmd.tipo === 'receita_status') {
+        const d = descreverReceitaAlexa(niveis[atual]);
+        return `A receita atual é a de ${niveis[atual].gramas} gramas${d ? ': ' + d : ''}. As receitas são ${textoListaReceitas()} gramas.`;
+    }
+
+    let alvo = atual;
+    if (cmd.tipo === 'receita_aumentar') {
+        if (atual >= niveis.length - 1) return `Já está na maior receita, de ${niveis[atual].gramas} gramas.`;
+        alvo = atual + 1;
+    } else if (cmd.tipo === 'receita_diminuir') {
+        if (atual <= 0) return `Já está na menor receita, de ${niveis[0].gramas} gramas.`;
+        alvo = atual - 1;
+    } else if (cmd.tipo === 'receita_definir') {
+        const i = niveis.findIndex(n => n.gramas === cmd.gramas);
+        if (i < 0) return `Não existe receita de ${cmd.gramas} gramas. As receitas são ${textoListaReceitas()} gramas.`;
+        if (i === atual) return `A receita de ${cmd.gramas} gramas já está em uso.`;
+        alvo = i;
+    } else return null;
+
+    if (ALEXA_RECEITA_EXIGE_CARTAO && !nfcJanelaAberta()) return 'Para trocar de receita, passe antes o cartão de um Dono ou Administrador no painel.';
+
+    receitasAplicar(alvo, 'Alexa');
+    const d = descreverReceitaAlexa(niveis[alvo]);
+    return `Receita de ${niveis[alvo].gramas} gramas aplicada${d ? ': ' + d : ''}.`;
+}
+
 // executar comando
 function executarComandoServidor(cmd) {
+    if (emergenciaGlobal.ativa && cmd.tipo !== 'emergencia' && cmd.tipo !== 'liberar_emergencia') {
+        return 'A emergência está ativa e a máquina está travada. Um Dono ou Administrador precisa liberar pelo site ou passando o cartão NFC.';
+    }
+    if (cmd.tipo === 'liberar_emergencia') return 'Por segurança, não dá para liberar a emergência por voz. Um Dono ou Administrador libera pelo site ou passando o cartão NFC.';
+    const respostaReceita = executarComandoReceitaAlexa(cmd);
+    if (respostaReceita !== null) return respostaReceita;
     if (cmd.tipo === 'velocidade') {
         definirVelocidadeEsteiraServidor(cmd.valor);
         registrarLogDaAlexa(`Velocidade da esteira alterada pela Alexa para ${cmd.valor}%`, 'velocidade');
@@ -1636,7 +1702,7 @@ function executarComandoServidor(cmd) {
         io.emit('atualizar_temperatura2', ultimoEstadoSelagem2);
         io.emit('emergencia_remota', {});   // trava dos botões
         registrarLogDaAlexa('PARADA DE EMERGÊNCIA acionada pela Alexa.', 'emergencia');
-        return 'Parada de emergência acionada. Todos os motores e aquecimentos foram parados.';
+        return 'Parada de emergência acionada. Todos os motores e aquecimentos foram parados e a máquina fica travada até um Dono ou Administrador liberar.';
     }
     return 'Não entendi esse comando.';
 }
@@ -1671,7 +1737,11 @@ const PREFIXOS_INTENCOES = {
     PerguntaQualIntent: 'qual',
     PerguntaComoIntent: 'como',
     PerguntaOQueIntent: 'o que',
-    ExplicarIntent: 'me explique'
+    ExplicarIntent: 'me explique',
+    AumentarIntent: 'aumente',
+    DiminuirIntent: 'diminua',
+    AplicarIntent: 'aplique',
+    LiberarIntent: 'libere'
 };
 
 const FRASE_CONTINUAR = ' Mais alguma coisa?';
@@ -1791,6 +1861,7 @@ const AlexaAjudaHandler = {
     },
     handle(h) {
         const fala = `Você pode dizer ligar, e depois escolher a pré-definição: ${listaDePredefinicoesFalada()}. `
+            + 'Para trocar de receita, diga aumente a receita, diminua a receita ou aplique a receita de 100 gramas. '
             + 'Para parar tudo, diga emergência. Qual pré-definição você quer?';
         return h.responseBuilder.speak(fala).reprompt(`Qual pré-definição? ${listaDePredefinicoesFalada()}.`).getResponse();
     }

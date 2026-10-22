@@ -145,5 +145,15 @@
       "como colocar o 3D em tela cheia"
     ],
     "resposta": "É o modelo da máquina em 3D no Dashboard. Os botões Girar, Vista, Estrutura e Tela cheia controlam a visualização, e em tela cheia aparecem controles no canto da imagem."
+  },
+  {
+    "id": 1016,
+    "pergunta": "O que a Alexa entende?",
+    "perguntas_alternativas": [
+      "quais comandos da alexa",
+      "como troco a receita pela alexa",
+      "a alexa libera a emergência"
+    ],
+    "resposta": "A Alexa liga a máquina com a receita de 50, 100, 150 ou 200 gramas, aciona a parada de emergência e troca de receita por voz: aumente a receita, diminua a receita, aplique a receita de 100 gramas e qual a receita atual. Com a emergência ativa ela recusa comandos de movimento e nunca libera a emergência: só Dono ou Administrador liberam, pelo site ou pelo cartão NFC."
   }
 ]
