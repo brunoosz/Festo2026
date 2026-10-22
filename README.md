@@ -238,8 +238,10 @@ Os manuais em PDF ficam em [`manuais/`](manuais) e também podem ser baixados pe
 | Braço formador | [`Manual_BracoFormador_FlowPack.pdf`](manuais/Manual_BracoFormador_FlowPack.pdf) |
 | Selagem 1 | [`Manual_Selagem1_FlowPack.pdf`](manuais/Manual_Selagem1_FlowPack.pdf) |
 | Selagem 2 | [`Manual_Selagem2_FlowPack.pdf`](manuais/Manual_Selagem2_FlowPack.pdf) |
+| Cartão NFC e acesso | [`Manual_NFC_FlowPack.pdf`](manuais/Manual_NFC_FlowPack.pdf) |
+| Botões e painel | [`Manual_Botoes_Painel_FlowPack.pdf`](manuais/Manual_Botoes_Painel_FlowPack.pdf) |
 
-Já estão cadastrados, esperando o PDF (aparece "PDF ainda não adicionado" até o arquivo existir): `Manual_Alexa_FlowPack.pdf`, `Manual_NFC_FlowPack.pdf` e `Manual_Botoes_Painel_FlowPack.pdf`.
+Já está cadastrado, esperando o PDF (aparece "PDF ainda não adicionado" até o arquivo existir): `Manual_Alexa_FlowPack.pdf`.
 
 **Como adicionar um manual:** copie o PDF para a pasta `manuais/` com o nome exato acima. Ele passa a abrir sozinho, sem reiniciar o site (a existência do arquivo é conferida a cada acesso).
 Para um manual novo, acrescente uma linha na lista `LISTA_MANUAIS` do `server.js` (id, título, arquivo e descrição).
