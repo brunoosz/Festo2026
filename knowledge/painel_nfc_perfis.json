@@ -1,0 +1,149 @@
+[
+  {
+    "id": 1001,
+    "pergunta": "Quem pode liberar a emergência?",
+    "perguntas_alternativas": [
+      "quem libera a emergência",
+      "operário pode liberar a emergência",
+      "visualizador pode desbloquear"
+    ],
+    "resposta": "Somente o Dono e o Administrador, pelo botão DESBLOQUEAR no site ou passando um cartão NFC cadastrado. Operário e Visualizador não podem."
+  },
+  {
+    "id": 1002,
+    "pergunta": "Para que serve o cartão NFC?",
+    "perguntas_alternativas": [
+      "o que o cartão faz",
+      "como funciona o cartão de acesso",
+      "pra que serve o leitor de cartão"
+    ],
+    "resposta": "O cartão de um Dono ou Administrador libera a emergência, se ela estiver ativa, e libera os botões MAIS e MENOS do painel por 30 segundos (o LED verde acende e cada uso renova o tempo). A decisão é sempre do servidor."
+  },
+  {
+    "id": 1003,
+    "pergunta": "O que significam os bips do painel?",
+    "perguntas_alternativas": [
+      "o que são os bips",
+      "o que o buzzer significa",
+      "significado dos bips do buzzer"
+    ],
+    "resposta": "1 bip longo de 1 segundo: cartão aceito. 3 bips curtos: cartão não autorizado. 2 bips curtos: o site não respondeu e nada foi liberado. 4 bips curtos: leitor bloqueado por 30 segundos depois de 3 recusas. 2 bips médios: cartão cadastrado. 1 bip médio: botão MAIS ou MENOS apertado sem passar o cartão."
+  },
+  {
+    "id": 1004,
+    "pergunta": "Por que o botão MAIS não funciona?",
+    "perguntas_alternativas": [
+      "por que o MENOS não funciona",
+      "o botão mais não responde",
+      "os botões do painel não funcionam",
+      "botões mais e menos bloqueados"
+    ],
+    "resposta": "Os botões MAIS e MENOS só funcionam por 30 segundos depois de passar um cartão de Dono ou Administrador. Sem cartão você ouve 1 bip médio e nada muda. Com a emergência ativa eles ficam travados até liberar."
+  },
+  {
+    "id": 1005,
+    "pergunta": "O botão de emergência do painel precisa de cartão?",
+    "perguntas_alternativas": [
+      "emergência do painel exige cartão",
+      "o botão vermelho do painel funciona sem cartão"
+    ],
+    "resposta": "Não. A EMERGÊNCIA do painel vale sempre, com ou sem cartão, porque a parada nunca deve ser bloqueada."
+  },
+  {
+    "id": 1006,
+    "pergunta": "Quem cadastra os cartões NFC?",
+    "perguntas_alternativas": [
+      "como cadastro um cartão",
+      "quem apaga cartão",
+      "como cadastrar cartão nfc"
+    ],
+    "resposta": "Somente o Dono, na tela Cartões NFC: escolhe o usuário (Dono ou Adm), toca em Cadastrar cartão e, em até 30 segundos, aproxima o cartão do leitor. Dois bips médios indicam que cadastrou. Cartão perdido o Dono apaga na mesma tela."
+  },
+  {
+    "id": 1007,
+    "pergunta": "O que é o painel NFC?",
+    "perguntas_alternativas": [
+      "o que tem no painel de botões",
+      "como é o painel físico"
+    ],
+    "resposta": "É um ESP32 com leitor de cartão, buzzer, LEDs e 3 botões: EMERGÊNCIA, MAIS e MENOS. Ele conversa com o site pelo Wi-Fi e o site decide o que vale."
+  },
+  {
+    "id": 1008,
+    "pergunta": "O que são as receitas?",
+    "perguntas_alternativas": [
+      "como funcionam as receitas",
+      "para que servem os níveis de 50 100 150 200",
+      "o que o botão mais faz na receita"
+    ],
+    "resposta": "São quatro níveis prontos: 50, 100, 150 e 200 gramas. Cada nível guarda a velocidade da esteira, a velocidade das selagens e as temperaturas das selagens 1 e 2. Os botões MAIS e MENOS do painel sobem e descem o nível. Administrador e Dono editam as receitas; o Operário só aplica."
+  },
+  {
+    "id": 1009,
+    "pergunta": "Como funciona o separador?",
+    "perguntas_alternativas": [
+      "o que faz o servo",
+      "para que serve a câmera do separador",
+      "como o separador separa os produtos"
+    ],
+    "resposta": "Uma câmera e uma visão local, que funciona sem internet, contam e reconhecem os produtos, e um servo SG90 desvia cada um para o lado certo. A tela do Separador tem treino, ajuste de detecção e servo, e os ângulos e o atraso são configuráveis."
+  },
+  {
+    "id": 1010,
+    "pergunta": "O que o Visualizador pode fazer?",
+    "perguntas_alternativas": [
+      "o que o perfil visualizador faz",
+      "visualizador pode controlar",
+      "qual a permissão do visualizador"
+    ],
+    "resposta": "O Visualizador vê todas as telas liberadas para ele em modo somente leitura (algumas com dados ocultos, como os cartões NFC) e conversa comigo, mas não controla nada: nem velocidade, temperatura, receitas, dosagem, servo, emergência ou usuários. O tutorial começa sozinho a cada login dele."
+  },
+  {
+    "id": 1011,
+    "pergunta": "Quais são os perfis de usuário?",
+    "perguntas_alternativas": [
+      "quais os níveis de acesso",
+      "qual a diferença entre dono e adm",
+      "o que o operário pode fazer"
+    ],
+    "resposta": "Dono: acesso total. Administrador: controla a máquina, cria usuários e libera a emergência. Operário: opera a máquina e aplica receitas, nas telas liberadas. Visualizador: só olha e conversa com a IA. Dono e Administrador são os que liberam a emergência."
+  },
+  {
+    "id": 1012,
+    "pergunta": "Para que serve o Status do Sistema?",
+    "perguntas_alternativas": [
+      "como vejo se as placas estão online",
+      "o que mostra o status do sistema"
+    ],
+    "resposta": "Mostra a internet, o guarda-rede, o Raspberry (temperatura, memória e alimentação) e quais placas estão online: esteira, selagens, dispenser, separador, câmera e leitor NFC."
+  },
+  {
+    "id": 1013,
+    "pergunta": "Onde ficam os manuais?",
+    "perguntas_alternativas": [
+      "como baixar os manuais",
+      "manual da alexa",
+      "manual do cartão nfc",
+      "manual dos botões"
+    ],
+    "resposta": "No botão Manuais, no menu e no topo do site. Há os manuais da máquina e de cada módulo. Os manuais da Alexa, do cartão NFC e dos botões do painel estão em breve: enquanto o PDF não for adicionado a entrada avisa."
+  },
+  {
+    "id": 1014,
+    "pergunta": "O que é a página Sobre nós?",
+    "perguntas_alternativas": [
+      "onde vejo a equipe do projeto",
+      "tem página pública do projeto"
+    ],
+    "resposta": "É uma página pública, aberta pelo link na tela de login e sem precisar de senha, que apresenta a equipe Dark Coders e o projeto Flow Pack."
+  },
+  {
+    "id": 1015,
+    "pergunta": "O que é o modelo 3D do Dashboard?",
+    "perguntas_alternativas": [
+      "como girar a máquina em 3D",
+      "como colocar o 3D em tela cheia"
+    ],
+    "resposta": "É o modelo da máquina em 3D no Dashboard. Os botões Girar, Vista, Estrutura e Tela cheia controlam a visualização, e em tela cheia aparecem controles no canto da imagem."
+  }
+]

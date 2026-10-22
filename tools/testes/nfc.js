@@ -63,10 +63,10 @@ const { iniciar } = require('../mock_mqtt');
         console.log('1) Tela e acesso');
         assert.strictEqual((await chamar('GET', '/nfc', adm)).status, 200); ok('Adm abre a tela Cartões NFC');
         assert.ok((await chamar('GET', '/nfc', dono)).texto.includes('link-nfc')); ok('o menu mostra "Cartões NFC" para Dono/Adm');
-        for (const [nome, c] of [['Operário', oper], ['Visualizador', vis]]) {
-            assert.notStrictEqual((await chamar('GET', '/nfc', c)).status, 200); assert.strictEqual((await chamar('GET', '/api/nfc/estado', c)).status === 200, false);
-        }
-        ok('Operário e Visualizador não abrem a tela nem a API de cartões');
+        assert.notStrictEqual((await chamar('GET', '/nfc', oper)).status, 200); assert.notStrictEqual((await chamar('GET', '/api/nfc/estado', oper)).status, 200);
+        ok('Operário não abre a tela nem a API de cartões');
+        assert.strictEqual((await chamar('GET', '/api/nfc/estado', vis)).json.podeCadastrar, false); assert.strictEqual((await chamar('POST', '/api/nfc/cadastrar', vis, { usuario: 'dono' })).status, 403);
+        ok('Visualizador só olha (sem cadastrar); os dados mascarados são testados em lote3_etapa2')
         assert.ok(!(await chamar('GET', '/dashboard', oper)).texto.includes('id="link-nfc"')); ok('Operário nem vê o item no menu');
         let st = (await chamar('GET', '/api/nfc/estado', adm)).json; assert.strictEqual(st.online, true); assert.strictEqual(st.podeCadastrar, false); ok('o leitor aparece online; Adm vê mas não cadastra');
 

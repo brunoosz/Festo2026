@@ -26,6 +26,17 @@
         </button>
     </div>
 
+    <!-- rever o tutorial (todos os perfis) -->
+    <div class="card-painel flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+            <h3 class="font-bold text-gray-800 text-base sm:text-lg">Tutorial</h3>
+            <p class="text-sm text-gray-500">Rever o tour guiado pelas telas do sistema.</p>
+        </div>
+        <button id="btn-rever-tutorial" data-leitura-ok class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 sm:py-2 px-6 rounded-lg transition shadow cursor-pointer w-full sm:w-auto">
+            Rever tutorial
+        </button>
+    </div>
+
     <div class="card-painel">
         <h3 class="font-bold text-gray-800 text-base sm:text-lg mb-4 border-b border-gray-200 pb-2">Credenciais de Acesso</h3>
         
@@ -152,6 +163,11 @@
         const input = document.getElementById(idInput);
         input.type = input.type === 'password' ? 'text' : 'password';
     };
+})();
+
+(function () {
+    const btnReverTutorial = document.getElementById('btn-rever-tutorial');
+    if (btnReverTutorial) btnReverTutorial.addEventListener('click', () => { if (typeof window.iniciarTutorial === 'function') window.iniciarTutorial(); });
 })();
 </script>
 {% endblock %}
