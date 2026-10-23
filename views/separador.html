@@ -148,6 +148,98 @@
         </div>
     </details>
 
+    <!-- servo livre -->
+    <details class="sep-det" id="sep-det-livre" open>
+        <summary>Controle livre do servo (sem câmera)</summary>
+        <div class="sep-corpo">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+                <p id="sl-estado" class="sep-dica" style="margin:0">Servo desconectado.</p>
+                <div class="flex gap-2" role="group" aria-label="Modo do servo">
+                    <button id="sl-modo-auto" class="sep-btn" type="button">Automático</button>
+                    <button id="sl-modo-manual" class="sep-btn" type="button">Manual</button>
+                </div>
+            </div>
+            <p id="sl-modo-dica" class="sep-dica"></p>
+            <p id="sl-bloqueio" class="sep-oculto" style="margin-top:8px;font-size:12px;font-weight:800;color:#dc2626"></p>
+
+            <h3 class="sep-h3" style="margin-top:16px">Mover agora</h3>
+            <div class="grid grid-cols-3 gap-2">
+                <button id="sl-esq" class="sep-btn sl-ctl" type="button">ESQUERDA</button>
+                <button id="sl-cen" class="sep-btn sl-ctl" type="button">CENTRO</button>
+                <button id="sl-dir" class="sep-btn sl-ctl" type="button">DIREITA</button>
+            </div>
+            <label class="sep-campo">Ângulo: <span id="sl-ang-v" class="sep-valor">90°</span>
+                <input id="sl-ang" class="sl-ctl" type="range" min="0" max="180" value="90" style="width:100%;margin-top:6px">
+            </label>
+            <div class="flex gap-2 items-end mt-2">
+                <label class="sep-campo" style="margin:0;flex:1">Ir para o ângulo (0 a 180)
+                    <input id="sl-ang-num" class="sl-ctl" type="number" min="0" max="180" step="1" value="90">
+                </label>
+                <button id="sl-ir" class="sep-btn azul sl-ctl" type="button">Ir</button>
+                <button id="sl-parar" class="sep-btn verm sl-ctl" type="button">PARAR</button>
+            </div>
+            <label class="sep-campo">Velocidade: <span id="sl-vel-v" class="sep-valor">60%</span> <span class="sep-dica">(1 = bem devagar, 100 = rápido)</span>
+                <input id="sl-vel" class="sl-ctl" type="range" min="1" max="100" value="60" style="width:100%;margin-top:6px">
+            </label>
+            <label class="sep-campo flex items-center gap-2" style="display:flex">
+                <input id="sl-voltar" class="sl-ctl" type="checkbox" style="width:20px;height:20px"> <span>Voltar ao centro sozinho depois de</span>
+                <input id="sl-tempo" class="sl-ctl" type="number" min="0.1" max="5" step="0.1" value="0.9" style="width:80px;margin:0;border:2px solid #e2e8f0;border-radius:8px;padding:6px"> <span>segundos</span>
+            </label>
+            <p class="sep-dica">Vale para os botões ESQUERDA e DIREITA. O controle deslizante e o campo "Ir" ficam onde você parar.</p>
+
+            <h3 class="sep-h3" style="margin-top:16px">Testar o conjunto</h3>
+            <div class="flex gap-2 flex-wrap">
+                <button id="sl-sim-e" class="sep-btn sl-ctl" type="button">Simular produto na esquerda</button>
+                <button id="sl-sim-d" class="sep-btn sl-ctl" type="button">Simular produto na direita</button>
+            </div>
+            <p class="sep-dica">Faz o mesmo que a câmera faria: espera o atraso configurado, desvia e volta ao centro.</p>
+
+            <details class="sep-det" style="margin-top:16px">
+                <summary>Calibração e limites</summary>
+                <div class="sep-corpo">
+                    <div class="sep-grade dois">
+                        <label class="sep-campo">Esquerda (°)<input id="sl-c-esq" class="sl-ctl" type="number" min="0" max="180"></label>
+                        <label class="sep-campo">Centro (°)<input id="sl-c-cen" class="sl-ctl" type="number" min="0" max="180"></label>
+                        <label class="sep-campo">Direita (°)<input id="sl-c-dir" class="sl-ctl" type="number" min="0" max="180"></label>
+                        <label class="sep-campo">Limite mínimo (°)<input id="sl-c-min" class="sl-ctl" type="number" min="0" max="170"></label>
+                        <label class="sep-campo">Limite máximo (°)<input id="sl-c-max" class="sl-ctl" type="number" min="10" max="180"></label>
+                        <label class="sep-campo">Pulso mínimo (µs)<input id="sl-c-pmin" class="sl-ctl" type="number" min="400" max="1500"></label>
+                        <label class="sep-campo">Pulso máximo (µs)<input id="sl-c-pmax" class="sl-ctl" type="number" min="1500" max="2600"></label>
+                    </div>
+                    <label class="sep-campo flex items-center gap-2" style="display:flex"><input id="sl-c-inv" class="sl-ctl" type="checkbox" style="width:20px;height:20px"> <span>Inverter o lado (esquerda vira direita)</span></label>
+                    <p class="sep-dica">O servo nunca passa dos limites de segurança. Para o SG90, os pulsos comuns são 500 e 2400 µs.</p>
+                    <div class="flex gap-2 mt-3"><button id="sl-c-salvar" class="sep-btn azul sl-ctl" type="button">Salvar calibração</button></div>
+
+                    <h3 class="sep-h3" style="margin-top:16px">Presets</h3>
+                    <div class="flex gap-2 items-end">
+                        <label class="sep-campo" style="margin:0;flex:1">Nome do preset<input id="sl-p-nome" type="text" maxlength="30" placeholder="Ex.: Desvio leve" class="sl-ctl"></label>
+                        <button id="sl-p-salvar" class="sep-btn sl-edit" type="button">Salvar atual</button>
+                    </div>
+                    <div id="sl-p-lista" class="flex flex-col gap-2 mt-3"></div>
+                </div>
+            </details>
+
+            <details class="sep-det" style="margin-top:12px">
+                <summary>Sequências</summary>
+                <div class="sep-corpo">
+                    <div id="sl-s-passos" class="flex flex-col gap-2"></div>
+                    <button id="sl-s-add" class="sep-btn sl-edit mt-2" type="button">+ Passo</button>
+                    <div class="sep-grade dois">
+                        <label class="sep-campo">Nome<input id="sl-s-nome" type="text" maxlength="30" placeholder="Ex.: Teste mecânico" class="sl-edit"></label>
+                        <label class="sep-campo">Repetir (0 = até parar)<input id="sl-s-rep" type="number" min="0" max="100" value="1" class="sl-edit"></label>
+                    </div>
+                    <div class="flex gap-2 mt-3 flex-wrap">
+                        <button id="sl-s-exec" class="sep-btn azul sl-ctl" type="button">Executar</button>
+                        <button id="sl-s-parar" class="sep-btn verm sl-ctl" type="button">Parar</button>
+                        <button id="sl-s-salvar" class="sep-btn sl-edit" type="button">Salvar</button>
+                    </div>
+                    <p id="sl-s-estado" class="sep-dica"></p>
+                    <div id="sl-s-lista" class="flex flex-col gap-2 mt-3"></div>
+                </div>
+            </details>
+        </div>
+    </details>
+
     <!-- servo -->
     <details class="sep-det sep-admin sep-oculto" id="sep-det-servo">
         <summary>3 · Servo separador</summary>
@@ -423,12 +515,129 @@
     ouvir('separador_treino_amostra', (a) => { if (a && a.classe) toast('Exemplo gravado: ' + a.classe + (a.restante > 0 ? ' (faltam ' + a.restante + ')' : '')); });
     ouvir('visao_produto_contado', () => carregarContagem());
 
+
+    // servo livre
+    let sl = null;
+    let slBloqueio = '';
+    let slPassos = [{ angulo: 45, velocidade: 60, esperaMs: 500 }, { angulo: 135, velocidade: 60, esperaMs: 500 }, { angulo: 90, velocidade: 60, esperaMs: 0 }];
+    const somenteVer = !!window.__somenteLeitura;
+    function slAplicarBloqueio() {
+        let motivo = '';
+        if (somenteVer) motivo = 'Somente visualização: você pode ver o servo, mas não mexer.';
+        else if (window.EmergenciaGlobal && window.EmergenciaGlobal.ativa) motivo = 'Emergência ativa: o servo está travado. Libere no botão DESBLOQUEAR.';
+        else if (sl && !sl.online) motivo = 'Servo desconectado (ESP32 do separador sem sinal).';
+        slBloqueio = motivo;
+        document.querySelectorAll('.sl-ctl').forEach(e => { e.disabled = !!motivo; e.style.opacity = motivo ? '.5' : ''; });
+        document.querySelectorAll('.sl-edit').forEach(e => { e.disabled = somenteVer; e.style.opacity = somenteVer ? '.5' : ''; });
+        ['sl-modo-auto', 'sl-modo-manual'].forEach(id => { el(id).disabled = !!(somenteVer || (window.EmergenciaGlobal && window.EmergenciaGlobal.ativa)); });
+        const b = el('sl-bloqueio'); b.textContent = motivo; b.classList.toggle('sep-oculto', !motivo);
+    }
+    function slAtualizarEstado() {
+        if (!sl) return;
+        const e = sl.estado;
+        el('sl-estado').textContent = sl.online ? ('Servo conectado' + (e && typeof e.angulo === 'number' ? ' · agora em ' + Math.round(e.angulo) + '°' : '')) : 'Servo desconectado.';
+        if (e && typeof e.angulo === 'number' && document.activeElement !== el('sl-ang')) { el('sl-ang').value = Math.round(e.angulo); el('sl-ang-v').textContent = Math.round(e.angulo) + '°'; }
+        const manual = sl.modo === 'manual';
+        el('sl-modo-auto').className = 'sep-btn' + (manual ? '' : ' azul'); el('sl-modo-manual').className = 'sep-btn' + (manual ? ' azul' : '');
+        el('sl-modo-auto').setAttribute('aria-pressed', String(!manual)); el('sl-modo-manual').setAttribute('aria-pressed', String(manual));
+        const camOff = !servo || !document.getElementById('sep-led-cam') || !document.getElementById('sep-led-cam').classList.contains('on');
+        el('sl-modo-dica').textContent = manual ? 'Manual: só você comanda; a câmera não mexe no servo.' : ('Automático: a câmera decide.' + (camOff ? ' (Câmera desligada: nada será desviado sozinho.)' : ''));
+        slAplicarBloqueio();
+    }
+    function slPreencherCalibracao() {
+        if (!sl) return; const c = sl.calibracao;
+        const pc = (id, v) => { if (document.activeElement !== el(id)) el(id).value = v; };
+        pc('sl-c-esq', c.anguloEsq); pc('sl-c-cen', c.anguloCentro); pc('sl-c-dir', c.anguloDir); pc('sl-c-min', c.limMin); pc('sl-c-max', c.limMax); pc('sl-c-pmin', c.pulsoMin); pc('sl-c-pmax', c.pulsoMax);
+        el('sl-c-inv').checked = !!c.inverterServo; el('sl-voltar').checked = !!c.voltarAuto;
+        if (document.activeElement !== el('sl-tempo')) el('sl-tempo').value = (c.tempoAbertoMs / 1000).toFixed(1);
+        if (document.activeElement !== el('sl-vel')) { el('sl-vel').value = c.velocidadeServo; el('sl-vel-v').textContent = c.velocidadeServo + '%'; }
+        el('sl-ang').min = c.limMin; el('sl-ang').max = c.limMax; el('sl-ang-num').min = c.limMin; el('sl-ang-num').max = c.limMax;
+    }
+    function slRenderListas() {
+        if (!sl) return;
+        el('sl-p-lista').innerHTML = sl.presets.length ? sl.presets.map(p => '<div class="sep-evento"><div style="flex:1;min-width:0"><b>' + esc(p.nome) + '</b><div class="sep-dica" style="margin:0">' + p.anguloEsq + '° / ' + p.anguloCentro + '° / ' + p.anguloDir + '° · vel ' + p.velocidadeServo + '% · ' + (p.tempoAbertoMs / 1000).toFixed(1) + ' s</div></div><button class="sep-btn sl-ctl" data-pa="' + esc(p.nome) + '" type="button">Aplicar</button><button class="sep-btn verm sl-edit" data-pd="' + esc(p.nome) + '" type="button">Apagar</button></div>').join('') : '<p class="sep-dica">Nenhum preset salvo.</p>';
+        el('sl-s-lista').innerHTML = sl.sequencias.length ? sl.sequencias.map(q => '<div class="sep-evento"><div style="flex:1;min-width:0"><b>' + esc(q.nome) + '</b><div class="sep-dica" style="margin:0">' + q.passos.length + ' passos · repetir ' + (q.repetir === 0 ? 'até parar' : q.repetir + 'x') + '</div></div><button class="sep-btn sl-edit" data-sc="' + esc(q.nome) + '" type="button">Carregar</button><button class="sep-btn verm sl-edit" data-sd="' + esc(q.nome) + '" type="button">Apagar</button></div>').join('') : '<p class="sep-dica">Nenhuma sequência salva.</p>';
+        slAplicarBloqueio();
+    }
+    function slRenderPassos() {
+        el('sl-s-passos').innerHTML = slPassos.map((p, i) => '<div class="flex gap-1 items-end flex-wrap"><span class="sep-tag cinza" style="margin-bottom:10px">' + (i + 1) + '</span>' +
+            '<label class="sep-campo" style="margin:0;flex:1;min-width:70px">Ângulo<input type="number" min="0" max="180" value="' + p.angulo + '" data-pi="' + i + '" data-pc="angulo" class="sl-edit"></label>' +
+            '<label class="sep-campo" style="margin:0;flex:1;min-width:70px">Velocidade<input type="number" min="1" max="100" value="' + p.velocidade + '" data-pi="' + i + '" data-pc="velocidade" class="sl-edit"></label>' +
+            '<label class="sep-campo" style="margin:0;flex:1;min-width:80px">Espera (ms)<input type="number" min="0" max="30000" step="100" value="' + p.esperaMs + '" data-pi="' + i + '" data-pc="esperaMs" class="sl-edit"></label>' +
+            '<button class="sep-btn verm sl-edit" data-px="' + i + '" type="button" aria-label="Remover passo ' + (i + 1) + '">×</button></div>').join('');
+        slAplicarBloqueio();
+    }
+    async function slCarregar() { const r = await api('/api/separador/servo'); if (r.ok) { sl = r.dados; slAtualizarEstado(); slPreencherCalibracao(); slRenderListas(); slSeq(sl.sequencia); } }
+    function slSeq(q) {
+        if (!q) return;
+        el('sl-s-estado').textContent = q.rodando ? ('Rodando "' + q.nome + '": passo ' + q.passo + ' de ' + q.total + (q.repetir === 0 ? ' (repetindo até parar)' : ' · volta ' + q.repeticao + ' de ' + q.repetir)) : '';
+    }
+    async function slAcao(url, corpo, ok, metodo) {
+        const r = await api(url, metodo || 'POST', corpo || {});
+        if (!r.ok) { toast(r.dados.erro || 'Não foi possível.', 'erro'); if (r.dados.erro && /Emerg/.test(r.dados.erro)) slAplicarBloqueio(); return r; }
+        if (ok) toast(ok);
+        return r;
+    }
+    // envia no máximo ~10 por segundo ao arrastar
+    let slUltimoEnvio = 0, slTimerEnvio = null;
+    function slEnviarAngulo(valor) {
+        const enviar = () => { slUltimoEnvio = Date.now(); slTimerEnvio = null; api('/api/separador/servo/angulo', 'POST', { angulo: Number(valor), velocidade: Number(el('sl-vel').value) }).then(r => { if (!r.ok && r.dados.erro && !/Devagar/.test(r.dados.erro)) toast(r.dados.erro, 'erro'); }); };
+        const falta = 100 - (Date.now() - slUltimoEnvio);
+        if (slTimerEnvio) clearTimeout(slTimerEnvio);
+        if (falta <= 0) enviar(); else slTimerEnvio = setTimeout(enviar, falta);
+    }
+    function slLerCalibracao() {
+        return { anguloEsq: Number(el('sl-c-esq').value), anguloCentro: Number(el('sl-c-cen').value), anguloDir: Number(el('sl-c-dir').value), limMin: Number(el('sl-c-min').value), limMax: Number(el('sl-c-max').value),
+            pulsoMin: Number(el('sl-c-pmin').value), pulsoMax: Number(el('sl-c-pmax').value), inverterServo: el('sl-c-inv').checked, voltarAuto: el('sl-voltar').checked,
+            tempoAbertoMs: Math.round(Number(el('sl-tempo').value) * 1000), velocidadeServo: Number(el('sl-vel').value) };
+    }
+    async function slSalvarCalibracao(ok) { const r = await slAcao('/api/separador/servo/calibracao', slLerCalibracao(), ok); if (r.ok) slCarregar(); return r; }
+
+    el('sl-esq').addEventListener('click', () => slAcao('/api/separador/servo/lado', { lado: 'E' }));
+    el('sl-cen').addEventListener('click', () => slAcao('/api/separador/servo/lado', { lado: 'C' }));
+    el('sl-dir').addEventListener('click', () => slAcao('/api/separador/servo/lado', { lado: 'D' }));
+    el('sl-ang').addEventListener('input', () => { el('sl-ang-v').textContent = el('sl-ang').value + '°'; el('sl-ang-num').value = el('sl-ang').value; slEnviarAngulo(el('sl-ang').value); });
+    el('sl-ir').addEventListener('click', () => { const v = Number(el('sl-ang-num').value); el('sl-ang').value = v; el('sl-ang-v').textContent = v + '°'; slAcao('/api/separador/servo/angulo', { angulo: v, velocidade: Number(el('sl-vel').value) }); });
+    el('sl-ang-num').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') el('sl-ir').click(); });
+    el('sl-vel').addEventListener('input', () => { el('sl-vel-v').textContent = el('sl-vel').value + '%'; });
+    el('sl-vel').addEventListener('change', () => slSalvarCalibracao());
+    el('sl-voltar').addEventListener('change', () => slSalvarCalibracao());
+    el('sl-tempo').addEventListener('change', () => slSalvarCalibracao());
+    el('sl-parar').addEventListener('click', () => slAcao('/api/separador/servo/parar'));
+    el('sl-modo-auto').addEventListener('click', async () => { const r = await slAcao('/api/separador/servo/modo', { modo: 'auto' }); if (r.ok) { sl.modo = 'auto'; slAtualizarEstado(); } });
+    el('sl-modo-manual').addEventListener('click', async () => { const r = await slAcao('/api/separador/servo/modo', { modo: 'manual' }); if (r.ok) { sl.modo = 'manual'; slAtualizarEstado(); } });
+    el('sl-sim-e').addEventListener('click', () => slAcao('/api/separador/servo/simular', { lado: 'E' }, 'Detecção simulada: esquerda.'));
+    el('sl-sim-d').addEventListener('click', () => slAcao('/api/separador/servo/simular', { lado: 'D' }, 'Detecção simulada: direita.'));
+    el('sl-c-salvar').addEventListener('click', () => slSalvarCalibracao('Calibração salva.'));
+    el('sl-p-salvar').addEventListener('click', async () => { const r = await slAcao('/api/separador/servo/preset', { nome: el('sl-p-nome').value }, 'Preset salvo.'); if (r.ok) { el('sl-p-nome').value = ''; slCarregar(); } });
+    el('sl-p-lista').addEventListener('click', async (ev) => {
+        const a = ev.target.closest('[data-pa]'), d = ev.target.closest('[data-pd]');
+        if (a) { const r = await slAcao('/api/separador/servo/preset/aplicar', { nome: a.dataset.pa }, 'Preset aplicado.'); if (r.ok) slCarregar(); }
+        if (d && confirm('Apagar o preset "' + d.dataset.pd + '"?')) { const r = await slAcao('/api/separador/servo/preset/' + encodeURIComponent(d.dataset.pd), null, 'Preset apagado.', 'DELETE'); if (r.ok) slCarregar(); }
+    });
+    el('sl-s-add').addEventListener('click', () => { if (slPassos.length < 30) { slPassos.push({ angulo: 90, velocidade: 60, esperaMs: 500 }); slRenderPassos(); } });
+    el('sl-s-passos').addEventListener('change', (ev) => { const i = ev.target.dataset.pi; if (i !== undefined) slPassos[i][ev.target.dataset.pc] = Number(ev.target.value); });
+    el('sl-s-passos').addEventListener('click', (ev) => { const x = ev.target.closest('[data-px]'); if (x && slPassos.length > 1) { slPassos.splice(Number(x.dataset.px), 1); slRenderPassos(); } });
+    el('sl-s-exec').addEventListener('click', () => slAcao('/api/separador/servo/sequencia/executar', { nome: el('sl-s-nome').value || undefined, passos: slPassos, repetir: Number(el('sl-s-rep').value) }));
+    el('sl-s-parar').addEventListener('click', () => slAcao('/api/separador/servo/sequencia/parar'));
+    el('sl-s-salvar').addEventListener('click', async () => { const r = await slAcao('/api/separador/servo/sequencia', { nome: el('sl-s-nome').value, passos: slPassos, repetir: Number(el('sl-s-rep').value) }, 'Sequência salva.'); if (r.ok) slCarregar(); });
+    el('sl-s-lista').addEventListener('click', async (ev) => {
+        const c = ev.target.closest('[data-sc]'), d = ev.target.closest('[data-sd]');
+        if (c) { const q = sl.sequencias.find(x => x.nome === c.dataset.sc); if (q) { slPassos = q.passos.map(p => Object.assign({}, p)); el('sl-s-nome').value = q.nome; el('sl-s-rep').value = q.repetir; slRenderPassos(); } }
+        if (d && confirm('Apagar a sequência "' + d.dataset.sd + '"?')) { const r = await slAcao('/api/separador/servo/sequencia/' + encodeURIComponent(d.dataset.sd), null, 'Sequência apagada.', 'DELETE'); if (r.ok) slCarregar(); }
+    });
+    ouvir('servo_sequencia', (q) => { if (sl) sl.sequencia = q; slSeq(q); });
+    ouvir('servo_modo', (m) => { if (sl) { sl.modo = m.modo; slAtualizarEstado(); } });
+    ouvir('separador_servo', (s) => { if (sl) { sl.online = s.online; sl.estado = s.estado; slAtualizarEstado(); } });
+    slRenderPassos(); slCarregar();
+    const slSair = window.EmergenciaGlobal ? window.EmergenciaGlobal.assinar(() => slAplicarBloqueio()) : () => {};
+
     desenhar(); atualizarMedidor(); carregar(); carregarContagem();
     const timer = setInterval(carregarContagem, 15000);
 
     window.__cleanupPagina = function () {
         ouvintes.forEach(([evento, funcao]) => globalSocket.off(evento, funcao));
-        clearInterval(timer);
+        clearInterval(timer); clearTimeout(slTimerEnvio); slSair();
     };
 })();
 </script>
