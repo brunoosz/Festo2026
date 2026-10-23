@@ -107,9 +107,9 @@ const { iniciar } = require('../mock_mqtt');
         gravado.length = 0; r = await enviar('/api/receitas/aplicar', dono, { indice: 1 }); assert.strictEqual(r.status, 200); await esperar(400);
         assert.ok(gravado.some(x => x.startsWith('esteira/velocidade/set'))); ok('depois de liberar, tudo volta a funcionar');
 
-        console.log('5) A esteira lembra da trava mesmo se o site perdeu');
+        console.log('5) Estado antigo da esteira nao liga a emergencia');
         esp.publish('esteira/estado_emergencia', 'ativa'); await esperar(600);
-        e = (await get('/api/emergencia', dono)).json; assert.strictEqual(e.ativa, true); ok('a esteira avisa que esta travada e o site trava junto');
+        e = (await get('/api/emergencia', dono)).json; assert.strictEqual(e.ativa, false); ok('a esteira avisa "ativa" com o site liberado: o site NAO trava (so reenvia a liberacao)');
         await enviar('/api/emergencia/liberar', dono); await esperar(300);
 
         esp.end(true);

@@ -16,7 +16,7 @@ const ctx = {
     emergenciaGlobal: { ativa: false },
     nfcJanelaAberta: () => false,
     receitasAplicar: (i, o) => { aplicadas.push(`${i}:${o}`); ctx.receitas.atual = i; return true; },
-    salvarLogNoArquivoDoDia: () => {}, horaAtualCurta: () => '00:00:00', io: { emit: () => {} }, mqttClient: { publish: (t, v) => publicados.push(t + ' ' + v) },
+    salvarLogNoArquivoDoDia: () => {}, horaAtualCurta: () => '00:00:00', io: { emit: () => {} }, comOrigemEmergencia: (o, f) => f(), mqttClient: { publish: (t, v) => publicados.push(t + ' ' + v) },
     MOTORES_SELAGEM: {}, ultimoEstadoSelagem: {}, ultimoEstadoSelagem2: {}, ultimaVelocidadeConhecida: '0.00'
 };
 for (const m of src.matchAll(/const (MQTT_TOPIC_[A-Z0-9_]+)\s*=\s*'([^']+)'/g)) ctx[m[1]] = m[2];   // tópicos

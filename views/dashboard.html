@@ -187,7 +187,7 @@
         globalSocket.emit('novo_log', { hora: hora, texto: mensagem, tipo: tipo });
     }
 
-    let emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
+    let emEmergencia = !!(window.EmergenciaGlobal && window.EmergenciaGlobal.ativa);
 
     function motorEstaRodando() { return parseFloat(sliderVelocidade.value) > 0; }
 
@@ -390,10 +390,12 @@
         ledEmerg.className = "w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0";
         sincronizarTodasSelagens();
     }
-    if (emEmergencia) aplicarTravaEmergencia();
+    // estado vem do servidor
+    const sairEmergencia = window.EmergenciaGlobal.assinar((ativa) => {
+        emEmergencia = ativa;
+        if (ativa) aplicarTravaEmergencia(); else removerTravaEmergencia();
+    });
 
-    function handlerEmergenciaLocal() { emEmergencia = !emEmergencia; if (emEmergencia) aplicarTravaEmergencia(); else removerTravaEmergencia(); }
-    btnEmergenciaGlobal.addEventListener('click', handlerEmergenciaLocal);
 
     function handlerIniciar() {
         if (!podeControlarEsteira()) return;
@@ -437,7 +439,7 @@
 
     function handlerAtualizarVelocidade(data) {
         if (emEmergencia) return;
-        if (data.velocidade === "EMERGENCIA") { if (!emEmergencia) btnEmergenciaGlobal.click(); }
+        if (data.velocidade === "EMERGENCIA") { /* só o servidor decide */ }
         else if (!sliderVelocidadeSendoArrastado) {
             let vel = parseFloat(data.velocidade);
             let pct = Math.round(vel * 100);
@@ -484,7 +486,7 @@
     }
 
     window.__cleanupPagina = function() {
-        btnEmergenciaGlobal.removeEventListener('click', handlerEmergenciaLocal);
+        sairEmergencia();
         btnIniciar.removeEventListener('click', handlerIniciar);
         btnParar.removeEventListener('click', handlerParar);
         sliderVelocidade.removeEventListener('change', handlerSliderChange);

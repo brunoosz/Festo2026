@@ -251,7 +251,8 @@ void emergencia(const char* origem) {
 
 void liberarEmergencia(const char* origem) {
 
-  if (!emergenciaTravada) return;
+  // já livre: só confirma ao site
+  if (!emergenciaTravada) { publicarEstadoEmergencia(); return; }
 
   emergenciaTravada = false;
   memoria.putBool("emerg", false);
