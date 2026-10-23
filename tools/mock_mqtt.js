@@ -20,12 +20,12 @@ function placasDeMentira() {
     const c = mqtt.connect(`mqtt://127.0.0.1:${PORTA}`);
     let velocidade = '0.00';
     let setpoint1 = 0, setpoint2 = 0, ligada1 = false, ligada2 = false, temp1 = 25, temp2 = 25;
-    let servo = { lado: 'C', fila: 0, angulos: { E: 45, C: 90, D: 135 } };
+    let servo = { lado: 'C', fila: 0, angulos: { E: 45, C: 90, D: 135 }, angulo: 90, alvo: 90, vel: 60 };
     let voltaAoCentro = null;
     const pub = (t, v) => c.publish(t, typeof v === 'string' ? v : JSON.stringify(v));
 
     c.on('connect', () => {
-        c.subscribe(['esteira/velocidade/set', 'selagem/set_temperatura', 'selagem/ativar', 'selagem2/set_temperatura', 'selagem2/ativar', 'separador/teste', 'separador/config', 'nfc/resultado', 'painel/resultado']);
+        c.subscribe(['esteira/velocidade/set', 'selagem/set_temperatura', 'selagem/ativar', 'selagem2/set_temperatura', 'selagem2/ativar', 'separador/teste', 'separador/config', 'separador/servo/angulo', 'separador/servo/parar', 'separador/desviar', 'nfc/resultado', 'painel/resultado']);
         console.log('Placas de mentira ligadas: esteira, selagem 1, selagem 2, dispenser, servo do separador, painel NFC');
         console.log('Painel NFC de mentira: digite aqui  cartao <NUMERO-HEX>  |  mais  |  menos  |  emergencia  (ex.: cartao A1B2C3D4)');
     });
@@ -40,10 +40,24 @@ function placasDeMentira() {
         if (t === 'selagem2/ativar') ligada2 = v === '1';
         if (t === 'separador/config') { try { const j = JSON.parse(v); servo.angulos = { E: j.esq, C: j.centro, D: j.dir }; } catch (e) {} }
         if (t === 'separador/teste' && servo.angulos[v] !== undefined) {
-            servo.lado = v; clearTimeout(voltaAoCentro);
-            if (v !== 'C') voltaAoCentro = setTimeout(() => { servo.lado = 'C'; }, 1500);
+            servo.lado = v; servo.alvo = servo.angulos[v]; clearTimeout(voltaAoCentro);
+            if (v !== 'C') voltaAoCentro = setTimeout(() => { servo.lado = 'C'; servo.alvo = servo.angulos.C; }, 1500);
+        }
+        // servo livre
+        if (t === 'separador/servo/angulo') {
+            try { const j = JSON.parse(v); servo.alvo = j.a; servo.vel = j.v || servo.vel; servo.lado = 'M'; clearTimeout(voltaAoCentro); if (j.h > 0) voltaAoCentro = setTimeout(() => { servo.lado = 'C'; servo.alvo = servo.angulos.C; }, j.h); } catch (e) {}
+        }
+        if (t === 'separador/servo/parar') { servo.alvo = servo.angulo; clearTimeout(voltaAoCentro); }
+        if (t === 'separador/desviar') {
+            const [lado, atraso, aberto] = v.split(';');
+            setTimeout(() => { servo.lado = lado; servo.alvo = servo.angulos[lado]; clearTimeout(voltaAoCentro); voltaAoCentro = setTimeout(() => { servo.lado = 'C'; servo.alvo = servo.angulos.C; }, Number(aberto) || 900); }, Number(atraso) || 0);
         }
     });
+
+    setInterval(() => {
+        const passo = 0.15 + (servo.vel - 1) * 5.85 / 99;
+        servo.angulo += Math.max(-passo * 10, Math.min(passo * 10, servo.alvo - servo.angulo));
+    }, 100);
 
     setInterval(() => {
         temp1 += ((ligada1 ? setpoint1 : 25) - temp1) * 0.1;
@@ -60,7 +74,7 @@ function placasDeMentira() {
         pub('dispenser/status', 'online');
         pub('nfc/status', 'online');
         pub('separador/status', 'online');
-        pub('separador/estado', { lado: servo.lado, angulo: servo.angulos[servo.lado], fila: servo.fila });
+        pub('separador/estado', { lado: servo.lado, angulo: +servo.angulo.toFixed(1), fila: servo.fila });
         pub('dispenser/estado', { m1: { ocupado: false, restantes: 0 }, m2: { ocupado: false, restantes: 0 } });
     }, 1000);
 

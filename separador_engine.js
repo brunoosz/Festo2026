@@ -30,6 +30,13 @@ const PADRAO = {
     anguloCentro: 90,
     anguloDir: 135,
     velocidadeServo: 60,
+    modoServo: 'auto',       // auto ou manual
+    limMin: 0,               // limite mínimo
+    limMax: 180,             // limite máximo
+    pulsoMin: 500,           // pulso mínimo
+    pulsoMax: 2400,          // pulso máximo
+    inverterServo: false,
+    voltarAuto: true,        // volta ao centro
     ladoPorClasse: {},       // exemplo de classe
     ladoDesconhecido: 'C'    // lado
 };
@@ -87,6 +94,13 @@ function criarMotorSeparador(opcoes) {
         if (p.anguloCentro !== undefined) c.anguloCentro = Math.round(limitar(p.anguloCentro, 0, 180, c.anguloCentro));
         if (p.anguloDir !== undefined) c.anguloDir = Math.round(limitar(p.anguloDir, 0, 180, c.anguloDir));
         if (p.velocidadeServo !== undefined) c.velocidadeServo = Math.round(limitar(p.velocidadeServo, 1, 100, c.velocidadeServo));
+        if (p.modoServo !== undefined) c.modoServo = (p.modoServo === 'manual') ? 'manual' : 'auto';
+        if (p.limMin !== undefined) c.limMin = Math.round(limitar(p.limMin, 0, 170, c.limMin));
+        if (p.limMax !== undefined) c.limMax = Math.round(limitar(p.limMax, 10, 180, c.limMax));
+        if (p.pulsoMin !== undefined) c.pulsoMin = Math.round(limitar(p.pulsoMin, 400, 1500, c.pulsoMin));
+        if (p.pulsoMax !== undefined) c.pulsoMax = Math.round(limitar(p.pulsoMax, 1500, 2600, c.pulsoMax));
+        if (p.inverterServo !== undefined) c.inverterServo = !!p.inverterServo;
+        if (p.voltarAuto !== undefined) c.voltarAuto = !!p.voltarAuto;
         if (p.ladoDesconhecido !== undefined) c.ladoDesconhecido = validarLado(p.ladoDesconhecido, c.ladoDesconhecido);
         if (p.ladoPorClasse && typeof p.ladoPorClasse === 'object') {
             Object.keys(p.ladoPorClasse).slice(0, 30).forEach(nome => {

@@ -14,6 +14,9 @@ process.env.RECEITAS_JSON = process.env.RECEITAS_JSON || path.join(pasta, 'recei
 
 process.env.CARTOES_NFC_JSON = process.env.CARTOES_NFC_JSON || path.join(pasta, 'cartoes_nfc.json');
 
+process.env.SERVO_LIVRE_JSON = process.env.SERVO_LIVRE_JSON || path.join(pasta, 'servo_livre.json');
+process.env.SEPARADOR_DADOS_DIR = process.env.SEPARADOR_DADOS_DIR || pasta;
+
 if (!fs.existsSync(process.env.USUARIOS_JSON)) criarUsuariosTeste(process.env.USUARIOS_JSON);
 
 console.log('MODO DE TESTE: dados em data-teste/ (o usuarios.json real nao e usado)');
