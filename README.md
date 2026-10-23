@@ -311,9 +311,7 @@ Os manuais em PDF ficam em [`manuais/`](manuais) e também podem ser baixados pe
 | Selagem 2 | [`Manual_Selagem2_FlowPack.pdf`](manuais/Manual_Selagem2_FlowPack.pdf) |
 | Cartão NFC e acesso | [`Manual_NFC_FlowPack.pdf`](manuais/Manual_NFC_FlowPack.pdf) |
 | Botões e painel | [`Manual_Botoes_Painel_FlowPack.pdf`](manuais/Manual_Botoes_Painel_FlowPack.pdf) |
-| Alexa (comandos de voz) | `Manual_Alexa_FlowPack.pdf` (em breve) |
-
-O manual da Alexa já está cadastrado: enquanto o PDF não existir na pasta, a entrada aparece como "PDF ainda não adicionado".
+| Alexa (comandos de voz) | [`Manual_Alexa_FlowPack.pdf`](manuais/Manual_Alexa_FlowPack.pdf) |
 
 **Como adicionar um manual:** copie o PDF para a pasta `manuais/` com o nome exato acima. Ele passa a abrir sozinho, sem reiniciar o site (a existência do arquivo é conferida a cada acesso).
 Para um manual novo, acrescente uma linha na lista `LISTA_MANUAIS` do `server.js` (id, título, arquivo e descrição).
