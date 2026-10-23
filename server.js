@@ -1959,25 +1959,30 @@ function validarCadeiaAlexa(pem) {
     const principal = certificados[0];
 
     if (!principal.checkHost('echo-api.amazon.com')) throw new Error('certificado nao pertence a Alexa');
-    for (let i = 0; i < certificados.length - 1; i++) {
-        if (!certificados[i].verify(certificados[i + 1].publicKey)) throw new Error('cadeia de certificados quebrada');
-    }
-
     if (!raizesConfiaveis) raizesConfiaveis = tls.rootCertificates.map(r => new X509Certificate(r));
-    const ultimo = certificados[certificados.length - 1];
-    const terminaEmRaiz = raizesConfiaveis.some(raiz => {
+    const confiavel = (c) => raizesConfiaveis.some(raiz => {
         try {
-            return raiz.fingerprint256 === ultimo.fingerprint256
-                || (ultimo.checkIssued(raiz) && ultimo.verify(raiz.publicKey));
+            return raiz.fingerprint256 === c.fingerprint256 || (c.checkIssued(raiz) && c.verify(raiz.publicKey));
         } catch (e) {
             return false;
         }
     });
-    if (!terminaEmRaiz) throw new Error('certificado nao termina numa autoridade confiavel');
+    // basta um certificado da cadeia ser confiável (a Amazon manda um cruzado extra no fim)
+    const agora = Date.now();
+    let ancorado = false;
+    for (let i = 0; i < certificados.length && !ancorado; i++) {
+        if (i > 0) {
+            if (!certificados[i - 1].verify(certificados[i].publicKey)) throw new Error('cadeia de certificados quebrada');
+            if (agora < Date.parse(certificados[i].validFrom) || agora > Date.parse(certificados[i].validTo)) throw new Error('certificado intermediario fora da validade');
+        }
+        ancorado = confiavel(certificados[i]);
+    }
+    if (!ancorado) throw new Error('certificado nao termina numa autoridade confiavel');
     return principal;
 }
 
-async function obterCertificadoAlexa(endereco) {
+async function obterCertificadoAlexa(endereco, baixarDeNovo) {
+    if (baixarDeNovo) { delete cadeiasAlexaValidadas[endereco]; delete certificadosAlexaGuardados[endereco]; }
     if (cadeiasAlexaValidadas[endereco]) return cadeiasAlexaValidadas[endereco];
 
     let pem = certificadosAlexaGuardados[endereco];
@@ -1996,11 +2001,22 @@ async function obterCertificadoAlexa(endereco) {
     return principal;
 }
 
+// certificado guardado velho ou trocado pela Amazon: baixa de novo uma vez
 async function verificarPedidoAlexa(cabecalhos, corpoOriginal, envelope) {
+    try {
+        return await verificarPedidoAlexaUmaVez(cabecalhos, corpoOriginal, envelope, false);
+    } catch (e) {
+        if (/horario do pedido|outra skill|endereco do certificado/.test(e.message)) throw e;
+        console.log('📨 Alexa: ' + e.message + '; baixando o certificado de novo e tentando outra vez.');
+        return await verificarPedidoAlexaUmaVez(cabecalhos, corpoOriginal, envelope, true);
+    }
+}
+
+async function verificarPedidoAlexaUmaVez(cabecalhos, corpoOriginal, envelope, baixarDeNovo) {
     const enderecoCert = cabecalhos['signaturecertchainurl'];
     if (!enderecoCert || !urlCertificadoAlexaValida(enderecoCert)) throw new Error('endereco do certificado invalido');
 
-    const principal = await obterCertificadoAlexa(enderecoCert);
+    const principal = await obterCertificadoAlexa(enderecoCert, baixarDeNovo);
     const agora = Date.now();
     if (agora < Date.parse(principal.validFrom) || agora > Date.parse(principal.validTo)) {
         delete cadeiasAlexaValidadas[enderecoCert];
@@ -4198,3 +4214,6 @@ const PORTA_DO_SITE = parseInt(process.env.PORT, 10) || 5000;
 server.listen(PORTA_DO_SITE, '0.0.0.0', () => {
     console.log(`\n🚀 SISTEMA INDUSTRIAL LIBERADO NA REDE LOCAL (Porta ${PORTA_DO_SITE})\n`);
 });
+
+// ganchos para teste
+module.exports = { skillAlexa, verificarPedidoAlexa, validarCadeiaAlexa };
