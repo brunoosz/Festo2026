@@ -129,7 +129,7 @@ const SL = require('../../servo_livre');
         const [d, mm, a] = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).split(', ')[0].split('/');
         const logs = (await (await fetch(`${B}/api/logs/${a}-${mm}-${d}`, { headers: { Cookie: dono } })).json()).map(l => l.texto).join('\n');
         assert.ok(/Servo movido por dono/.test(logs) && /Servo movido por operario/.test(logs)); ok('o log diz "Servo movido por <usuário>"');
-        clearInterval(batimento); await esperar(9500);
+        clearInterval(batimento); await esperar(11000);
         await livre(); r = await chamar('POST', '/api/separador/servo/angulo', dono, { angulo: 90 }); assert.strictEqual(r.status, 409); ok('com a placa desligada: 409 explicando, sem travar o site');
 
         console.log('8) Firmware');
