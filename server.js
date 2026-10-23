@@ -1120,7 +1120,7 @@ async function cicloPollingVisao() {
 const { criarMotorSeparador } = require('./separador_engine');
 const separadorMotor = criarMotorSeparador({
     Jimp,
-    pastaDados: __dirname,
+    pastaDados: process.env.SEPARADOR_DADOS_DIR || __dirname,
     obterCamera: () => configVisao,
     aoTreino: (info) => io.emit('separador_treino', info)
 });
@@ -1135,6 +1135,7 @@ function separadorPublicarConfig() {
         mqttClient.publish('separador/config', JSON.stringify({
             esq: c.anguloEsq, centro: c.anguloCentro, dir: c.anguloDir, vel: c.velocidadeServo, aberto: c.tempoAbertoMs
         }), { retain: true });
+        mqttClient.publish('separador/servo/config', JSON.stringify({ limMin: c.limMin, limMax: c.limMax, pulsoMin: c.pulsoMin, pulsoMax: c.pulsoMax, inv: c.inverterServo ? 1 : 0 }), { retain: true });
     } catch (e) {}
 }
 
@@ -1184,14 +1185,14 @@ async function separadorTratarFrame(buffer) {
         const lado = separadorLadoPara(ev.classe);
         const cfg = separadorMotor.getConfig();
         let atraso = null;
-        if (cfg.servoAtivo && (lado === 'E' || lado === 'D')) {
+        if (cfg.servoAtivo && cfg.modoServo !== 'manual' && (lado === 'E' || lado === 'D')) {
             atraso = separadorAtrasoMs();
             if (atraso !== null) mqttClient.publish('separador/desviar', lado + ';' + atraso + ';' + cfg.tempoAbertoMs);
         }
 
         const registro = {
             hora: horaAtualCurta(), classe: ev.classe, confianca: ev.confianca, quantidade: ev.quantidade,
-            motivo: ev.motivo, lado: (cfg.servoAtivo && atraso !== null) ? lado : 'C', atrasoMs: atraso, miniatura: ev.miniatura
+            motivo: ev.motivo, lado: (cfg.servoAtivo && cfg.modoServo !== 'manual' && atraso !== null) ? lado : 'C', atrasoMs: atraso, miniatura: ev.miniatura
         };
         separadorRecentes.unshift(registro);
         if (separadorRecentes.length > 20) separadorRecentes.pop();
@@ -2156,7 +2157,7 @@ try { emergenciaGlobal = Object.assign(emergenciaGlobal, JSON.parse(fs.readFileS
 function emergenciaSalvar() { try { fs.writeFileSync(ARQ_EMERGENCIA, JSON.stringify(emergenciaGlobal)); } catch (e) {} }
 
 // comandos bloqueados
-const REGEX_MOVIMENTO = /(\/set$|\/set_temperatura$|\/ativar$|\/dosar$|\/desviar$|\/teste$|resetar_seguranca$)/;
+const REGEX_MOVIMENTO = /(\/set$|\/set_temperatura$|\/ativar$|\/dosar$|\/desviar$|\/teste$|\/servo\/angulo$|resetar_seguranca$)/;
 const mqttPublicarOriginal = mqttClient.publish.bind(mqttClient);
 
 // tempos da liberação
@@ -2198,6 +2199,7 @@ function emergenciaCancelarLiberacao() {
 function emergenciaAtivar(origem) {
     const quem = origem || 'origem desconhecida';
     if (emergenciaGlobal.ativa) { console.log('🚨 Pedido de emergência (' + quem + ') ignorado: já estava ativa.'); return; }
+    if (typeof servoSequenciaParar === 'function') servoSequenciaParar();
     emergenciaCancelarLiberacao();
     emergenciaGlobal = { ativa: true, desde: new Date().toISOString(), origem: quem };
     emergenciaSalvar();
@@ -3545,6 +3547,239 @@ app.post('/api/separador/servo/teste', loginObrigatorio, adminObrigatorio, (req,
     if (!separadorOnline) return res.status(409).json({ erro: 'O servo (ESP32 do separador) esta desconectado.' });
     mqttClient.publish('separador/teste', lado);
     res.json({ sucesso: true });
+});
+
+// servo livre
+const servoLivre = require('./servo_livre');
+const servoArmazem = servoLivre.criarArmazem(process.env.SERVO_LIVRE_JSON ? path.resolve(process.env.SERVO_LIVRE_JSON) : path.join(__dirname, 'servo_livre.json'));
+let servoSeq = { rodando: false, nome: '', passo: 0, total: 0, repeticao: 0, repetir: 1 };
+let servoSeqTimer = null;
+let servoAnguloAlvo = null;
+const servoUltimoLog = {};
+const servoUltimoPedido = {};
+
+function servoLogar(texto) {
+    console.log('🔧 ' + texto);
+    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto, tipo: 'sistema' });
+    try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] ${texto}`); } catch (e) {}
+}
+
+// quem pode mexer: Dono, Adm e Operário
+function servoControleObrigatorio(req, res, next) {
+    if (res.locals.somenteLeitura) return res.status(403).json({ erro: 'Visualizador só pode ver o servo.' });
+    next();
+}
+
+// emergência trava tudo
+function servoLiberadoObrigatorio(req, res, next) {
+    if (emergenciaGlobal.ativa) return res.status(423).json({ erro: 'Emergência ativa: o servo está travado. Libere no botão DESBLOQUEAR.' });
+    next();
+}
+
+// no máximo ~20 pedidos por segundo por usuário
+function servoRitmoObrigatorio(req, res, next) {
+    const u = res.locals.usuarioLogado, agora = Date.now();
+    if (agora - (servoUltimoPedido[u] || 0) < 50) return res.status(429).json({ erro: 'Devagar: muitos comandos seguidos.' });
+    servoUltimoPedido[u] = agora;
+    next();
+}
+
+function servoOnlineObrigatorio(req, res, next) {
+    if (!separadorOnline) return res.status(409).json({ erro: 'O servo (ESP32 do separador) está desconectado.' });
+    next();
+}
+
+// pede movimento ao firmware
+function servoMover(angulo, velocidade, seguraMs) {
+    servoAnguloAlvo = angulo;
+    mqttClient.publish('separador/servo/angulo', JSON.stringify({ a: angulo, v: velocidade, h: seguraMs || 0 }));
+}
+
+function servoLogarMovimento(usuario, texto) {
+    const agora = Date.now();
+    if (agora - (servoUltimoLog[usuario] || 0) < 1500) return;
+    servoUltimoLog[usuario] = agora;
+    servoLogar('Servo movido por ' + usuario + ' (' + texto + ')');
+}
+
+function servoEstadoPublico() {
+    const c = separadorMotor.getConfig();
+    const lista = servoArmazem.listar();
+    return {
+        online: separadorOnline, estado: separadorEstado, cameraOnline: cameraOnline, emergencia: emergenciaGlobal.ativa,
+        modo: c.modoServo, servoAtivo: c.servoAtivo,
+        calibracao: { anguloEsq: c.anguloEsq, anguloCentro: c.anguloCentro, anguloDir: c.anguloDir, limMin: c.limMin, limMax: c.limMax, pulsoMin: c.pulsoMin, pulsoMax: c.pulsoMax, inverterServo: c.inverterServo, voltarAuto: c.voltarAuto, tempoAbertoMs: c.tempoAbertoMs, velocidadeServo: c.velocidadeServo },
+        presets: lista.presets, sequencias: lista.sequencias, sequencia: servoSeq
+    };
+}
+
+function servoAvisarSequencia() { io.emit('servo_sequencia', servoSeq); }
+
+// para a sequência na hora
+function servoSequenciaParar() {
+    const estava = servoSeq.rodando;
+    if (servoSeqTimer) { clearTimeout(servoSeqTimer); servoSeqTimer = null; }
+    servoSeq = Object.assign({}, servoSeq, { rodando: false });
+    if (estava) servoAvisarSequencia();
+    return estava;
+}
+
+function servoSequenciaExecutar(nome, passos, repetir, usuario) {
+    servoSequenciaParar();
+    servoSeq = { rodando: true, nome, passo: 0, total: passos.length, repeticao: 1, repetir };
+    servoAvisarSequencia();
+    let i = 0, rep = 1;
+    let atual = (separadorEstado && typeof separadorEstado.angulo === 'number') ? separadorEstado.angulo : separadorMotor.getConfig().anguloCentro;
+    const proximo = () => {
+        servoSeqTimer = null;
+        if (!servoSeq.rodando || emergenciaGlobal.ativa) { servoSequenciaParar(); return; }
+        if (i >= passos.length) {
+            if (repetir !== 0 && rep >= repetir) { servoSequenciaParar(); servoLogar('Sequência "' + nome + '" terminou (' + usuario + ').'); return; }
+            i = 0; rep++;
+        }
+        const p = passos[i];
+        servoSeq = Object.assign({}, servoSeq, { passo: i + 1, repeticao: rep });
+        servoAvisarSequencia();
+        servoMover(p.angulo, p.velocidade, 0);
+        const espera = servoLivre.tempoDeslocamentoMs(atual, p.angulo, p.velocidade) + p.esperaMs + 50;
+        atual = p.angulo; i++;
+        servoSeqTimer = setTimeout(proximo, espera);
+    };
+    proximo();
+}
+
+app.get('/api/separador/servo', loginObrigatorio, (req, res) => res.json(servoEstadoPublico()));
+
+app.post('/api/separador/servo/angulo', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, servoRitmoObrigatorio, servoOnlineObrigatorio, (req, res) => {
+    try {
+        const c = separadorMotor.getConfig(), b = req.body || {};
+        let a = servoLivre.validarAngulo(b.angulo);
+        const v = b.velocidade === undefined ? c.velocidadeServo : servoLivre.validarVelocidade(b.velocidade);
+        a = Math.min(Math.max(a, c.limMin), c.limMax);
+        servoSequenciaParar();
+        servoMover(a, v, 0);
+        servoLogarMovimento(res.locals.usuarioLogado, 'ângulo ' + a + '°');
+        res.json({ sucesso: true, angulo: a, velocidade: v });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+});
+
+app.post('/api/separador/servo/lado', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, servoRitmoObrigatorio, servoOnlineObrigatorio, (req, res) => {
+    const lado = req.body && req.body.lado;
+    if (lado !== 'E' && lado !== 'D' && lado !== 'C') return res.status(400).json({ erro: 'Lado inválido.' });
+    const c = separadorMotor.getConfig();
+    const a = lado === 'E' ? c.anguloEsq : (lado === 'D' ? c.anguloDir : c.anguloCentro);
+    servoSequenciaParar();
+    servoMover(a, c.velocidadeServo, (lado !== 'C' && c.voltarAuto) ? c.tempoAbertoMs : 0);
+    servoLogarMovimento(res.locals.usuarioLogado, { E: 'esquerda', D: 'direita', C: 'centro' }[lado]);
+    res.json({ sucesso: true, angulo: a });
+});
+
+app.post('/api/separador/servo/parar', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, (req, res) => {
+    servoSequenciaParar();
+    mqttClient.publish('separador/servo/parar', '1');
+    servoLogar('Servo parado por ' + res.locals.usuarioLogado);
+    res.json({ sucesso: true });
+});
+
+app.post('/api/separador/servo/modo', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, (req, res) => {
+    const modo = req.body && req.body.modo;
+    if (modo !== 'auto' && modo !== 'manual') return res.status(400).json({ erro: 'Modo inválido (use auto ou manual).' });
+    separadorMotor.setConfig({ modoServo: modo });
+    servoLogar('Modo do servo: ' + (modo === 'manual' ? 'MANUAL' : 'AUTOMÁTICO') + ' (por ' + res.locals.usuarioLogado + ')');
+    io.emit('servo_modo', { modo });
+    res.json({ sucesso: true, modo });
+});
+
+app.post('/api/separador/servo/calibracao', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, (req, res) => {
+    try {
+        const prox = servoLivre.validarCalibracao(req.body, separadorMotor.getConfig());
+        separadorMotor.setConfig(prox);
+        separadorPublicarConfig();
+        servoLogar('Calibração do servo alterada por ' + res.locals.usuarioLogado);
+        res.json({ sucesso: true, calibracao: servoEstadoPublico().calibracao });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+});
+
+app.post('/api/separador/servo/preset', loginObrigatorio, servoControleObrigatorio, (req, res) => {
+    try {
+        const p = servoArmazem.salvarPreset(req.body && req.body.nome, separadorMotor.getConfig());
+        servoLogar('Preset "' + p.nome + '" salvo por ' + res.locals.usuarioLogado);
+        res.json({ sucesso: true, preset: p, presets: servoArmazem.listar().presets });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+});
+
+app.post('/api/separador/servo/preset/aplicar', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, (req, res) => {
+    try {
+        const p = servoArmazem.pegarPreset(req.body && req.body.nome);
+        if (!p) return res.status(404).json({ erro: 'Preset não encontrado.' });
+        const prox = servoLivre.validarCalibracao(p, separadorMotor.getConfig());
+        separadorMotor.setConfig(prox);
+        separadorPublicarConfig();
+        servoLogar('Preset "' + p.nome + '" aplicado por ' + res.locals.usuarioLogado);
+        res.json({ sucesso: true, calibracao: servoEstadoPublico().calibracao });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+});
+
+app.delete('/api/separador/servo/preset/:nome', loginObrigatorio, servoControleObrigatorio, (req, res) => {
+    if (!servoArmazem.apagarPreset(req.params.nome)) return res.status(404).json({ erro: 'Preset não encontrado.' });
+    servoLogar('Preset "' + req.params.nome + '" apagado por ' + res.locals.usuarioLogado);
+    res.json({ sucesso: true, presets: servoArmazem.listar().presets });
+});
+
+app.post('/api/separador/servo/sequencia', loginObrigatorio, servoControleObrigatorio, (req, res) => {
+    try {
+        const s = servoArmazem.salvarSequencia(req.body && req.body.nome, req.body && req.body.passos, req.body && req.body.repetir);
+        servoLogar('Sequência "' + s.nome + '" salva por ' + res.locals.usuarioLogado);
+        res.json({ sucesso: true, sequencia: s, sequencias: servoArmazem.listar().sequencias });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+});
+
+app.delete('/api/separador/servo/sequencia/:nome', loginObrigatorio, servoControleObrigatorio, (req, res) => {
+    if (!servoArmazem.apagarSequencia(req.params.nome)) return res.status(404).json({ erro: 'Sequência não encontrada.' });
+    servoLogar('Sequência "' + req.params.nome + '" apagada por ' + res.locals.usuarioLogado);
+    res.json({ sucesso: true, sequencias: servoArmazem.listar().sequencias });
+});
+
+app.post('/api/separador/servo/sequencia/executar', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, servoOnlineObrigatorio, (req, res) => {
+    try {
+        const b = req.body || {};
+        let nome, passos, repetir;
+        if (b.nome && !b.passos) {
+            const s = servoArmazem.pegarSequencia(b.nome);
+            if (!s) return res.status(404).json({ erro: 'Sequência não encontrada.' });
+            nome = s.nome; passos = s.passos; repetir = b.repetir === undefined ? s.repetir : servoLivre.validarRepeticoes(b.repetir);
+        } else {
+            nome = b.nome ? servoLivre.validarNome(b.nome) : 'rascunho'; passos = servoLivre.validarPassos(b.passos); repetir = servoLivre.validarRepeticoes(b.repetir);
+        }
+        const c = separadorMotor.getConfig();
+        passos = passos.map(p => Object.assign({}, p, { angulo: Math.min(Math.max(p.angulo, c.limMin), c.limMax) }));
+        servoLogar('Sequência "' + nome + '" executada por ' + res.locals.usuarioLogado + (repetir === 0 ? ' (até parar)' : ' (' + repetir + 'x)'));
+        servoSequenciaExecutar(nome, passos, repetir, res.locals.usuarioLogado);
+        res.json({ sucesso: true, sequencia: servoSeq });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+});
+
+app.post('/api/separador/servo/sequencia/parar', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, (req, res) => {
+    servoSequenciaParar();
+    mqttClient.publish('separador/servo/parar', '1');
+    servoLogar('Sequência parada por ' + res.locals.usuarioLogado);
+    res.json({ sucesso: true });
+});
+
+// simula detecção: mesmo fluxo do automático (espera, desvia, volta)
+app.post('/api/separador/servo/simular', loginObrigatorio, servoControleObrigatorio, servoLiberadoObrigatorio, servoOnlineObrigatorio, (req, res) => {
+    const lado = req.body && req.body.lado;
+    if (lado !== 'E' && lado !== 'D') return res.status(400).json({ erro: 'Lado inválido (use E ou D).' });
+    const c = separadorMotor.getConfig();
+    let atraso = separadorAtrasoMs();
+    if (atraso === null) atraso = Math.round(c.atrasoBaseMs);
+    servoSequenciaParar();
+    mqttClient.publish('separador/desviar', lado + ';' + atraso + ';' + c.tempoAbertoMs);
+    const registro = { hora: horaAtualCurta(), classe: 'simulado', confianca: 1, quantidade: 1, motivo: 'simulado', lado, atrasoMs: atraso, miniatura: '' };
+    separadorRecentes.unshift(registro); if (separadorRecentes.length > 20) separadorRecentes.pop();
+    io.emit('separador_evento', registro);
+    servoLogar('Detecção simulada (' + (lado === 'E' ? 'esquerda' : 'direita') + ') por ' + res.locals.usuarioLogado);
+    res.json({ sucesso: true, atrasoMs: atraso });
 });
 
 app.post('/api/separador/servo/ref-velocidade', loginObrigatorio, adminObrigatorio, (req, res) => {

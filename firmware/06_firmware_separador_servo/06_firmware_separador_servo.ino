@@ -24,6 +24,9 @@ const char* topic_config      = "separador/config";       // ajustes em JSON
 const char* topic_emergencia  = "separador/emergencia";
 const char* topic_reiniciar   = "separador/reiniciar";
 const char* topic_liberar     = "separador/liberar";      // destravar
+const char* topic_servo_ang   = "separador/servo/angulo";   // {"a":90,"v":60,"h":0}
+const char* topic_servo_cfg   = "separador/servo/config";   // limites e pulsos
+const char* topic_servo_parar = "separador/servo/parar";    // para na hora
 
 unsigned long ultimaTentativaWifi = 0;
 bool wifiEstavaConectado = false;
@@ -37,8 +40,11 @@ unsigned long ultimoEstado = 0;
 
 const int SERVO_FREQ = 50;
 const int SERVO_RES = 14;
-const int SERVO_US_MIN = 500;     // pulso mínimo
-const int SERVO_US_MAX = 2400;    // pulso máximo
+int pulsoMin = 500;               // pulso mínimo (us)
+int pulsoMax = 2400;              // pulso máximo (us)
+int limMin = 0;                   // limite de segurança
+int limMax = 180;
+bool inverter = false;
 
 Preferences memoria;
 
@@ -52,6 +58,7 @@ int angEsq = 45;
 int angCentro = 90;
 int angDir = 135;
 int velocidade = 60;              // velocidade
+int velAtiva = 60;                // velocidade do movimento atual
 unsigned long abertoPadraoMs = 900;
 
 
@@ -59,7 +66,7 @@ unsigned long abertoPadraoMs = 900;
 
 float angulo = 90;                // posição atual
 float alvo = 90;                  // destino
-char ladoAtual = 'C';             // lado do servo
+char ladoAtual = 'C';             // C, E, D ou M (manual)
 unsigned long fimSegurar = 0;
 unsigned long ultimoPasso = 0;
 int ultimoDuty = -1;
@@ -89,10 +96,11 @@ void configurarServo() {
 
 void escreverServo(float graus) {
 
-  if (graus < 0) graus = 0;
-  if (graus > 180) graus = 180;
+  if (graus < limMin) graus = limMin;
+  if (graus > limMax) graus = limMax;
+  if (inverter) graus = 180 - graus;
 
-  float us = SERVO_US_MIN + (graus / 180.0) * (SERVO_US_MAX - SERVO_US_MIN);
+  float us = pulsoMin + (graus / 180.0) * (pulsoMax - pulsoMin);
   int duty = (int)(us * 16384.0 / 20000.0);
 
   if (duty == ultimoDuty && millis() - ultimoEscrito < 500) return;
@@ -107,15 +115,21 @@ void escreverServo(float graus) {
 #endif
 }
 
+int dentroDosLimites(int graus) {
+  if (graus < limMin) return limMin;
+  if (graus > limMax) return limMax;
+  return graus;
+}
+
 int anguloDoLado(char lado) {
-  if (lado == 'E') return angEsq;
-  if (lado == 'D') return angDir;
-  return angCentro;
+  if (lado == 'E') return dentroDosLimites(angEsq);
+  if (lado == 'D') return dentroDosLimites(angDir);
+  return dentroDosLimites(angCentro);
 }
 
 // passo do servo
 float grausPorPasso() {
-  return 0.15 + (velocidade - 1) * (6.0 - 0.15) / 99.0;
+  return 0.15 + (velAtiva - 1) * (6.0 - 0.15) / 99.0;
 }
 
 
@@ -129,12 +143,26 @@ void salvarAjustes() {
   memoria.putInt("aberto", (int)abertoPadraoMs);
 }
 
+void salvarServoConfig() {
+  memoria.putInt("limMin", limMin);
+  memoria.putInt("limMax", limMax);
+  memoria.putInt("pMin", pulsoMin);
+  memoria.putInt("pMax", pulsoMax);
+  memoria.putBool("inv", inverter);
+}
+
 void carregarAjustes() {
   angEsq = memoria.getInt("esq", 45);
   angCentro = memoria.getInt("centro", 90);
   angDir = memoria.getInt("dir", 135);
   velocidade = memoria.getInt("vel", 60);
   abertoPadraoMs = memoria.getInt("aberto", 900);
+  limMin = memoria.getInt("limMin", 0);
+  limMax = memoria.getInt("limMax", 180);
+  pulsoMin = memoria.getInt("pMin", 500);
+  pulsoMax = memoria.getInt("pMax", 2400);
+  inverter = memoria.getBool("inv", false);
+  velAtiva = velocidade;
 }
 
 
@@ -153,6 +181,11 @@ void enviarEstado() {
   payload += "\"dir\":" + String(angDir) + ",";
   payload += "\"vel\":" + String(velocidade) + ",";
   payload += "\"aberto\":" + String((int)abertoPadraoMs) + ",";
+  payload += "\"limMin\":" + String(limMin) + ",";
+  payload += "\"limMax\":" + String(limMax) + ",";
+  payload += "\"pulsoMin\":" + String(pulsoMin) + ",";
+  payload += "\"pulsoMax\":" + String(pulsoMax) + ",";
+  payload += "\"inv\":" + String(inverter ? "true" : "false") + ",";
   payload += "\"travado\":" + String(travado ? "true" : "false");
   payload += "}";
 
@@ -202,7 +235,8 @@ void removerPedido(int i) {
 void limparFilaEVoltar() {
   nFila = 0;
   ladoAtual = 'C';
-  alvo = angCentro;
+  velAtiva = velocidade;
+  alvo = anguloDoLado('C');
   fimSegurar = 0;
 }
 
@@ -219,6 +253,10 @@ void processarFila(unsigned long agora) {
 
   Pedido p = fila[escolhido];
 
+  // manual parado cede ao pedido automático
+  if (ladoAtual == 'M' && fimSegurar == 0) { ladoAtual = 'C'; alvo = anguloDoLado('C'); }
+  velAtiva = velocidade;
+
   if (ladoAtual == p.lado) {
     // já aberto
     if (agora + p.aberto > fimSegurar) fimSegurar = agora + p.aberto;
@@ -226,7 +264,7 @@ void processarFila(unsigned long agora) {
     return;
   }
 
-  if (ladoAtual == 'C' && fabs(angulo - angCentro) < 3.0) {
+  if (ladoAtual == 'C' && fabs(angulo - anguloDoLado('C')) < 3.0) {
     ladoAtual = p.lado;
     alvo = anguloDoLado(p.lado);
     fimSegurar = agora + p.aberto;
@@ -254,6 +292,7 @@ void testarLado(char lado) {
   }
 
   nFila = 0;
+  velAtiva = velocidade;
   ladoAtual = lado;
   alvo = anguloDoLado(lado);
   fimSegurar = millis() + abertoPadraoMs;
@@ -292,13 +331,77 @@ void aplicarConfigJson(const String& json) {
   velocidade = vel;
   abertoPadraoMs = aberto;
 
-  if (ladoAtual == 'C') alvo = angCentro;
-  else alvo = anguloDoLado(ladoAtual);
+  if (ladoAtual == 'C') alvo = anguloDoLado('C');
+  else if (ladoAtual != 'M') alvo = anguloDoLado(ladoAtual);
 
   salvarAjustes();
 
   Serial.println("Ajustes atualizados pelo site.");
 
+  enviarEstado();
+}
+
+// mover para um ângulo
+void moverServo(int graus, int vel, unsigned long segurar) {
+
+  if (travado) {
+    Serial.println("Movimento ignorado: emergencia ativa. Libere no site.");
+    return;
+  }
+
+  if (graus < 0 || graus > 180 || vel < 1 || vel > 100 || segurar > 30000) {
+    Serial.println("Movimento recusado: valor fora da faixa.");
+    return;
+  }
+
+  graus = dentroDosLimites(graus);
+
+  nFila = 0;
+  velAtiva = vel;
+  ladoAtual = 'M';
+  alvo = graus;
+  fimSegurar = segurar > 0 ? millis() + segurar : 0;
+
+  // sem tempo e no centro: lado centro
+  if (segurar == 0 && graus == anguloDoLado('C')) ladoAtual = 'C';
+
+  Serial.print("Servo -> ");
+  Serial.print(graus);
+  Serial.print(" graus, vel ");
+  Serial.println(vel);
+}
+
+// para na hora
+void pararServo() {
+  nFila = 0;
+  alvo = angulo;
+  ladoAtual = 'M';
+  fimSegurar = 0;
+  Serial.println("PARADO na posicao atual.");
+}
+
+void aplicarServoConfig(const String& json) {
+
+  int mn = numeroDoJson(json, "limMin", limMin);
+  int mx = numeroDoJson(json, "limMax", limMax);
+  int pmn = numeroDoJson(json, "pulsoMin", pulsoMin);
+  int pmx = numeroDoJson(json, "pulsoMax", pulsoMax);
+  int inv = numeroDoJson(json, "inv", inverter ? 1 : 0);
+
+  if (mn < 0 || mx > 180 || mx - mn < 10 || pmn < 400 || pmn > 1500 || pmx < 1500 || pmx > 2600 || pmx - pmn < 500) {
+    Serial.println("Config do servo recusada: valor fora da faixa.");
+    return;
+  }
+
+  limMin = mn;
+  limMax = mx;
+  pulsoMin = pmn;
+  pulsoMax = pmx;
+  inverter = (inv != 0);
+  ultimoDuty = -1;
+
+  salvarServoConfig();
+  Serial.println("Config do servo atualizada pelo site.");
   enviarEstado();
 }
 
@@ -346,7 +449,7 @@ void salvarEMostrar(const char* nome, int valor) {
   Serial.print(nome);
   Serial.print(" = ");
   Serial.println(valor);
-  if (ladoAtual == 'C') alvo = angCentro;
+  if (ladoAtual == 'C') alvo = anguloDoLado('C');
   enviarEstado();
 }
 
@@ -443,6 +546,15 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
   else if (topico == topic_config) {
     aplicarConfigJson(mensagem);
   }
+  else if (topico == topic_servo_ang) {
+    moverServo(numeroDoJson(mensagem, "a", -1), numeroDoJson(mensagem, "v", velocidade), (unsigned long)max(0, numeroDoJson(mensagem, "h", 0)));
+  }
+  else if (topico == topic_servo_cfg) {
+    aplicarServoConfig(mensagem);
+  }
+  else if (topico == topic_servo_parar) {
+    pararServo();
+  }
   else if (topico == topic_emergencia) {
     limparFilaEVoltar();
     travado = true;
@@ -506,6 +618,10 @@ void gerenciarMqtt() {
     client.subscribe(topic_config);
     client.subscribe(topic_emergencia);
     client.subscribe(topic_reiniciar);
+    client.subscribe(topic_liberar);
+    client.subscribe(topic_servo_ang);
+    client.subscribe(topic_servo_cfg);
+    client.subscribe(topic_servo_parar);
 
     client.publish(topic_status, "online", true);
 
@@ -531,8 +647,8 @@ void setup() {
 
   configurarServo();
 
-  angulo = angCentro;
-  alvo = angCentro;
+  angulo = anguloDoLado('C');
+  alvo = anguloDoLado('C');
   escreverServo(angulo);
 
   Serial.println();
@@ -572,7 +688,7 @@ void loop() {
   // volta ao centro
   if (ladoAtual != 'C' && fimSegurar != 0 && agora >= fimSegurar) {
     ladoAtual = 'C';
-    alvo = angCentro;
+    alvo = anguloDoLado('C');
   }
 
   // movimento suave
