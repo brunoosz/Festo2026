@@ -27,4 +27,4 @@ Ordem sugerida ao atualizar tudo: primeiro o site no Raspberry, depois a esteira
 
 ## Emergência (Fase 4)
 
-Depois de uma emergência (botão físico, botão do site ou Alexa), tudo fica travado até alguém clicar em **DESBLOQUEAR** no site. A esteira e o servo guardam a trava mesmo se forem desligados e ligados. Se a emergência disparar sozinha, abra o Monitor Serial da esteira (115200): a linha da emergência mostra a origem (botão físico ou site/Alexa).
+Depois de uma emergência (botão físico, botão do site ou Alexa), tudo fica travado até alguém clicar em **DESBLOQUEAR** no site. A trava vale **só no site**: a esteira e o servo apenas param (a esteira gira ao contrário por 1 s e o servo vai ao centro) e não guardam trava na placa, então ao liberar no site tudo volta a funcionar na hora. Se a emergência disparar sozinha, veja nos Logs ao Vivo a origem (botão da esteira, botão do painel, site ou Alexa).

@@ -79,9 +79,10 @@ const { iniciar } = require('../mock_mqtt');
         gravado.length = 0; esp.publish('esteira/botao', 'emergencia'); await esperar(700);
         let e = (await get('/api/emergencia', oper)).json;
         assert.strictEqual(e.ativa, true); ok('botao fisico da esteira trava a maquina (origem: ' + e.origem + ')');
-        ['esteira/emergencia 1', 'selagem/emergencia 1', 'selagem2/emergencia 1', 'dispenser/emergencia 1', 'separador/emergencia 1']
-            .forEach(x => assert.ok(gravado.includes(x), 'faltou ' + x));
-        ok('manda emergencia para esteira, selagens, dispenser e separador');
+        ['esteira/emergencia 1', 'selagem/emergencia 1', 'selagem2/emergencia 1', 'dispenser/emergencia 1']
+            .forEach(x => assert.ok(gravado.includes(x), 'faltou ' + x + ' | tem: ' + gravado.filter(g => g.startsWith('separador/')).join(' ; ')));
+        assert.ok(gravado.some(g => g.startsWith('separador/servo/angulo '))); ok('manda parar para esteira, selagens e dispenser e leva o servo ao centro (sem travar a placa)');
+        assert.ok(!gravado.includes('separador/emergencia 1')); ok('o servo NAO recebe trava guardada na placa');
         assert.strictEqual(eventos[eventos.length - 1].ativa, true); ok('todas as telas abertas travam');
 
         gravado.length = 0; sock.emit('comando_esteira', { acao: 'velocidade', valor: 0.7 }); await esperar(500);
@@ -103,7 +104,7 @@ const { iniciar } = require('../mock_mqtt');
         r = await enviar('/api/emergencia/liberar', oper); assert.strictEqual(r.status, 403); ok('Operário não consegue liberar pelo site (só Dono ou Adm)');
         gravado.length = 0; r = await enviar('/api/emergencia/liberar', dono); assert.strictEqual(r.json.ativa, false); await esperar(500);
         ok('Dono libera pelo site');
-        assert.ok(gravado.includes('esteira/liberar 1') && gravado.includes('separador/liberar 1')); ok('o site manda esteira/liberar e separador/liberar');
+        assert.ok(gravado.includes('esteira/liberar 1')); ok('o site manda esteira/liberar (so para firmware antigo da esteira)');
         gravado.length = 0; r = await enviar('/api/receitas/aplicar', dono, { indice: 1 }); assert.strictEqual(r.status, 200); await esperar(400);
         assert.ok(gravado.some(x => x.startsWith('esteira/velocidade/set'))); ok('depois de liberar, tudo volta a funcionar');
 

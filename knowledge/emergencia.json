@@ -19,7 +19,7 @@
       "por que a tela ficou com borda vermelha",
       "quais os efeitos de apertar o botão vermelho"
     ],
-    "resposta": "A máquina inteira trava: esteira, selagens, dispenser, servo do separador, receitas e os botões MAIS e MENOS. A esteira para (gira ao contrário por 1 segundo), as selagens desligam e o servo vai ao centro. A tela fica com uma borda vermelha brilhando e o botão vira amarelo, escrito SISTEMA TRAVADO. A esteira e o servo lembram a trava mesmo se forem desligados e ligados. Tudo fica registrado nos logs."
+    "resposta": "A máquina inteira trava: esteira, selagens, dispenser, servo do separador, receitas e os botões MAIS e MENOS. A esteira para (gira ao contrário por 1 segundo), as selagens desligam e o servo vai ao centro. A tela fica com uma borda vermelha brilhando e o botão vira amarelo, escrito SISTEMA TRAVADO. A trava vale só no site: as placas apenas param e não guardam trava, então liberar no site libera tudo na hora. Tudo fica registrado nos logs."
   },
   {
     "id": 403,
