@@ -127,7 +127,7 @@
     };
     const nomesDispositivo = { esteira: 'Esteira', selagem1: 'Selagem 1 (aquecimento)', selagem1motor: 'Selagem 1 (motores)', selagem2: 'Selagem 2 (aquecimento)', selagem2motor: 'Selagem 2 (motor)' };
     const online = { esteira: false, selagem1: false, selagem1motor: false, selagem2: false, selagem2motor: false };
-    let emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
+    let emEmergencia = !!(window.EmergenciaGlobal && window.EmergenciaGlobal.ativa);
 
     // ouvintes do socket
     const ouvintes = [];
@@ -490,8 +490,8 @@
         adicionarLog(`Solicitado reinício do ESP32 da ${nomesDispositivo[dispositivo]} (Painel de Controle)`, 'sistema');
     }
 
-    function aplicarEmergencia() {
-        emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
+    function aplicarEmergencia(ativa) {
+        emEmergencia = !!ativa;
         ledEmerg.className = emEmergencia ? CLASSE_LED_EMERG : CLASSE_LED_OFF;
         avisoEmergencia.classList.toggle('hidden', !emEmergencia);
 
@@ -507,8 +507,6 @@
         aplicarEmergenciaServo(emEmergencia);
     }
 
-    function handlerEmergencia() { setTimeout(aplicarEmergencia, 0); }
-    btnEmergenciaGlobal.addEventListener('click', handlerEmergencia);
 
     // estado inicial
     function buscarEstado() {
@@ -552,16 +550,15 @@
     ouvir('atualizar_temperatura', (dados) => aplicarDadosTemperatura(1, dados));
     ouvir('atualizar_temperatura2', (dados) => aplicarDadosTemperatura(2, dados));
     ouvir('separador_servo', (s) => { servoStatus = s; servoAtualizarEstado(); });
-    ouvir('emergencia_estado', () => aplicarEmergencia());
     btnRecarregar.addEventListener('click', servoCarregar);
 
     buscarEstado();
     servoCarregar();
-    aplicarEmergencia();
+    const sairEmergencia = window.EmergenciaGlobal.assinar(aplicarEmergencia);
 
     window.__cleanupPagina = function() {
         ouvintes.forEach(([evento, funcao]) => globalSocket.off(evento, funcao));
-        btnEmergenciaGlobal.removeEventListener('click', handlerEmergencia);
+        sairEmergencia();
         btnRecarregar.removeEventListener('click', servoCarregar);
     };
 })();

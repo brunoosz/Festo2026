@@ -114,7 +114,7 @@
     };
     let escolha = { reservatorio: 'A', gramas: 100 };
     try { const salvo = JSON.parse(localStorage.getItem('dispenser_escolha') || 'null'); if (salvo) escolha = salvo; } catch (e) {}
-    let emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true';
+    let emEmergencia = !!(window.EmergenciaGlobal && window.EmergenciaGlobal.ativa);
     let aguardando = false;
     let totalEmAndamento = 0;
     const ouvintes = [];
@@ -422,21 +422,18 @@
         if (r.ok) aplicarEstado(r.dados);
     }
 
-    function handlerEmergencia() {
-        setTimeout(() => { emEmergencia = sessionStorage.getItem('estado_emergencia') === 'true'; atualizarBotoes(); }, 0);
-    }
-    if (btnEmergencia) btnEmergencia.addEventListener('click', handlerEmergencia);
+    // estado vem do servidor
+    const sairEmergencia = window.EmergenciaGlobal.assinar((ativa) => { emEmergencia = ativa; atualizarBotoes(); });
 
     ouvir('dispenser_estado', (dados) => aplicarEstado(dados));
     ouvir('dispenser_config', (cfg) => { estado.config = Object.assign({}, estado.config, cfg); renderTudo(); });
-    ouvir('emergencia_remota', () => { emEmergencia = true; atualizarBotoes(); });
 
     renderTudo();
     carregar();
 
     window.__cleanupPagina = function () {
         ouvintes.forEach(([evento, funcao]) => globalSocket.off(evento, funcao));
-        if (btnEmergencia) btnEmergencia.removeEventListener('click', handlerEmergencia);
+        sairEmergencia();
     };
 })();
 </script>

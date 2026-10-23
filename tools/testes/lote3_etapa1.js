@@ -47,7 +47,7 @@ const { iniciar } = require('../mock_mqtt');
         assert.ok(/body\.emergencia-ativa #tutorial-borda-ativa\s*\{\s*display:\s*none/.test(base)); ok('enquanto a emergência está ativa, o vermelho vence o azul (e o azul volta ao liberar)');
         assert.ok(/prefers-reduced-motion/.test(base)); ok('respeita "reduzir movimento" (brilho fixo, sem pulsar)');
         const z = Number((base.match(/#emergencia-borda\s*\{[^}]*z-index:\s*(\d+)/) || [])[1]); assert.ok(z > 1000 && z < 999990); ok('fica acima do conteúdo e abaixo dos modais e do tutorial');
-        assert.ok(/classList\.toggle\('emergencia-ativa'/.test(base) && /fetch\('\/api\/emergencia'\)/.test(base) && /emergencia_estado/.test(base)); ok('liga e desliga pela classe no body, pelo evento do servidor e confere o estado ao abrir a página');
+        assert.ok(/classList\.toggle\('emergencia-ativa'/.test(base) && /fetch\('\/api\/emergencia'/.test(base) && /emergencia_estado/.test(base)); ok('liga e desliga pela classe no body, pelo evento do servidor e confere o estado ao abrir a página');
         const mod = fs.readFileSync(path.join(raiz, 'public', 'js', 'modelo3d-view.js'), 'utf8');
         assert.ok(/m3v-borda/.test(mod) && /emergencia-ativa \.m3v-tela-cheia/.test(mod)); ok('a tela cheia do modelo 3D tem a própria moldura vermelha');
 

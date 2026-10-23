@@ -1215,6 +1215,7 @@ function separadorTratarMqtt(topic, valor) {
     if (topic === 'separador/estado') {
         ultimaMsgSeparador = Date.now();
         try { separadorEstado = JSON.parse(valor); } catch (e) { return; }
+        if (typeof separadorEstado.travado === 'boolean') emergenciaTratarPlaca('separador', separadorEstado.travado, 'separador/liberar');
         if (!separadorOnline) separadorOnline = true;
         io.emit('separador_servo', { online: separadorOnline, estado: separadorEstado });
     }
@@ -1687,7 +1688,7 @@ function executarComandoServidor(cmd) {
         return 'Pronto, desliguei todos os motores e os aquecimentos.';
     }
     if (cmd.tipo === 'emergencia') {
-        mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, '1');
+        comOrigemEmergencia('Alexa', () => mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, '1'));
         mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, '1');
         mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, '1');
         mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1'); mqttClient.publish('separador/emergencia', '1'); // dispenser
@@ -2158,37 +2159,123 @@ function emergenciaSalvar() { try { fs.writeFileSync(ARQ_EMERGENCIA, JSON.string
 const REGEX_MOVIMENTO = /(\/set$|\/set_temperatura$|\/ativar$|\/dosar$|\/desviar$|\/teste$|resetar_seguranca$)/;
 const mqttPublicarOriginal = mqttClient.publish.bind(mqttClient);
 
-function emergenciaAtivar(origem) {
-    if (emergenciaGlobal.ativa) return;
-    emergenciaGlobal = { ativa: true, desde: new Date().toISOString(), origem: origem || 'desconhecida' };
-    emergenciaSalvar();
-    io.emit('emergencia_estado', emergenciaGlobal);
-    const texto = 'EMERGENCIA ATIVA (' + emergenciaGlobal.origem + '). A maquina fica travada ate alguem liberar no site.';
-    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto, tipo: 'emergencia' });
+// tempos da liberação
+const EMERG_ECO_MS = Number(process.env.EMERGENCIA_ECO_MS) || 10000;
+const EMERG_GRACA_MS = Number(process.env.EMERGENCIA_GRACA_MS) || 1500;
+const EMERG_RETENTAR_MS = Number(process.env.EMERGENCIA_RETENTAR_MS) || 2000;
+const EMERG_CONFIRMAR_MAX_MS = Number(process.env.EMERGENCIA_CONFIRMAR_MAX_MS) || 30000;
+
+// origem de cada acionamento
+let origemEmergenciaAtual = null;
+function comOrigemEmergencia(origem, fn) {
+    const antes = origemEmergenciaAtual;
+    origemEmergenciaAtual = origem;
+    try { return fn(); } finally { origemEmergenciaAtual = antes; }
+}
+
+// placas que guardam a trava e confirmam a liberação
+const placasEmergencia = { esteira: { estado: null }, separador: { estado: null } };
+let liberacaoEmergencia = null;
+let ecoEmergenciaAte = 0;
+const ultimaReconciliacao = { esteira: 0, separador: 0 };
+
+function emergenciaEstadoPublico() {
+    return Object.assign({}, emergenciaGlobal, { liberando: liberacaoEmergencia ? Array.from(liberacaoEmergencia.pendentes) : [] });
+}
+
+function emergenciaLogar(texto, tipo) {
+    console.log('🚨 ' + texto);
+    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto, tipo: tipo || 'emergencia' });
     try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] ${texto}`); } catch (e) {}
 }
 
+function emergenciaAvisarTelas() { io.emit('emergencia_estado', emergenciaEstadoPublico()); }
+
+function emergenciaCancelarLiberacao() {
+    if (liberacaoEmergencia) { clearInterval(liberacaoEmergencia.timer); liberacaoEmergencia = null; }
+}
+
+function emergenciaAtivar(origem) {
+    const quem = origem || 'origem desconhecida';
+    if (emergenciaGlobal.ativa) { console.log('🚨 Pedido de emergência (' + quem + ') ignorado: já estava ativa.'); return; }
+    emergenciaCancelarLiberacao();
+    emergenciaGlobal = { ativa: true, desde: new Date().toISOString(), origem: quem };
+    emergenciaSalvar();
+    emergenciaAvisarTelas();
+    emergenciaLogar('EMERGENCIA ATIVA (' + quem + '). A maquina fica travada ate alguem liberar no site ou com o cartao NFC.');
+}
+
+// placa confirmou que destravou
+function emergenciaConfirmarPlaca(nome) {
+    if (!liberacaoEmergencia || !liberacaoEmergencia.pendentes.delete(nome)) return;
+    if (liberacaoEmergencia.pendentes.size === 0) {
+        const quem = liberacaoEmergencia.quem;
+        emergenciaCancelarLiberacao();
+        emergenciaLogar('Liberação confirmada pelas placas (esteira e separador). Liberada por ' + quem + '.', 'sistema');
+    }
+    emergenciaAvisarTelas();
+}
+
+function emergenciaReenviarLiberacao() {
+    if (!liberacaoEmergencia) return;
+    const l = liberacaoEmergencia;
+    if (Date.now() - l.desde > EMERG_CONFIRMAR_MAX_MS) {
+        const faltam = Array.from(l.pendentes).join(' e ');
+        emergenciaCancelarLiberacao();
+        emergenciaLogar('ATENÇÃO: ' + faltam + ' não confirmou a liberação (desligada ou sem resposta). O site reenvia a liberação quando ela reconectar. Veja a placa.', 'emergencia');
+        emergenciaAvisarTelas();
+        return;
+    }
+    if (l.pendentes.has('esteira')) mqttPublicarOriginal('esteira/liberar', '1');
+    if (l.pendentes.has('separador')) mqttPublicarOriginal('separador/liberar', '1');
+}
+
 function emergenciaLiberar(quem) {
-    if (!emergenciaGlobal.ativa) return;
+    if (!emergenciaGlobal.ativa) return false;
+    const por = quem || 'usuario';
     emergenciaGlobal = { ativa: false, desde: null, origem: null };
     emergenciaSalvar();
+    ecoEmergenciaAte = Date.now() + EMERG_ECO_MS;
+    emergenciaCancelarLiberacao();
+    const pendentes = new Set();
+    if (placasEmergencia.esteira.estado !== 'liberada') pendentes.add('esteira');
+    if (placasEmergencia.separador.estado !== 'liberada') pendentes.add('separador');
     mqttPublicarOriginal('esteira/liberar', '1');
     mqttPublicarOriginal('separador/liberar', '1');
-    io.emit('emergencia_estado', emergenciaGlobal);
-    const texto = 'EMERGENCIA LIBERADA por ' + (quem || 'usuario') + '. Maquina pronta para uso.';
-    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto, tipo: 'sistema' });
-    try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] ${texto}`); } catch (e) {}
+    if (pendentes.size) liberacaoEmergencia = { quem: por, desde: Date.now(), pendentes, timer: setInterval(emergenciaReenviarLiberacao, EMERG_RETENTAR_MS) };
+    emergenciaAvisarTelas();
+    emergenciaLogar('EMERGENCIA LIBERADA por ' + por + (pendentes.size ? '. Aguardando confirmação de: ' + Array.from(pendentes).join(' e ') + '.' : '. Placas já estavam livres.'), 'sistema');
+    return true;
+}
+
+// estado que uma placa informa: nunca liga a emergência sozinho
+function emergenciaTratarPlaca(nome, travada, topicoLiberar) {
+    placasEmergencia[nome].estado = travada ? 'ativa' : 'liberada';
+    if (!travada) { emergenciaConfirmarPlaca(nome); return; }
+    if (emergenciaGlobal.ativa) return;
+    if (liberacaoEmergencia || Date.now() < ecoEmergenciaAte) { console.log('🚨 Eco ignorado: ' + nome + ' ainda diz "ativa" enquanto confirma a liberação.'); return; }
+    // placa travada com site liberado: reenvia liberação
+    setTimeout(() => {
+        if (emergenciaGlobal.ativa || placasEmergencia[nome].estado !== 'ativa') return;
+        if (Date.now() - ultimaReconciliacao[nome] < 5000) return;
+        ultimaReconciliacao[nome] = Date.now();
+        emergenciaLogar('A ' + nome + ' informou estar travada com o site liberado (estado antigo guardado na placa). Reenviando a liberação; isto NÃO liga a emergência.', 'sistema');
+        mqttPublicarOriginal(topicoLiberar, '1');
+    }, EMERG_GRACA_MS);
 }
 
 // estado da esteira
 function emergenciaTratarEsteira(valor) {
-    if (valor === 'ativa' && !emergenciaGlobal.ativa) emergenciaAtivar('esteira (botao fisico)');
-    if (valor === 'liberada' && emergenciaGlobal.ativa) mqttPublicarOriginal('esteira/emergencia', '1');
+    if (valor === 'ativa') emergenciaTratarPlaca('esteira', true, 'esteira/liberar');
+    else if (valor === 'liberada') {
+        emergenciaTratarPlaca('esteira', false, 'esteira/liberar');
+        if (emergenciaGlobal.ativa) mqttPublicarOriginal('esteira/emergencia', '1');
+    }
 }
 
 mqttClient.publish = function (topico, mensagem, ...resto) {
     const t = String(topico);
-    if (t === 'esteira/emergencia' && String(mensagem) === '1') emergenciaAtivar('site, Alexa ou botao');
+    if (t === 'esteira/emergencia' && String(mensagem) === '1') emergenciaAtivar(origemEmergenciaAtual || 'origem desconhecida (esteira/emergencia publicado direto)');
     if (emergenciaGlobal.ativa && REGEX_MOVIMENTO.test(t)) {
         console.log('🛑 Emergencia ativa: comando bloqueado (' + t + ')');
         return mqttClient;
@@ -2236,7 +2323,7 @@ function nfcProcessarLeitura(uid) {
     }
     nfcFalhas = [];
     nfcJanelaAte = agora + NFC_JANELA_MS;
-    if (emergenciaGlobal.ativa) { emergenciaLiberar('cartao NFC de ' + cartao.usuario); nfcResponder('liberado'); }
+    if (emergenciaGlobal.ativa) { emergenciaLiberar('cartão NFC de ' + cartao.usuario); nfcResponder('liberado'); }
     else { nfcLog('NFC: cartao de ' + cartao.usuario + ' lido (nao havia emergencia ativa).'); nfcResponder('ok'); }
 }
 
@@ -2262,7 +2349,7 @@ let nfcJanelaAte = 0;
 function nfcJanelaAberta() { return Date.now() < nfcJanelaAte; }
 
 function painelTratarBotao(valor) {
-    if (valor === 'emergencia') { receitasEmergenciaFisica(); return; }          // sempre permitido
+    if (valor === 'emergencia') { receitasEmergenciaFisica('botão do painel'); return; }          // sempre permitido
     if (valor !== 'mais' && valor !== 'menos') return;
     if (emergenciaGlobal.ativa) { mqttPublicarOriginal('painel/resultado', 'travado'); return; }
     if (!nfcJanelaAberta()) { mqttPublicarOriginal('painel/resultado', 'sem_permissao'); return; }
@@ -3220,7 +3307,7 @@ setInterval(() => {
 app.get('/dispenser', loginObrigatorio, paginaPermitida('dispenser'), (req, res) => res.render('dispenser.html'));
 
 // emergência
-app.get('/api/emergencia', loginObrigatorio, (req, res) => res.json(emergenciaGlobal));
+app.get('/api/emergencia', loginObrigatorio, (req, res) => res.json(emergenciaEstadoPublico()));
 
 // cartões NFC
 app.get('/nfc', loginObrigatorio, nfcVerObrigatorio, (req, res) => res.render('nfc.html'));
@@ -3263,8 +3350,8 @@ app.delete('/api/nfc/cartoes/:id', loginObrigatorio, donoObrigatorio, (req, res)
 });
 
 app.post('/api/emergencia/liberar', loginObrigatorio, adminEstritoObrigatorio, (req, res) => {
-    emergenciaLiberar(res.locals.usuarioLogado || (req.session && req.session.usuario) || 'usuario');
-    res.json(emergenciaGlobal);
+    emergenciaLiberar('site (usuário ' + (res.locals.usuarioLogado || (req.session && req.session.usuario) || 'desconhecido') + ')');
+    res.json(emergenciaEstadoPublico());
 });
 
 // receitas
@@ -3322,8 +3409,8 @@ function receitasAplicar(indice, origem) {
     return true;
 }
 
-function receitasEmergenciaFisica() {
-    mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, '1');
+function receitasEmergenciaFisica(origem) {
+    comOrigemEmergencia(origem || 'botão físico', () => mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, '1'));
     mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, '1');
     mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, '1');
     mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1');
@@ -3335,12 +3422,11 @@ function receitasEmergenciaFisica() {
     io.emit('atualizar_temperatura', ultimoEstadoSelagem);
     io.emit('atualizar_temperatura2', ultimoEstadoSelagem2);
     io.emit('emergencia_remota', {});
-    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'PARADA DE EMERGENCIA acionada pelo botao fisico da maquina.', tipo: 'emergencia' });
-    try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] PARADA DE EMERGENCIA acionada pelo botao fisico da maquina.`); } catch (e) {}
+    emergenciaLogar('Parada de emergência pedida: ' + (origem || 'botão físico') + '.');
 }
 
 function receitasTratarBotao(valor) {
-    if (valor === 'emergencia') { receitasEmergenciaFisica(); return; }
+    if (valor === 'emergencia') { receitasEmergenciaFisica('botão da esteira'); return; }
     if (emergenciaGlobal.ativa) return;
     if (!nfcJanelaAberta()) return;
     if (!receitas.botoesAtivos) return;
@@ -3770,7 +3856,7 @@ io.on('connection', (socket) => {
             proximo(new Error('Seu perfil é de visualização: ação bloqueada.'));
         });
     }
-    socket.emit('emergencia_estado', emergenciaGlobal);
+    socket.emit('emergencia_estado', emergenciaEstadoPublico());
     socket.emit('separador_servo', { online: separadorOnline, estado: separadorEstado });
     socket.emit('atualizar_velocidade', { velocidade: ultimaVelocidadeConhecida });
     socket.emit('status_esp32', { online: esp32Online });
@@ -3795,7 +3881,7 @@ io.on('connection', (socket) => {
             mqttClient.publish(MQTT_TOPIC_SET, data.valor.toString());
         } else if (data.acao === 'emergencia') {
             // esteira gira ao contrário
-            mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, "1");
+            comOrigemEmergencia('site (' + (socket.data.usuario || 'usuário') + ')', () => mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, "1"));
             ultimaVelocidadeConhecida = "0.00";
             mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, "1");
             mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, "1");
