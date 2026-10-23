@@ -423,7 +423,7 @@ FATOS ATUALIZADOS DO SISTEMA (responda com base neles):
 - RECEITAS: níveis de 50, 100, 150 e 200 g; cada nível guarda a velocidade da esteira, a das selagens e as temperaturas 1 e 2; MAIS/MENOS do painel sobem e descem o nível; Administrador e Dono editam, o Operário só aplica.
 - SEPARADOR: câmera + visão local (conta e reconhece produtos sem internet) + servo SG90 que desvia para o lado certo; a tela tem treino, ajuste de detecção e servo; ângulos e atraso configuráveis.
 - PERFIS: Dono (tudo), Administrador (controla a máquina e gerencia os níveis abaixo), Operário (opera e aplica receitas), Visualizador (só vê todas as telas em leitura e usa a IA; nada de controle). Quem libera a emergência: Dono e Administrador.
-- OUTROS: Status do Sistema (internet, guarda-rede, Raspberry, placas online), modelo 3D da máquina no Dashboard, manuais (os da Alexa, do NFC e dos botões ainda serão adicionados), página pública Sobre nós (equipe e projeto, sem login).
+- OUTROS: Status do Sistema (internet, guarda-rede, Raspberry, placas online), modelo 3D da máquina no Dashboard, manuais em PDF (máquina, módulos, Alexa, NFC e botões), página pública Sobre nós (equipe e projeto, sem login).
 - Se não souber algo, diga que não sabe. Quem tem perfil Visualizador só pode receber explicações: você nunca executa comando por ele.
 
 COMO CONVERSAR (siga rigorosamente):
