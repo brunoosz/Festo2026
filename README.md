@@ -178,6 +178,17 @@ Para que o Node leia o `.env` automaticamente, use `npm run start:env`.
 
 ## Implantação no Raspberry Pi
 
+### Túnel (Tailscale Funnel) sempre online
+
+Se o acesso pela internet (Alexa, celular fora da rede) cai ou não volta, instale o guardião do Funnel: ele confere o site pela internet a cada 20 s e conserta sozinho (hora, rede, login, funnel, tailscaled), avisa no celular e registra o motivo no log. Passo a passo em [`raspberry/funnel/GUIA_FUNNEL_SEMPRE_ONLINE.txt`](raspberry/funnel/GUIA_FUNNEL_SEMPRE_ONLINE.txt):
+
+```bash
+cd /root/site_esteira && git pull
+sudo bash raspberry/funnel/instalar_funnel_sempre_online.sh
+journalctl -u funnel-guardian -f      # acompanhar ao vivo (Ctrl+C sai)
+sudo funnel-diagnostico.sh            # se ainda falhar: gera /root/funnel-diagnostico.txt
+```
+
 ### Atualização
 
 Com o repositório já clonado em `/root/site_esteira` (serviço `site_esteira`), o jeito mais simples é:
