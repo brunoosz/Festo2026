@@ -418,7 +418,7 @@ SOBRE O PROJETO (use quando for relevante, sem despejar tudo de uma vez):
 A Flow Pack opera em 5 estágios: (1) Esteira transporta o produto; (2) bobina de plástico fornece o filme de selagem; (3) dispenser libera o produto sobre o plástico; (4) o plástico é dobrado e selado horizontalmente; (5) selagem vertical e corte separam uma unidade da outra. O site (Node.js/Express, Raspberry Pi) controla tudo em tempo real via MQTT com os ESP32 da máquina: velocidade, temperatura, gráficos, relatórios e visão computacional.
 
 FATOS ATUALIZADOS DO SISTEMA (responda com base neles):
-- EMERGÊNCIA: acionada pelo botão da esteira, pelo botão do painel, pelo botão do site ou pela Alexa. Trava TUDO (esteira, selagens, dispenser, servo, receitas e botões) até liberar. A esteira e o servo lembram a trava mesmo desligados. Só o Dono ou o Administrador liberam, pelo botão DESBLOQUEAR no site OU passando um cartão NFC cadastrado. Depois de liberar, a esteira continua PARADA. Com a emergência ativa a tela fica com borda vermelha brilhando. Nunca tente mexer na máquina durante a emergência: explique como liberar.
+- EMERGÊNCIA: acionada pelo botão da esteira, pelo botão do painel, pelo botão do site ou pela Alexa. Trava TUDO (esteira, selagens, dispenser, servo, receitas e botões) até liberar. A trava vale só no site: as placas só param e não guardam trava, então liberar no site libera tudo na hora. Só o Dono ou o Administrador liberam, pelo botão DESBLOQUEAR no site OU passando um cartão NFC cadastrado. Depois de liberar, a esteira continua PARADA. Com a emergência ativa a tela fica com borda vermelha brilhando. Nunca tente mexer na máquina durante a emergência: explique como liberar.
 - PAINEL NFC (ESP32 com leitor de cartão, buzzer, LEDs e 3 botões): passar o cartão de Dono ou Adm libera a emergência (se ativa) e libera MAIS/MENOS por 30 s (LED verde aceso; cada uso renova). Sem cartão, MAIS/MENOS não funcionam (1 bip médio). A EMERGÊNCIA do painel vale sempre. Bips: 1 longo (1 s) cartão aceito; 3 curtos cartão não autorizado; 2 curtos o site não respondeu; 4 curtos leitor bloqueado por 30 s (3 recusas); 2 médios cartão cadastrado; 1 médio botão sem cartão. Só o Dono cadastra e apaga cartões (tela Cartões NFC).
 - RECEITAS: níveis de 50, 100, 150 e 200 g; cada nível guarda a velocidade da esteira, a das selagens e as temperaturas 1 e 2; MAIS/MENOS do painel sobem e descem o nível; Administrador e Dono editam, o Operário só aplica.
 - SEPARADOR: câmera + visão local (conta e reconhece produtos sem internet) + servo SG90 que desvia para o lado certo; a tela tem treino, ajuste de detecção e servo; ângulos e atraso configuráveis.
@@ -1692,7 +1692,7 @@ function executarComandoServidor(cmd) {
         comOrigemEmergencia('Alexa', () => mqttClient.publish(MQTT_TOPIC_EMERGENCIA_ESTEIRA, '1'));
         mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, '1');
         mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, '1');
-        mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1'); mqttClient.publish('separador/emergencia', '1'); // dispenser
+        mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1');
         ultimaVelocidadeConhecida = '0.00';
         Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => {
             m.velocidade = '0.00';
@@ -2160,12 +2160,6 @@ function emergenciaSalvar() { try { fs.writeFileSync(ARQ_EMERGENCIA, JSON.string
 const REGEX_MOVIMENTO = /(\/set$|\/set_temperatura$|\/ativar$|\/dosar$|\/desviar$|\/teste$|\/servo\/angulo$|resetar_seguranca$)/;
 const mqttPublicarOriginal = mqttClient.publish.bind(mqttClient);
 
-// tempos da liberação
-const EMERG_ECO_MS = Number(process.env.EMERGENCIA_ECO_MS) || 10000;
-const EMERG_GRACA_MS = Number(process.env.EMERGENCIA_GRACA_MS) || 1500;
-const EMERG_RETENTAR_MS = Number(process.env.EMERGENCIA_RETENTAR_MS) || 2000;
-const EMERG_CONFIRMAR_MAX_MS = Number(process.env.EMERGENCIA_CONFIRMAR_MAX_MS) || 30000;
-
 // origem de cada acionamento
 let origemEmergenciaAtual = null;
 function comOrigemEmergencia(origem, fn) {
@@ -2174,14 +2168,12 @@ function comOrigemEmergencia(origem, fn) {
     try { return fn(); } finally { origemEmergenciaAtual = antes; }
 }
 
-// placas que guardam a trava e confirmam a liberação
+// a trava vale só no site; as placas apenas param
 const placasEmergencia = { esteira: { estado: null }, separador: { estado: null } };
-let liberacaoEmergencia = null;
-let ecoEmergenciaAte = 0;
 const ultimaReconciliacao = { esteira: 0, separador: 0 };
 
 function emergenciaEstadoPublico() {
-    return Object.assign({}, emergenciaGlobal, { liberando: liberacaoEmergencia ? Array.from(liberacaoEmergencia.pendentes) : [] });
+    return Object.assign({}, emergenciaGlobal, { liberando: [] });
 }
 
 function emergenciaLogar(texto, tipo) {
@@ -2192,44 +2184,27 @@ function emergenciaLogar(texto, tipo) {
 
 function emergenciaAvisarTelas() { io.emit('emergencia_estado', emergenciaEstadoPublico()); }
 
-function emergenciaCancelarLiberacao() {
-    if (liberacaoEmergencia) { clearInterval(liberacaoEmergencia.timer); liberacaoEmergencia = null; }
+// o site informa o estado (LED do painel NFC); as placas não publicam mais
+function emergenciaPublicarEstado() { mqttPublicarOriginal('esteira/estado_emergencia', emergenciaGlobal.ativa ? 'ativa' : 'liberada', { retain: true }); }
+
+// servo para e vai ao centro (sem trava na placa)
+function emergenciaPararServo() {
+    try {
+        const c = separadorMotor.getConfig();
+        mqttPublicarOriginal('separador/servo/angulo', JSON.stringify({ a: Math.min(Math.max(c.anguloCentro, c.limMin), c.limMax), v: 100, h: 0 }));
+    } catch (e) {}
 }
 
 function emergenciaAtivar(origem) {
     const quem = origem || 'origem desconhecida';
     if (emergenciaGlobal.ativa) { console.log('🚨 Pedido de emergência (' + quem + ') ignorado: já estava ativa.'); return; }
     if (typeof servoSequenciaParar === 'function') servoSequenciaParar();
-    emergenciaCancelarLiberacao();
     emergenciaGlobal = { ativa: true, desde: new Date().toISOString(), origem: quem };
     emergenciaSalvar();
+    emergenciaPararServo();
+    emergenciaPublicarEstado();
     emergenciaAvisarTelas();
-    emergenciaLogar('EMERGENCIA ATIVA (' + quem + '). A maquina fica travada ate alguem liberar no site ou com o cartao NFC.');
-}
-
-// placa confirmou que destravou
-function emergenciaConfirmarPlaca(nome) {
-    if (!liberacaoEmergencia || !liberacaoEmergencia.pendentes.delete(nome)) return;
-    if (liberacaoEmergencia.pendentes.size === 0) {
-        const quem = liberacaoEmergencia.quem;
-        emergenciaCancelarLiberacao();
-        emergenciaLogar('Liberação confirmada pelas placas (esteira e separador). Liberada por ' + quem + '.', 'sistema');
-    }
-    emergenciaAvisarTelas();
-}
-
-function emergenciaReenviarLiberacao() {
-    if (!liberacaoEmergencia) return;
-    const l = liberacaoEmergencia;
-    if (Date.now() - l.desde > EMERG_CONFIRMAR_MAX_MS) {
-        const faltam = Array.from(l.pendentes).join(' e ');
-        emergenciaCancelarLiberacao();
-        emergenciaLogar('ATENÇÃO: ' + faltam + ' não confirmou a liberação (desligada ou sem resposta). O site reenvia a liberação quando ela reconectar. Veja a placa.', 'emergencia');
-        emergenciaAvisarTelas();
-        return;
-    }
-    if (l.pendentes.has('esteira')) mqttPublicarOriginal('esteira/liberar', '1');
-    if (l.pendentes.has('separador')) mqttPublicarOriginal('separador/liberar', '1');
+    emergenciaLogar('EMERGENCIA ATIVA (' + quem + '). O site fica travado ate alguem liberar no site ou com o cartao NFC.');
 }
 
 function emergenciaLiberar(quem) {
@@ -2237,42 +2212,27 @@ function emergenciaLiberar(quem) {
     const por = quem || 'usuario';
     emergenciaGlobal = { ativa: false, desde: null, origem: null };
     emergenciaSalvar();
-    ecoEmergenciaAte = Date.now() + EMERG_ECO_MS;
-    emergenciaCancelarLiberacao();
-    const pendentes = new Set();
-    if (placasEmergencia.esteira.estado !== 'liberada') pendentes.add('esteira');
-    if (placasEmergencia.separador.estado !== 'liberada') pendentes.add('separador');
     mqttPublicarOriginal('esteira/liberar', '1');
-    mqttPublicarOriginal('separador/liberar', '1');
-    if (pendentes.size) liberacaoEmergencia = { quem: por, desde: Date.now(), pendentes, timer: setInterval(emergenciaReenviarLiberacao, EMERG_RETENTAR_MS) };
+    emergenciaPublicarEstado();
     emergenciaAvisarTelas();
-    emergenciaLogar('EMERGENCIA LIBERADA por ' + por + (pendentes.size ? '. Aguardando confirmação de: ' + Array.from(pendentes).join(' e ') + '.' : '. Placas já estavam livres.'), 'sistema');
+    emergenciaLogar('EMERGENCIA LIBERADA por ' + por + '. O site e todos os componentes voltam a funcionar.', 'sistema');
     return true;
 }
 
-// estado que uma placa informa: nunca liga a emergência sozinho
+// placa antiga ainda travada: manda liberar de novo, sem ligar a emergência
 function emergenciaTratarPlaca(nome, travada, topicoLiberar) {
     placasEmergencia[nome].estado = travada ? 'ativa' : 'liberada';
-    if (!travada) { emergenciaConfirmarPlaca(nome); return; }
-    if (emergenciaGlobal.ativa) return;
-    if (liberacaoEmergencia || Date.now() < ecoEmergenciaAte) { console.log('🚨 Eco ignorado: ' + nome + ' ainda diz "ativa" enquanto confirma a liberação.'); return; }
-    // placa travada com site liberado: reenvia liberação
-    setTimeout(() => {
-        if (emergenciaGlobal.ativa || placasEmergencia[nome].estado !== 'ativa') return;
-        if (Date.now() - ultimaReconciliacao[nome] < 5000) return;
-        ultimaReconciliacao[nome] = Date.now();
-        emergenciaLogar('A ' + nome + ' informou estar travada com o site liberado (estado antigo guardado na placa). Reenviando a liberação; isto NÃO liga a emergência.', 'sistema');
-        mqttPublicarOriginal(topicoLiberar, '1');
-    }, EMERG_GRACA_MS);
+    if (!travada || emergenciaGlobal.ativa) return;
+    if (Date.now() - ultimaReconciliacao[nome] < 5000) return;
+    ultimaReconciliacao[nome] = Date.now();
+    console.log('🚨 ' + nome + ' informa trava guardada na placa (firmware antigo); reenviando liberar. Regrave a placa para acabar com isso.');
+    mqttPublicarOriginal(topicoLiberar, '1');
 }
 
 // estado da esteira
 function emergenciaTratarEsteira(valor) {
     if (valor === 'ativa') emergenciaTratarPlaca('esteira', true, 'esteira/liberar');
-    else if (valor === 'liberada') {
-        emergenciaTratarPlaca('esteira', false, 'esteira/liberar');
-        if (emergenciaGlobal.ativa) mqttPublicarOriginal('esteira/emergencia', '1');
-    }
+    else if (valor === 'liberada') emergenciaTratarPlaca('esteira', false, 'esteira/liberar');
 }
 
 mqttClient.publish = function (topico, mensagem, ...resto) {
@@ -2362,6 +2322,7 @@ function painelTratarBotao(valor) {
 
 mqttClient.on('connect', () => {
     console.log('✅ Conectado ao Broker MQTT com sucesso!');
+    emergenciaPublicarEstado();
     mqttClient.subscribe([MQTT_TOPIC_DISP_STATUS, MQTT_TOPIC_DISP_ESTADO, MQTT_TOPIC_DISP_CONCLUIDO]);
     mqttClient.subscribe(['esteira/estado_emergencia']);
     mqttClient.subscribe(['nfc/leitura', 'nfc/status', 'painel/botao']);
@@ -3416,7 +3377,6 @@ function receitasEmergenciaFisica(origem) {
     mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, '1');
     mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, '1');
     mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1');
-    mqttClient.publish('separador/emergencia', '1');
     ultimaVelocidadeConhecida = '0.00';
     Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => { m.velocidade = '0.00'; io.emit('motor_selagem_velocidade', { id, velocidade: '0.00' }); });
     ultimoEstadoSelagem.habilitado = false;
@@ -3946,7 +3906,7 @@ app.post('/api/dispenser/dosar', loginObrigatorio, (req, res) => {
 });
 
 app.post('/api/dispenser/parar', loginObrigatorio, (req, res) => {
-    mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1'); mqttClient.publish('separador/emergencia', '1');
+    mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, '1');
     liberarMotoresDispenser();
     registrarLogDispenser('Dispenser: dosagem interrompida pelo operador.', res.locals.usuarioLogado);
     emitirEstadoDispenser(true);
@@ -4120,7 +4080,7 @@ io.on('connection', (socket) => {
             ultimaVelocidadeConhecida = "0.00";
             mqttClient.publish(MQTT_TOPIC_SELAGEM_EMERGENCIA, "1");
             mqttClient.publish(MQTT_TOPIC_SELAGEM2_EMERGENCIA, "1");
-            mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, "1"); mqttClient.publish('separador/emergencia', '1'); // site para dispenser
+            mqttClient.publish(MQTT_TOPIC_DISP_EMERGENCIA, "1"); // site para dispenser
             liberarMotoresDispenser();
             emitirEstadoDispenser(true);
             Object.entries(MOTORES_SELAGEM).forEach(([id, m]) => {

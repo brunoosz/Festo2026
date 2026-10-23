@@ -60,7 +60,7 @@ const int EMERGENCIA_REVERSO_PCT_MINIMO = 50;
 const int RAMPA_PASSO = 5;
 const unsigned long RAMPA_INTERVALO_MS = 10;
 
-bool emergenciaTravada = false;   // trava salva
+bool emergenciaTravada = false;   // sempre falso: a trava vale só no site
 int velocidadePct = 0;
 int pwmAtual = 0;
 bool sentidoInvertido = false;
@@ -159,11 +159,8 @@ void publicarSentido() {
   client.publish(topic_atual_sentido, sentidoInvertido ? "invertido" : "normal", true);
 }
 
+// o estado da emergência agora é publicado pelo site
 void publicarEstadoEmergencia() {
-
-  if (!client.connected()) return;
-
-  client.publish(topic_estado_emerg, emergenciaTravada ? "ativa" : "liberada", true);
 }
 
 void publicarBotao(const char* nome) {
@@ -218,15 +215,8 @@ void definirSentido(bool invertido, const char* origem) {
 // parada de emergência
 void emergencia(const char* origem) {
 
-  if (emergenciaTravada) {
-    Serial.print(">>> EMERGENCIA (");
-    Serial.print(origem);
-    Serial.println("): ja estava travada.");
-    return;
-  }
-
-  emergenciaTravada = true;
-  memoria.putBool("emerg", true);
+  // já parando
+  if (emReverso) return;
 
   int pctReverso = max(velocidadePct, EMERGENCIA_REVERSO_PCT_MINIMO);
 
@@ -243,26 +233,16 @@ void emergencia(const char* origem) {
 
   Serial.print(">>> EMERGENCIA (");
   Serial.print(origem);
-  Serial.println("): esteira girando ao contrario por 1s e TRAVADA ate liberar no site");
+  Serial.println("): esteira parou (girou ao contrario por 1s). O site fica travado ate liberar.");
 
   publicarVelocidade();
-  publicarEstadoEmergencia();
 }
 
 void liberarEmergencia(const char* origem) {
 
-  // já livre: só confirma ao site
-  if (!emergenciaTravada) { publicarEstadoEmergencia(); return; }
-
+  // sem trava na placa: só confirma ao site
   emergenciaTravada = false;
   memoria.putBool("emerg", false);
-  velocidadePct = 0;
-
-  Serial.print(">>> EMERGENCIA LIBERADA (");
-  Serial.print(origem);
-  Serial.println("). Esteira parada, pronta para uso.");
-
-  publicarVelocidade();
   publicarEstadoEmergencia();
 }
 
@@ -515,7 +495,8 @@ void setup() {
   memoria.begin("esteira", false);
   sentidoInvertido = memoria.getBool("inv", false);
   direcaoAtualFrente = !sentidoInvertido;
-  emergenciaTravada = memoria.getBool("emerg", false);
+  emergenciaTravada = false;
+  memoria.putBool("emerg", false);   // apaga trava de versões antigas
 
   digitalWrite(PIN_EN, HIGH);
 
@@ -525,7 +506,6 @@ void setup() {
   Serial.println("==============================");
   Serial.println("BTS7960: RPWM 25 / LPWM 26 / EN 27");
   Serial.println("Botao de emergencia: GPIO 32 (MAIS/MENOS ficam no painel NFC)");
-  if (emergenciaTravada) Serial.println("!!! EMERGENCIA ATIVA (salva antes de desligar): libere no site para usar a esteira.");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);

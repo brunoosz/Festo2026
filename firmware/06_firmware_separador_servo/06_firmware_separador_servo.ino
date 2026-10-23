@@ -48,7 +48,7 @@ bool inverter = false;
 
 Preferences memoria;
 
-// trava do servo
+// sem trava na placa: a trava vale só no site
 bool travado = false;
 
 
@@ -490,10 +490,6 @@ void processarComando(String comando) {
   }
   else if (comando == "PARAR" || comando == "EMERGENCIA") {
     limparFilaEVoltar();
-    if (comando == "EMERGENCIA") {
-      travado = true;
-      memoria.putBool("trav", true);
-    }
     Serial.println("PARADO: fila limpa, voltando ao centro.");
   }
   else if (comando == "STATUS") {
@@ -557,10 +553,8 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
   }
   else if (topico == topic_emergencia) {
     limparFilaEVoltar();
-    travado = true;
-    memoria.putBool("trav", true);
     enviarEstado();
-    Serial.println(">>> EMERGENCIA: fila limpa, servo no centro e TRAVADO ate liberar no site.");
+    Serial.println(">>> EMERGENCIA: fila limpa e servo no centro. O site fica travado ate liberar.");
   }
   else if (topico == topic_liberar) {
     travado = false;
@@ -643,7 +637,8 @@ void setup() {
 
   memoria.begin("separador", false);
   carregarAjustes();
-  travado = memoria.getBool("trav", false);
+  travado = false;
+  memoria.putBool("trav", false);   // apaga trava de versões antigas
 
   configurarServo();
 

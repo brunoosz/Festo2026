@@ -14,6 +14,9 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'flowpack-lote2e1-'));
 const esperar = ms => new Promise(r => setTimeout(r, ms));
 const ok = m => console.log('  ok   ' + m);
 const pdfFalso = path.join(raiz, 'manuais', 'Manual_Alexa_FlowPack.pdf');
+const pdfReserva = path.join(tmp, 'alexa_real.pdf');
+// guarda o PDF verdadeiro e devolve no fim
+if (fs.existsSync(pdfFalso)) fs.renameSync(pdfFalso, pdfReserva);
 
 (async () => {
     const arqUsuarios = path.join(tmp, 'usuarios.json');
@@ -22,7 +25,7 @@ const pdfFalso = path.join(raiz, 'manuais', 'Manual_Alexa_FlowPack.pdf');
     Object.assign(u, { zeca: Object.assign({}, u.dono), bia: Object.assign({}, u.dono), carlos: Object.assign({}, u.adm), ana: Object.assign({}, u.adm) });
     fs.writeFileSync(arqUsuarios, JSON.stringify(u, null, 2));
     let site = null, saida = '';
-    const fim = c => { try { site.kill(); } catch (e) {} try { fs.rmSync(pdfFalso, { force: true }); } catch (e) {} fs.rmSync(tmp, { recursive: true, force: true }); setTimeout(() => process.exit(c), 300); };
+    const fim = c => { try { site.kill(); } catch (e) {} try { fs.rmSync(pdfFalso, { force: true }); if (fs.existsSync(pdfReserva)) fs.copyFileSync(pdfReserva, pdfFalso); } catch (e) {} fs.rmSync(tmp, { recursive: true, force: true }); setTimeout(() => process.exit(c), 300); };
     try {
         assert.ok(!fs.existsSync(pdfFalso), 'o PDF de teste ja existe em manuais/ (apague antes de testar)');
         site = spawn('node', ['server.js'], { cwd: raiz, stdio: ['ignore', 'pipe', 'pipe'], env: Object.assign({}, process.env, {

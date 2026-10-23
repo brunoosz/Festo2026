@@ -60,7 +60,7 @@ A linha de embalagem é composta por esteira, bobina de filme, dispenser, braço
 - O botão fica visível em **todas as telas**, e a emergência também pode vir do botão da esteira, do botão do painel ou da Alexa.
 - Depois de acionada, **a máquina inteira fica travada** (esteira, selagens, dispenser, separador, receitas e botões MAIS/MENOS) até um **Dono ou Administrador** liberar.
 - Liberar: botão **DESBLOQUEAR** no site (com confirmação) ou **cartão NFC** cadastrado. Depois de liberar, a esteira continua parada.
-- A trava vale para todos os aparelhos, continua se o servidor reiniciar, e a esteira e o servo lembram dela mesmo desligados.
+- A trava vale para todos os aparelhos, continua se o servidor reiniciar. A trava vive só no site: as placas apenas param (a esteira gira ao contrário por 1 s e o servo vai ao centro) e não guardam trava, então liberar no site libera tudo na hora.
 - Com a emergência ativa, **todas as telas ganham uma borda vermelha brilhando** (some sozinha ao liberar).
 
 ### Cartão NFC e painel físico

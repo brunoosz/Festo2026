@@ -98,20 +98,22 @@ const { iniciar } = require('../mock_mqtt');
         }
         ok('50 ciclos pelo site: nenhuma reativação sozinha e liberação sempre confirmada pelas placas');
 
-        console.log('3) Placa que não confirma e placa com estado antigo');
-        comp.ecoMs = 0; comp.ignorarTudo = true;
-        painel.publish('painel/botao', 'emergencia'); assert.ok(await esperarAte(ativa));
-        await liberarSite(); await esperar(250);
-        let e = await estado(); assert.strictEqual(e.ativa, false); assert.ok(e.liberando.includes('esteira')); ok('enquanto as placas não confirmam, o site mostra "liberando" (placa que não confirma)');
-        assert.ok(await esperarAte(async () => (await estado()).liberando.length === 0, 3000)); assert.strictEqual(await ativa(), false); ok('se uma placa nunca confirma, o aviso aparece, a espera termina e a emergência NÃO reativa');
+        console.log('3) A trava vale só no site');
         const logsHoje = async () => { const [d, m, a] = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).split(', ')[0].split('/'); return (await (await fetch(`${B}/api/logs/${a}-${m}-${d}`, { headers: { Cookie: dono } })).json()).map(l => l.texto).join('\n'); };
-        assert.ok(/não confirmou a liberação/.test(await logsHoje())); ok('o aviso "não confirmou a liberação" fica nos logs');
-        placa.esteira.travada = true; publicarEstadoEsteira(); await esperar(100);
-        for (let k = 0; k < 6; k++) { esteira.publish('esteira/estado_emergencia', 'ativa', { retain: true }); await esperar(120); }
-        assert.strictEqual(await ativa(), false); ok('estado "ativa" repetido pela placa (mesmo retido) com o site liberado nunca liga a emergência');
-        comp.ignorarTudo = false; await esperar(5200); publicarEstadoEsteira(); await esperar(300);
-        assert.ok(/estava travada com o site liberado|Reenviando a liberação/.test(await logsHoje()) || placa.esteira.travada === false); ok('com o site liberado e a placa ainda travada, o servidor reenvia a liberação (e registra no log)');
-        assert.ok(await esperarAte(async () => placa.esteira.travada === false, 2000)); ok('a placa destravou com a liberação reenviada');
+        const avisosAntes = (await logsHoje()).split('não confirmou a liberação').length;
+        const vistos = []; const espiao = await conectar(); espiao.subscribe('#'); espiao.on('message', (t, m) => vistos.push(t + ' ' + m.toString()));
+        comp.ecoMs = 0; comp.ignorarTudo = true;
+        painel.publish('painel/botao', 'emergencia'); assert.ok(await esperarAte(ativa)); await esperar(200);
+        assert.ok(!vistos.some(v => v.startsWith('separador/emergencia')) && vistos.some(v => v.startsWith('separador/servo/angulo '))); ok('na emergência o servo só recebe "ir ao centro" (nada de trava guardada na placa)');
+        const servoLivreDono = (corpo) => fetch(B + '/api/separador/servo/angulo', { method: 'POST', headers: { Cookie: dono, 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+        assert.strictEqual((await servoLivreDono({ angulo: 100 })).status, 423); ok('com a emergência ativa o site recusa mexer no servo (423)');
+        await liberarSite();
+        let e = await estado(); assert.strictEqual(e.ativa, false); assert.deepStrictEqual(e.liberando, []); ok('ao liberar, o site libera na hora, sem esperar placa nenhuma');
+        await esperar(80); assert.strictEqual((await servoLivreDono({ angulo: 100 })).status, 200); ok('logo depois de liberar o servo já obedece o site (mesmo com a placa antiga ignorando "liberar")');
+        for (let k = 0; k < 6; k++) { esteira.publish('esteira/estado_emergencia', 'ativa', { retain: true }); sep.publish('separador/estado', JSON.stringify({ lado: 'C', angulo: 90, fila: 0, travado: true })); await esperar(120); }
+        assert.strictEqual(await ativa(), false); ok('placa antiga dizendo "travada" com o site liberado nunca liga a emergência');
+        assert.strictEqual((await logsHoje()).split('não confirmou a liberação').length, avisosAntes); ok('nenhum aviso de "placa não confirmou" aparece nos logs');
+        comp.ignorarTudo = false; placa.separador.travado = false; placa.esteira.travada = false; publicarEstadoEsteira(); espiao.end(true); await esperar(200);
 
         console.log('4) Origem de cada acionamento e liberação nos logs');
         sock = ioc(B, { extraHeaders: { cookie: dono }, transports: ['websocket'] }); await esperar(500);
