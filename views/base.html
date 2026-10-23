@@ -23,7 +23,31 @@
         body.somente-leitura #conteudo-pagina :is(button, input, select, textarea, [role="button"]):not([data-leitura-ok]):not([data-leitura-ok] *) { opacity: .5; cursor: not-allowed; }
         .leitor-tela-armado { outline: 3px solid #f59e0b !important; outline-offset: 2px; }
         .altura-tela-segura { height: 100vh; height: 100dvh; }
-        .sidebar-recolhida-desktop { display: none !important; }
+        /* menu lateral */
+        .sb-rotulo { white-space: nowrap; transition: opacity .22s ease, max-width .22s ease; max-width: 14rem; overflow: hidden; }
+        .sb-some { max-height: 14rem; transition: max-height .22s ease, opacity .22s ease, margin .22s ease, padding .22s ease; }
+        #sidebar-mobile nav, #sidebar-mobile nav a, #sidebar-mobile .sb-rodape { transition: padding .22s ease, gap .22s ease, background-color .15s ease; }
+        #btn-hamburguer:focus-visible, #sidebar-mobile a:focus-visible, #sidebar-mobile button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+        .sb-barras { position: relative; display: block; width: 22px; height: 16px; }
+        .sb-barras i { position: absolute; left: 0; width: 22px; height: 2px; border-radius: 2px; background: currentColor; transition: transform .22s ease, opacity .18s ease, top .22s ease; }
+        .sb-barras i:nth-child(1) { top: 0; } .sb-barras i:nth-child(2) { top: 7px; } .sb-barras i:nth-child(3) { top: 14px; }
+        #btn-hamburguer[aria-expanded="true"] .sb-barras i:nth-child(1) { top: 7px; transform: rotate(45deg); }
+        #btn-hamburguer[aria-expanded="true"] .sb-barras i:nth-child(2) { opacity: 0; }
+        #btn-hamburguer[aria-expanded="true"] .sb-barras i:nth-child(3) { top: 7px; transform: rotate(-45deg); }
+        @media (min-width: 768px) {
+            #sidebar-mobile { width: 18rem; overflow: hidden; flex-shrink: 0; transition: width .22s ease; }
+            #sidebar-mobile.sb-recolhida, html.sb-pre #sidebar-mobile { width: 4rem; }
+            .sb-recolhida .sb-rotulo, html.sb-pre .sb-rotulo { opacity: 0; max-width: 0; }
+            .sb-recolhida .sb-some, html.sb-pre .sb-some { max-height: 0; opacity: 0; margin: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; overflow: hidden; border-width: 0 !important; }
+            .sb-recolhida nav, html.sb-pre #sidebar-mobile nav { padding-left: .5rem; padding-right: .5rem; }
+            .sb-recolhida nav a, html.sb-pre #sidebar-mobile nav a { padding-left: .875rem; padding-right: .875rem; gap: 0; }
+            .sb-recolhida nav a.border-l-4 { border-left-width: 0; box-shadow: inset 3px 0 0 #0284c7; }
+            .sb-recolhida #badge-notificacoes-menu { display: none; }
+            .sb-recolhida .sb-rodape, html.sb-pre .sb-rodape { padding-left: .5rem; padding-right: .5rem; }
+            .sb-recolhida .sb-rodape > *, html.sb-pre .sb-rodape > * { gap: 0 !important; }
+        }
+        .sb-sem-anim, .sb-sem-anim * { transition: none !important; }
+        @media (prefers-reduced-motion: reduce) { #sidebar-mobile, #sidebar-mobile *, .sb-barras i { transition: none !important; } }
         #tutorial-overlay { z-index: 999999 !important; }
         #tutorial-borda-ativa { position: fixed; inset: 0; z-index: 999990; pointer-events: none; border: 4px solid #3b82f6; box-shadow: inset 0 0 35px rgba(59, 130, 246, 0.55), inset 0 0 8px rgba(59, 130, 246, 0.9), 0 0 20px rgba(59, 130, 246, 0.5); animation: pulso-borda-tutorial 2s ease-in-out infinite; }
         @keyframes pulso-borda-tutorial { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
@@ -42,7 +66,7 @@
     </style>
     <script>
         if (localStorage.getItem('tema_flowpack') === 'escuro') document.documentElement.classList.add('dark');
-        if (window.innerWidth >= 768 && localStorage.getItem('sidebar_recolhida_pc') === '1') document.documentElement.classList.add('preparar-sidebar-recolhida');
+        try { if (window.innerWidth >= 768 && localStorage.getItem('sidebar_recolhida_pc') === '1') document.documentElement.classList.add('sb-pre'); } catch (e) {}
     </script>
 </head>
 <body class="altura-tela-segura bg-[#f0f4f8] text-gray-800 font-sans flex overflow-hidden overscroll-none{% if somenteLeitura %} somente-leitura{% endif %}">
@@ -50,13 +74,13 @@
     <div id="barra-carregamento" class="hidden fixed top-0 left-0 right-0 h-1 bg-blue-500 z-[60]"></div>
     <div id="overlay-sidebar" class="hidden fixed inset-0 bg-black/50 backdrop-blur-[1px] z-40 md:hidden transition-opacity"></div>
 
-    <aside id="sidebar-mobile" class="w-72 max-w-[85vw] bg-white border-r border-gray-300 flex flex-col justify-between fixed md:static inset-y-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+    <aside id="sidebar-mobile" aria-label="Menu principal" class="sb-sem-anim w-72 max-w-[85vw] bg-white border-r border-gray-300 flex flex-col justify-between fixed md:static inset-y-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
         <div class="overflow-y-auto">
             <div class="p-5 sm:p-6 flex flex-col items-center border-b border-gray-200 relative">
                 <button id="btn-fechar-sidebar" aria-label="Fechar menu" class="md:hidden absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition cursor-pointer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-                <div class="flex items-center justify-center mb-5 w-full">
+                <div class="sb-some flex items-center justify-center mb-5 w-full">
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo Dark Coders" class="h-14 sm:h-16 w-auto object-contain">
                 </div>
                 <div class="flex items-center gap-3 w-full">
@@ -65,7 +89,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                     </div>
-                    <div class="min-w-0">
+                    <div class="min-w-0 sb-rotulo">
                         <p class="text-sm font-bold text-gray-800 uppercase truncate">{{ usuarioLogado | default('admin') }}</p>
                         <p class="text-xs text-gray-500">{{ nomeNivelUsuario | default('Operário') }}</p>
                     </div>
@@ -74,98 +98,99 @@
             <nav class="p-3 sm:p-4 space-y-1">
                 <a href="/dashboard" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-operacao">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V16zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V16z"></path></svg>
-                    Operação
+                    <span class="sb-rotulo">Operação</span>
                 </a>
                 {% if permissoes.dispenser %}
                 <a href="/dispenser" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-dispenser">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-5.5 8v6l-5 2v-8z"/></svg>
-                    Dispenser
+                    <span class="sb-rotulo">Dispenser</span>
                 </a>
                 {% endif %}
                 {% if permissoes.separador %}
                 <a href="/separador" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-separador">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6l4-6h6M10 12l4 6h6"/></svg>
-                    Separador
+                    <span class="sb-rotulo">Separador</span>
                 </a>
                 {% endif %}
                 {% if permissoes.receitas %}
                 <a href="/receitas" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-receitas">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="16" r="3"/></svg>
-                    Receitas
+                    <span class="sb-rotulo">Receitas</span>
                 </a>
                 {% endif %}
                 {% if permissoes.graficos %}
                 <a href="/graficos" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-producao">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    Produção
+                    <span class="sb-rotulo">Produção</span>
                 </a>
                 {% endif %}
                 {% if permissoes.relatorios %}
                 <a href="/relatorios" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-relatorios">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Relatórios
+                    <span class="sb-rotulo">Relatórios</span>
                 </a>
                 {% endif %}
                 {% if permissoes.visao %}
                 <a href="/visao" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-visao">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    Visão Computacional
+                    <span class="sb-rotulo">Visão Computacional</span>
                 </a>
                 {% endif %}
                 {% if permissoes.chat %}
                 <a href="/chat" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-chat">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h.01M15 9h.01"></path></svg>
-                    Dark Coders AI
+                    <span class="sb-rotulo">Dark Coders AI</span>
                 </a>
                 {% endif %}
                 {% if permissoes.logs %}
                 <a href="/logs" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-logs">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M4 17h16a2 2 0 002-2V5a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                    Logs ao Vivo
+                    <span class="sb-rotulo">Logs ao Vivo</span>
                     <span id="badge-notificacoes-menu" class="hidden ml-auto min-w-[26px] h-[26px] px-1.5 bg-blue-600 text-white text-[13px] font-black rounded-full flex items-center justify-center shadow-lg animate-pulse">0</span>
                 </a>
                 {% endif %}
                 {% if permissoes.controle %}
                 <a href="/controle" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-controle">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"></path></svg>
-                    Painel de Controle
+                    <span class="sb-rotulo">Painel de Controle</span>
                 </a>
                 {% endif %}
                 {% if permissoes.sistema %}
                 <a href="/sistema" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-sistema">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
-                    Status do Sistema
+                    <span class="sb-rotulo">Status do Sistema</span>
                 </a>
                 {% endif %}
                 {% if permissoes.nfc %}
                 <a href="/nfc" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-nfc">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
-                    Cartões NFC
+                    <span class="sb-rotulo">Cartões NFC</span>
                 </a>
                 {% endif %}
                 {% if permissoes.usuarios %}
                 <a href="/usuarios" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-usuarios">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.2A6.5 6.5 0 0121.5 20"/></svg>
-                    Usuários
+                    <span class="sb-rotulo">Usuários</span>
                 </a>
                 {% endif %}
                 <a href="/configuracoes" data-spa-link class="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-configuracoes">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Configuração
+                    <span class="sb-rotulo">Configuração</span>
                 </a>
                 <a href="/sobre" target="_blank" rel="noopener" class="sm:hidden flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium transition hover:bg-gray-50 active:bg-gray-100 text-gray-600" id="link-sobre-menu">
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.01" stroke-width="2.6"/></svg>
-                    Sobre nós
+                    <span class="sb-rotulo">Sobre nós</span>
                 </a>
             </nav>
         </div>
-        <div class="p-3 sm:p-4 border-t border-gray-100">
+        <div class="sb-rodape p-3 sm:p-4 border-t border-gray-100">
             <button type="button" data-abrir-manuais class="w-full flex items-center justify-center gap-2 mb-2 bg-blue-50 border border-blue-100 hover:bg-blue-100 active:bg-blue-200 text-blue-700 py-3 rounded-lg text-xs font-bold transition uppercase tracking-wider cursor-pointer shadow-sm">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                Manuais
+                <span class="sb-rotulo">Manuais</span>
             </button>
-            <a href="/logout" class="flex items-center justify-center gap-2 bg-[#f8fafc] border border-gray-200 hover:bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-lg text-xs font-bold transition uppercase tracking-wider cursor-pointer shadow-sm">
-                Sair do Sistema
+            <a href="/logout" class="flex items-center justify-center gap-2 bg-[#f8fafc] border border-gray-200 hover:bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-lg text-xs font-bold transition uppercase tracking-wider cursor-pointer shadow-sm" id="link-sair">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+                <span class="sb-rotulo">Sair do Sistema</span>
             </a>
         </div>
     </aside>
@@ -173,8 +198,8 @@
     <main class="flex-1 flex flex-col overflow-hidden min-w-0">
         <header class="bg-white px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-sm z-10 border-b border-gray-200 gap-2 shrink-0">
             <div class="flex items-center gap-2 min-w-0 flex-1">
-                <button id="btn-hamburguer" aria-label="Abrir ou recolher menu" class="relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-700 transition cursor-pointer shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                <button id="btn-hamburguer" type="button" aria-label="Recolher menu" aria-expanded="true" aria-controls="sidebar-mobile" class="relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 active:bg-gray-200 text-gray-700 transition cursor-pointer shrink-0">
+                    <span class="sb-barras" aria-hidden="true"><i></i><i></i><i></i></span>
                     <span id="badge-notificacoes-hamburguer" class="hidden absolute -top-1.5 -right-1.5 min-w-[24px] h-[24px] px-1.5 bg-blue-600 text-white text-[12px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse"></span>
                 </button>
                 <div class="hidden md:block min-w-0">
@@ -493,37 +518,68 @@
             const sidebarMobile = document.getElementById('sidebar-mobile');
             const overlaySidebar = document.getElementById('overlay-sidebar');
 
-            function abrirMenuMobile() { sidebarMobile.classList.remove('-translate-x-full'); overlaySidebar.classList.remove('hidden'); document.body.style.overflow = 'hidden'; atualizarBadgeNotificacoes(); }
-            function fecharMenuMobile() {
-                if (window.innerWidth < 768) { sidebarMobile.classList.add('-translate-x-full'); overlaySidebar.classList.add('hidden'); document.body.style.overflow = ''; }
+            const CHAVE_MENU = 'sidebar_recolhida_pc';
+            const ROTULOS_RODAPE = ['[data-abrir-manuais]', '#link-sair'];
+            const ehCelular = () => window.innerWidth < 768;
+            const menuRecolhido = () => sidebarMobile.classList.contains('sb-recolhida');
+            const menuGavetaAberta = () => !sidebarMobile.classList.contains('-translate-x-full');
+            function lerMenuSalvo() { try { return localStorage.getItem(CHAVE_MENU) === '1'; } catch (e) { return false; } }
+            function salvarMenu(recolhido) { try { localStorage.setItem(CHAVE_MENU, recolhido ? '1' : '0'); } catch (e) {} }
+
+            // dica com o nome quando só aparecem os ícones
+            function atualizarDicasMenu() {
+                const comDica = !ehCelular() && menuRecolhido();
+                sidebarMobile.querySelectorAll('nav a, ' + ROTULOS_RODAPE.join(', ')).forEach(el => {
+                    const rot = el.querySelector('.sb-rotulo');
+                    const nome = rot ? rot.textContent.trim() : '';
+                    if (!nome) return;
+                    el.setAttribute('aria-label', nome);
+                    if (comDica) el.setAttribute('title', nome); else el.removeAttribute('title');
+                });
+            }
+
+            // estado do botão: X quando o menu está aberto
+            function atualizarBotaoMenu() {
+                const aberto = ehCelular() ? menuGavetaAberta() : !menuRecolhido();
+                btnHamburguer.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+                btnHamburguer.setAttribute('aria-label', ehCelular() ? (aberto ? 'Fechar menu' : 'Abrir menu') : (aberto ? 'Recolher menu' : 'Expandir menu'));
                 atualizarBadgeNotificacoes();
+            }
+
+            function abrirMenuMobile() { sidebarMobile.classList.remove('-translate-x-full'); overlaySidebar.classList.remove('hidden'); document.body.style.overflow = 'hidden'; atualizarBotaoMenu(); }
+            function fecharMenuMobile(devolverFoco) {
+                if (ehCelular()) { sidebarMobile.classList.add('-translate-x-full'); overlaySidebar.classList.add('hidden'); document.body.style.overflow = ''; if (devolverFoco === true && btnHamburguer) btnHamburguer.focus(); }
+                atualizarBotaoMenu();
             }
 
             function aplicarEstadoRecolhidoDesktop(recolhido) {
-                if (recolhido) sidebarMobile.classList.add('sidebar-recolhida-desktop');
-                else sidebarMobile.classList.remove('sidebar-recolhida-desktop');
-                localStorage.setItem('sidebar_recolhida_pc', recolhido ? '1' : '0');
-                atualizarBadgeNotificacoes();
+                sidebarMobile.classList.toggle('sb-recolhida', recolhido);
+                salvarMenu(recolhido);
+                atualizarDicasMenu();
+                atualizarBotaoMenu();
             }
-
-            if (window.innerWidth >= 768 && localStorage.getItem('sidebar_recolhida_pc') === '1') sidebarMobile.classList.add('sidebar-recolhida-desktop');
 
             function handlerHamburguer() {
-                if (window.innerWidth >= 768) { const estaRecolhido = sidebarMobile.classList.contains('sidebar-recolhida-desktop'); aplicarEstadoRecolhidoDesktop(!estaRecolhido); }
-                else { abrirMenuMobile(); }
+                if (!ehCelular()) aplicarEstadoRecolhidoDesktop(!menuRecolhido());
+                else if (menuGavetaAberta()) fecharMenuMobile(); else abrirMenuMobile();
             }
+            function handlerEscMenu(e) { if (e.key === 'Escape' && ehCelular() && menuGavetaAberta()) { e.preventDefault(); fecharMenuMobile(true); } }
             if (btnHamburguer) btnHamburguer.addEventListener('click', handlerHamburguer);
-            if (btnFecharSidebar) btnFecharSidebar.addEventListener('click', fecharMenuMobile);
-            if (overlaySidebar) overlaySidebar.addEventListener('click', fecharMenuMobile);
+            if (btnFecharSidebar) btnFecharSidebar.addEventListener('click', () => fecharMenuMobile(true));
+            if (overlaySidebar) overlaySidebar.addEventListener('click', () => fecharMenuMobile());
+            document.addEventListener('keydown', handlerEscMenu);
 
             window.addEventListener('resize', () => {
-                if (window.innerWidth >= 768) { overlaySidebar.classList.add('hidden'); document.body.style.overflow = ''; sidebarMobile.classList.remove('-translate-x-full'); }
-                atualizarBadgeNotificacoes();
+                if (!ehCelular()) {
+                    overlaySidebar.classList.add('hidden'); document.body.style.overflow = ''; sidebarMobile.classList.remove('-translate-x-full');
+                    sidebarMobile.classList.toggle('sb-recolhida', lerMenuSalvo());
+                } else { sidebarMobile.classList.remove('sb-recolhida'); }
+                atualizarDicasMenu(); atualizarBotaoMenu();
             });
 
             function sidebarEstaVisivelAgora() {
-                if (window.innerWidth < 768) return !sidebarMobile.classList.contains('-translate-x-full');
-                return !sidebarMobile.classList.contains('sidebar-recolhida-desktop');
+                if (ehCelular()) return menuGavetaAberta();
+                return !menuRecolhido();
             }
 
             const badgeNotificacoes = document.getElementById('badge-notificacoes-hamburguer');
@@ -541,6 +597,11 @@
                     else badgeNotificacoes.classList.add('hidden');
                 }
             }
+
+            // estado salvo, sem animar no primeiro desenho
+            if (!ehCelular() && lerMenuSalvo()) sidebarMobile.classList.add('sb-recolhida');
+            atualizarDicasMenu(); atualizarBotaoMenu();
+            requestAnimationFrame(() => requestAnimationFrame(() => { sidebarMobile.classList.remove('sb-sem-anim'); document.documentElement.classList.remove('sb-pre'); }));
 
             function zerarNotificacoesSeNaOperacao() {
                 if (paginaAtualParaNotificacoes === '/logs') {
