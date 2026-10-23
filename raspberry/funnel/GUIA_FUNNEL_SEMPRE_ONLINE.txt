@@ -1,0 +1,47 @@
+TAILSCALE FUNNEL SEMPRE ONLINE - GUIA
+=====================================
+POR QUE FALHAVA (mesmo com cabo de rede)
+ O cabo resolve a internet, mas o Funnel tem outros pontos fracos. Os mais provaveis no seu caso:
+ 1) O servico antigo (tailscale-funnel.service) rodava "tailscale funnel 5000" em PRIMEIRO PLANO dentro de um servico "oneshot":
+    o systemd derruba esse processo por tempo limite e o Funnel cai (e nao tinha reinicio automatico).
+ 2) Tailscale DESLOGADO: nos seus historicos ja apareceu "Logged out. Log in at: ...". Com a chave expirada o Funnel nunca sobe.
+ 3) O Raspberry NAO tem relogio proprio: ao ligar, a hora pode estar errada e o certificado HTTPS/login falha ate sincronizar.
+ 4) O servico sobe antes da rede estar pronta e nao tenta de novo.
+ 5) Funnel/HTTPS desligado no painel do Tailscale, ou a regra de acesso sem a permissao "funnel".
+
+O QUE O GUARDIAO FAZ (roda sempre, confere a cada 20 s)
+ espera a hora certa e a internet > religa o tailscaled se parou > faz "tailscale up" se estiver parado > refaz o funnel (tailscale funnel --bg 5000) se caiu >
+ confere se o site responde pela internet (https://darkcoders.tail5417c7.ts.net) > se o site local (porta 5000) nao responde, reinicia o site_esteira >
+ se continuar falhando: refaz o funnel do zero (2a falha), reinicia o tailscaled (4a), avisa no celular pelo ntfy (8a) e, se ficar 30 min fora, reinicia o
+ Raspberry (no maximo 1 vez a cada 6 horas). Quando volta, avisa "Site online de novo".
+ Quando o motivo e "deslogado" ele NAO consegue resolver sozinho (precisa de voce): avisa no celular e escreve no log.
+
+INSTALAR (no Raspberry, VS Code remoto, terminal)
+ 1) Arraste instalar_funnel_sempre_online_sh.txt para /root e salve como  /root/instalar_funnel_sempre_online.sh
+ 2) sudo bash /root/instalar_funnel_sempre_online.sh      (leva uns 40 s e mostra o estado no fim)
+ 3) Teste de verdade: no celular, DESLIGUE o Wi-Fi (use 4G) e abra https://darkcoders.tail5417c7.ts.net
+
+FAZER NO PAINEL DO TAILSCALE (uma vez) - https://login.tailscale.com/admin
+ a) Machines > DarkCoders > menu "..." > "Disable key expiry"  (assim ele nunca mais desloga sozinho)
+ b) DNS > "Enable HTTPS" (certificados) precisa estar ligado
+ c) Access controls: se voce usa regras personalizadas, precisa ter "nodeAttrs" com o atributo "funnel" para o seu usuario
+    (exemplo:  "nodeAttrs": [ { "target": ["autogroup:member"], "attr": ["funnel"] } ]  ). Se nunca mexeu nas regras, ja vem liberado.
+ d) Se aparecer "deslogado" nos logs: rode  sudo tailscale up  , abra o link que aparecer e entre com a sua conta.
+
+ACOMPANHAR
+ journalctl -u funnel-guardian -f          (ao vivo; Ctrl+C sai)    |   sudo tailscale funnel status    |   sudo tailscale status
+ Aviso no celular: o guardiao usa o mesmo canal ntfy do guarda-rede.
+
+AJUSTES (opcional)
+ Nao reiniciar o Raspberry sozinho:   sudo systemctl edit funnel-guardian   (cole:  [Service]  Environment="FUNNEL_REBOOT_MIN=0" )  e  sudo systemctl restart funnel-guardian
+ Mudar o tempo de espera para reiniciar (minutos):  FUNNEL_REBOOT_MIN=45   |  Intervalo entre conferencias (segundos):  FUNNEL_INTERVALO=20
+
+SE AINDA FALHAR
+ sudo bash funnel_diagnostico.sh     (o instalador ja deixa em /usr/local/bin:  sudo funnel-diagnostico.sh)
+ Ele salva /root/funnel-diagnostico.txt (hora, rede, DNS, estado do Tailscale, funnel e ultimos logs). Copie o conteudo e me mande.
+
+OBSERVACOES
+ * O Alexa, o chat com microfone (HTTPS) e o acesso de fora dependem do Funnel: com ele estavel, tudo isso fica estavel.
+ * A rede do Raspberry (celular por USB ou cabo) continua com o guarda-rede; o guardiao do Funnel so espera a internet existir.
+ * Testei a logica do guardiao aqui com comandos simulados (tudo certo, funnel caido, deslogado, relogio errado, escalada e reinicio).
+   NAO testei no seu Raspberry com o Tailscale real; por isso o diagnostico acima.
