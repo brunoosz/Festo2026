@@ -405,6 +405,44 @@ void aplicarServoConfig(const String& json) {
   enviarEstado();
 }
 
+// varredura de teste: esquerda, direita e centro (bloqueia uns 3 s)
+void varredura() {
+
+  Serial.println(">>> TESTE DO SERVO: esquerda, direita, centro...");
+
+  int destinos[3] = { anguloDoLado('E'), anguloDoLado('D'), anguloDoLado('C') };
+  const char* nomes[3] = { "ESQUERDA", "DIREITA", "CENTRO" };
+
+  velAtiva = 70;
+
+  for (int i = 0; i < 3; i++) {
+
+    Serial.print("  -> ");
+    Serial.print(nomes[i]);
+    Serial.print(" (");
+    Serial.print(destinos[i]);
+    Serial.println(" graus)");
+
+    alvo = destinos[i];
+    unsigned long inicio = millis();
+
+    while ((fabs(angulo - alvo) > 0.3 || millis() - inicio < 300) && millis() - inicio < 4000) {
+      float passo = grausPorPasso();
+      if (angulo < alvo) angulo = min(angulo + passo, alvo);
+      else if (angulo > alvo) angulo = max(angulo - passo, alvo);
+      ultimoDuty = -1;
+      escreverServo(angulo);
+      delay(10);
+    }
+
+    delay(400);
+  }
+
+  velAtiva = velocidade;
+  ladoAtual = 'C';
+  Serial.println(">>> Teste terminou. Se o servo NAO mexeu: confira 5 V externo, GND junto com o ESP32 e o fio de sinal no GPIO 18.");
+}
+
 void mostrarStatus() {
 
   Serial.println();
@@ -440,6 +478,7 @@ void mostrarAjuda() {
   Serial.println("E  (abre para a esquerda)   D  (direita)   C  (centro)");
   Serial.println("ESQ=45  CENTRO=90  DIR=135  (angulos de 0 a 180)");
   Serial.println("VEL=60  (1 a 100)    ABERTO=900  (ms)");
+  Serial.println("TESTE (varredura)   ANG=90 (vai ao angulo)");
   Serial.println("STATUS    PARAR    REINICIAR    AJUDA");
   Serial.println();
 }
@@ -492,6 +531,12 @@ void processarComando(String comando) {
     limparFilaEVoltar();
     Serial.println("PARADO: fila limpa, voltando ao centro.");
   }
+  else if (comando == "TESTE") {
+    varredura();
+  }
+  else if (comando.startsWith("ANG=")) {
+    moverServo(comando.substring(4).toInt(), 60, 0);
+  }
   else if (comando == "STATUS") {
     mostrarStatus();
   }
@@ -520,6 +565,11 @@ void callbackMqtt(char* topic, byte* payload, unsigned int length) {
   mensagem.trim();
 
   String topico = String(topic);
+
+  Serial.print("MQTT ");
+  Serial.print(topico);
+  Serial.print(": ");
+  Serial.println(mensagem);
 
   if (topico == topic_desviar) {
 
@@ -659,8 +709,12 @@ void setup() {
 
   client.setServer(mqtt_server, 1883);
   client.setCallback(callbackMqtt);
+  client.setBufferSize(512);
 
   mostrarAjuda();
+
+  // teste ao ligar: o servo precisa mexer
+  varredura();
 }
 
 

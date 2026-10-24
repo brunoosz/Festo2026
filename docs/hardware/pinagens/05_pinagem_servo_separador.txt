@@ -21,10 +21,14 @@ Angulos (esquerda / centro / direita), velocidade, tempo aberto, atraso e o lado
 de cada produto ficam na tela Separador > Servo e sao enviados ao ESP32 (ficam salvos nele).
 Repouso = angulo do CENTRO. Desvio = angulo da ESQUERDA ou da DIREITA.
 
-EMERGENCIA TRAVADA
+EMERGENCIA
 -----------------------------------
-Na emergencia o servo volta ao centro e fica TRAVADO (mesmo se desligar e ligar):
-ignora desvios e testes ate o site mandar liberar (botao DESBLOQUEAR).
+Na emergencia o servo volta ao centro. A trava vale so no site (a placa nao guarda trava).
+
+AO LIGAR
+-----------------------------------
+O servo faz um teste sozinho: esquerda, direita e centro. Se nao mexer: confira 5 V externo, GND junto e sinal no GPIO 18.
+Pelo Serial: TESTE (repete a varredura) e ANG=90 (vai a um angulo).
 
 TESTES (Monitor Serial 115200)
 -----------------------------------
