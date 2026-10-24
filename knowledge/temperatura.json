@@ -48,5 +48,50 @@
       "essa parte da máquina já foi implementada"
     ],
     "resposta": "Ainda não. No momento, o projeto está focado no controle da esteira de alimentação. O módulo de selagem (temperatura, corte, mordaças) está planejado como uma próxima etapa de desenvolvimento."
+  },
+  {
+    "id": 306,
+    "pergunta": "O que significam os alarmes da Selagem 2?",
+    "perguntas_alternativas": [
+      "alarme sensor sem leitura selagem 2",
+      "o que é sobretemperatura",
+      "barra não está esquentando",
+      "sensor muito quente selagem 2",
+      "aviso amarelo sensor esquentando"
+    ],
+    "resposta": "A Selagem 2 (barra quente) desliga o aquecimento e mostra um alarme em português: 'Sensor sem leitura' (3 s sem leitura válida), 'Temperatura acima do limite' (passou de 270 °C ou 25 °C acima do alvo por 8 s), 'A barra não está esquentando' (potência alta por 45 s e a temperatura não subiu 5 °C: confira sensor, resistência e SSR) e 'Sensor muito quente' (corpo do sensor em 95 °C). Aos 80 °C aparece só um aviso amarelo, sem desligar. Depois de um alarme vermelho, resolva a causa e ligue o aquecimento de novo. Tudo fica nos Logs ao Vivo."
+  },
+  {
+    "id": 307,
+    "pergunta": "Como rodar o autotune da Selagem 2?",
+    "perguntas_alternativas": [
+      "o que é autotune",
+      "como descobrir os ganhos PID da barra",
+      "rodar autotune selagem 2",
+      "a temperatura da selagem 2 oscila"
+    ],
+    "resposta": "No Painel de Controle, em 'Selagem 2 · Ajuste fino' (Dono ou Administrador), deixe a barra vazia e sem plástico, escolha o alvo de trabalho (por exemplo 150 °C) e toque em 'Rodar autotune'. Leva de 3 a 15 minutos; não mexa na barra. Ao terminar o site mostra Ku, Pu e os novos Kp, Ki e Kd, já salvos na placa. 'Cancelar' interrompe e a emergência também cancela. 'Padrão' volta aos ganhos de fábrica. Refaça se trocar a barra, a posição do sensor ou a temperatura de trabalho."
+  },
+  {
+    "id": 308,
+    "pergunta": "Como calibrar a leitura de temperatura da Selagem 2?",
+    "perguntas_alternativas": [
+      "calibração da temperatura selagem 2",
+      "a leitura não bate com o termômetro",
+      "ponto 1 e ponto 2 calibração",
+      "infravermelho no inox"
+    ],
+    "resposta": "Use um termômetro de contato (multímetro com termopar K) na superfície da barra, no ponto que o sensor enxerga. Ligue em cerca de 100 °C, espere estabilizar, meça e digite a temperatura real em 'Ponto 1'. Suba para cerca de 160 °C, espere, meça e use 'Ponto 2' (diferença de pelo menos 15 °C). 'Zerar' desfaz. O infravermelho no inox brilhante pode ler MUITO abaixo do real: use fita Kapton ou tinta preta fosca no ponto lido."
+  },
+  {
+    "id": 309,
+    "pergunta": "Quais cuidados de segurança na barra quente da Selagem 2?",
+    "perguntas_alternativas": [
+      "segurança da barra quente",
+      "fusível térmico da selagem 2",
+      "tensão da resistência da selagem 2",
+      "posso mexer na barra ligada"
+    ],
+    "resposta": "Mexa na parte elétrica sempre com a tomada desligada. Use fusível de 2 A na fase, terra ligado e, de preferência, um fusível térmico de cerca de 240 °C preso na barra em série com a resistência. Confira a tensão da resistência na etiqueta (precisa ser a da tomada) e nunca deixe a barra ligada sem alguém por perto nos primeiros testes. Faça a calibração com termômetro de contato antes de usar com plástico."
   }
 ]
