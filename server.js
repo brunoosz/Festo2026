@@ -2255,6 +2255,11 @@ function emergenciaTratarEsteira(valor) {
 
 mqttClient.publish = function (topico, mensagem, ...resto) {
     const t = String(topico);
+    // apertos repetidos com a emergência já ativa não mandam parar de novo (evita girar motores outra vez)
+    if (/^(esteira|selagem|selagem2|dispenser)\/emergencia$/.test(t) && String(mensagem) === '1' && emergenciaGlobal.ativa && Date.now() - Date.parse(emergenciaGlobal.desde || 0) > 3000) {
+        console.log('🛑 Emergencia ja ativa: pedido repetido para ' + t + ' ignorado.');
+        return mqttClient;
+    }
     if (t === 'esteira/emergencia' && String(mensagem) === '1') emergenciaAtivar(origemEmergenciaAtual || 'origem desconhecida (esteira/emergencia publicado direto)');
     if (emergenciaGlobal.ativa && REGEX_MOVIMENTO.test(t)) {
         console.log('🛑 Emergencia ativa: comando bloqueado (' + t + ')');
