@@ -1,0 +1,65 @@
+SELAGEM 2 - AQUECIMENTO COM A BARRA QUENTE NOVA  (guia passo a passo)
+=====================================================================
+O QUE MUDOU NO CODIGO (a logica e a mesma: o site continua funcionando sem mudar nada)
+ * MESMOS topicos MQTT e MESMO formato de dados (temperatura, setpoint, potencia, habilitado, seguranca). Entraram campos extras que o site ignora.
+ * Controle por TEMPO em janela de 2 s (o SSR-25DA liga so na passagem por zero: PWM rapido nao funciona com ele).
+ * PID proprio (a biblioteca PID nao e mais necessaria neste firmware), anti-saturacao e derivada filtrada.
+ * AUTOTUNE: o ESP32 descobre sozinho os ganhos do PID da SUA barra (era isso que faltava: os valores antigos eram de outro aquecedor).
+ * CALIBRACAO da leitura (offset e ganho) para corrigir o infravermelho no inox.
+ * PROTECOES novas (antes, se o sensor desconectasse o aquecedor continuava ligado):
+     erro_sensor ........ sem leitura valida por 3 s: DESLIGA        sobretemperatura ... 270 C, ou 25 C acima do alvo por 8 s: DESLIGA
+     sem_aquecimento .... potencia alta por 45 s e a temperatura nao sobe 5 C (sensor mal apontado, resistencia ou SSR com defeito): DESLIGA
+     sensor_quente ...... corpo do GY-906 a 95 C: DESLIGA (aviso aos 80 C)
+   Depois de um alarme o aquecimento fica DESLIGADO ate voce mandar LIGAR de novo (no site ou no Serial).
+
+POR QUE ELE "NAO REGULAVA" (provaveis causas, em ordem)
+ 1) Ganhos do PID de outro aquecedor (barra de 150 W e lenta e tem muita massa).  -> resolvido pelo AUTOTUNE.
+ 2) Leitura errada do infravermelho no inox brilhante (le bem menos que o real).    -> fita Kapton/tinta preta + CALIBRACAO.
+ 3) SSR nao fechando direito com 3,3 V.                                              -> comando TESTE SSR e, se precisar, o transistor da pinagem.
+ 4) Tensao da resistencia diferente da tomada.                                       -> confira a etiqueta e meca a resistencia (veja a pinagem).
+
+INSTALAR O FIRMWARE
+ 1) Arduino IDE: bibliotecas  PubSubClient  e  Adafruit MLX90614 Library (+ Adafruit BusIO). Placa "ESP32 Dev Module".
+ 2) Abra  2_ARDUINO_IDE/03_firmware_selagem2_aquecimento/03_firmware_selagem2_aquecimento.ino  (ou cole o .txt de 1_COPIAR_E_COLAR) e grave.
+    (O arquivo da pasta 3_PARA_O_GITHUB tem a senha trocada por texto: use ESSE no GitHub, nunca o outro.)
+ 3) Monitor Serial 115200: confira "Sensor GY-906 encontrado" e digite STATUS.
+
+PRIMEIRO USO - SEM PLASTICO, BARRA LIVRE, AREA ISOLADA  (faca nesta ordem)
+ A) Barra FRIA: STATUS -> a temperatura deve ficar perto da ambiente (+-3 C). Se ficar muito diferente, o sensor esta mal apontado.
+ B) TESTE SSR -> o LED do SSR acende por 3 s e a barra esquenta um pouco. Se nao: transistor (pinagem) ou fiacao.
+ C) CALIBRACAO com termometro de contato (multimetro com termopar K na superficie da barra, no ponto que o sensor enxerga):
+      TEMP 100  e  LIGAR   (ou MANUAL 40)  -> espere estabilizar -> meca o real -> digite  CAL1 <real>      ex: CAL1 118
+      TEMP 160                              -> espere estabilizar -> meca o real -> digite  CAL2 <real>      ex: CAL2 178
+      (o CAL2 so aceita se a temperatura mudou pelo menos 15 C; os valores ficam salvos). Para desfazer: CALZERAR.
+      Dica: se a leitura ja bate com o termometro, nao precisa calibrar.
+ D) AUTOTUNE na temperatura de trabalho:   AUTOTUNE 150      (leva uns 3 a 15 min: a barra liga e desliga sozinha ao redor de 150 C)
+      Nao mexa na barra. Ao terminar o Serial mostra Ku, Pu e os novos Kp, Ki, Kd (salvos na memoria) e o aquecimento segue no alvo.
+      Se abortar ("passou muito do alvo"), repita com menos potencia:  AUTOTUNE 150 70     |   Cancelar:  AUTOTUNE PARAR
+ E) TEMP 150 e LIGAR: a temperatura deve chegar e ficar dentro de +-2 C. Anote o tempo que leva para esquentar.
+ F) So depois use com plastico. Refaca o AUTOTUNE se trocar a barra, a posicao do sensor ou ficar mudando muito a temperatura de trabalho.
+
+NO SITE (nada muda)
+ O card da Selagem 2 continua mostrando temperatura, alvo e potencia, e a temperatura/liga-desliga/receitas funcionam como antes. Os alarmes novos aparecem no campo
+ "seguranca" como texto (erro_sensor, sobretemperatura, sem_aquecimento, sensor_quente).
+ Para mandar autotune/PID/calibracao pelo site ainda NAO ha botoes (veja PROMPT_CLAUDE_CODE_LOTE5_SELAGEM2.txt); por enquanto use o Serial ou, no Raspberry:
+   mosquitto_pub -h 127.0.0.1 -t selagem2/autotune -m 150          (inicia)      |  -m 0  (cancela)
+   mosquitto_pub -h 127.0.0.1 -t selagem2/pid -m "10.3,0.2,36.8"   (define)      |  -m padrao
+   mosquitto_pub -h 127.0.0.1 -t selagem2/calibrar -m cal1:118     (ou cal2:178, offset:5, ganho:1.1, zerar)
+   mosquitto_pub -h 127.0.0.1 -t selagem2/manual -m 40             (potencia fixa 40% por 2 min)  |  -m off
+   O resultado do autotune sai em  selagem2/autotune_resultado.
+
+COMANDOS DO SERIAL
+ LIGAR | DESLIGAR | TEMP <0-250> | EMERGENCIA | AUTOTUNE [alvo] [pot%] | AUTOTUNE PARAR | PID kp ki kd | PID PADRAO | CAL1 <real> | CAL2 <real> | CALZERAR |
+ OFFSET <x> | GANHO <x> | MANUAL <pot%> | MANUAL OFF | TESTE SSR | STATUS | REINICIAR | AJUDA
+
+SEGURANCA (leia)
+ * Mexa na parte eletrica SEMPRE com a tomada desligada. Use fusivel de 2 A na fase, terra ligado e, de preferencia, um fusivel termico de uns 240 C preso na barra
+   em serie com a resistencia: ele protege mesmo se o ESP32, o sensor ou o SSR falharem.
+ * A leitura por infravermelho no inox brilhante pode estar MUITO abaixo da real: por isso a calibracao com termometro de contato e obrigatoria antes do uso.
+ * Nunca deixe a barra ligada sem alguem por perto durante os primeiros testes.
+
+O QUE FOI TESTADO (e o que NAO)
+ Testado no computador: o nucleo de controle (o mesmo codigo do firmware) contra um modelo termico da barra de 150 W: ganhos padrao estaveis, autotune em poucos minutos,
+ PID com ultrapassagem de menos de 1 C, recuperacao de uma perturbacao e todas as protecoes (veja RESULTADO_DA_SIMULACAO.txt). O firmware inteiro compila contra uma
+ simulacao das bibliotecas. NAO foi testado na sua placa, com o seu sensor e a sua barra: os ganhos reais saem do AUTOTUNE, e o tempo dele depende da massa da barra.
+ Se algo se comportar de forma diferente (oscilar, nao chegar no alvo, alarme sem motivo), copie as linhas do Monitor Serial (STATUS e algumas linhas "Temp: ...") e me mande.

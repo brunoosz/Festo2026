@@ -6,7 +6,7 @@ Cada pasta tem um sketch do Arduino IDE (a pasta e o arquivo `.ino` têm o mesmo
 |---|---|
 | `01_firmware_esteira` | Esteira (BTS7960 e 3 botões) |
 | `02_firmware_selagem1_chapinha_e_rodinhas` | Selagem 1 (chapinha, SSR, GY-906 e rodinhas) |
-| `03_firmware_selagem2_aquecimento` | Selagem 2, aquecimento |
+| `03_firmware_selagem2_aquecimento` | Selagem 2, aquecimento (v3: barra quente 150 W, SSR-25DA, autotune e calibração; guia em [`docs/hardware/selagem2`](../docs/hardware/selagem2)) |
 | `04_firmware_selagem2_motor` | Selagem 2, motor |
 | `05_firmware_dispenser` | Dispenser (2 BTS7960) |
 | `06_firmware_separador_servo` | Separador (servo SG90) |

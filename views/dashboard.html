@@ -4,6 +4,7 @@
 {% block title %}Operação{% endblock %}
 
 {% block content %}
+<script src="/js/selagem2-alarmes.js"></script>
 
 <div class="flex flex-col h-full min-h-[calc(100vh-130px)] gap-4 sm:gap-6">
 
@@ -252,23 +253,28 @@
             if (window.__tutorialAtivo) return true;
             if (emEmergencia) return false;
             if (permissaoTotal) return true;
-            return motorEstaRodando() && esp32EsteiraOnline && online && seguranca === 'ok';
+            return motorEstaRodando() && esp32EsteiraOnline && online && window.Selagem2Alarmes.ok(seguranca);
         }
 
         function atualizarVisual() {
             if (podeSerControlada()) { sliderTemp.disabled = false; sliderTemp.classList.remove('opacity-50', 'cursor-not-allowed'); }
             else { sliderTemp.disabled = true; sliderTemp.classList.add('opacity-50', 'cursor-not-allowed'); }
 
-            if (window.__tutorialAtivo || (ignorarAviso && seguranca !== 'temperatura_alta')) { avisoSelagem.classList.add('hidden'); return; }
+            if (window.__tutorialAtivo || (ignorarAviso && !(numeroExibicao === '2' ? window.Selagem2Alarmes.critico(seguranca) : seguranca === 'temperatura_alta'))) { avisoSelagem.classList.add('hidden'); return; }
 
             if (!online) { avisoSelagem.innerText = 'Selagem desconectada da rede.'; avisoSelagem.classList.remove('hidden'); }
-            else if (seguranca === 'erro_sensor') { avisoSelagem.innerText = 'Erro no sensor de temperatura da selagem.'; avisoSelagem.classList.remove('hidden'); }
-            else if (seguranca === 'temperatura_alta') { avisoSelagem.innerText = 'Temperatura crítica! Selagem travada por segurança.'; avisoSelagem.classList.remove('hidden'); }
+            else if (numeroExibicao !== '2' && seguranca === 'erro_sensor') { avisoSelagem.innerText = 'Erro no sensor de temperatura da selagem.'; avisoSelagem.classList.remove('hidden'); }
+            else if (numeroExibicao !== '2' && seguranca === 'temperatura_alta') { avisoSelagem.innerText = 'Temperatura crítica! Selagem travada por segurança.'; avisoSelagem.classList.remove('hidden'); }
+            else if (numeroExibicao === '2' && window.Selagem2Alarmes.info(seguranca)) {
+                const i = window.Selagem2Alarmes.info(seguranca);
+                avisoSelagem.innerText = (i.nivel === 'aviso' ? 'Aviso: ' : 'Alarme: ') + i.texto;
+                avisoSelagem.classList.remove('hidden');
+            }
             else { avisoSelagem.classList.add('hidden'); }
         }
 
         function sincronizarHabilitacao() {
-            const deveHabilitar = motorEstaRodando() && online && seguranca === 'ok' && !emEmergencia;
+            const deveHabilitar = motorEstaRodando() && online && window.Selagem2Alarmes.ok(seguranca) && !emEmergencia;
             if (deveHabilitar !== habilitadaAtual) { habilitadaAtual = deveHabilitar; globalSocket.emit(nomeEventoComando, { acao: 'ativar', valor: deveHabilitar }); }
             atualizarVisual();
         }

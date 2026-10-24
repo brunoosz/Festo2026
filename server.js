@@ -2173,7 +2173,7 @@ try { emergenciaGlobal = Object.assign(emergenciaGlobal, JSON.parse(fs.readFileS
 function emergenciaSalvar() { try { fs.writeFileSync(ARQ_EMERGENCIA, JSON.stringify(emergenciaGlobal)); } catch (e) {} }
 
 // comandos bloqueados
-const REGEX_MOVIMENTO = /(\/set$|\/set_temperatura$|\/ativar$|\/dosar$|\/desviar$|\/teste$|\/servo\/angulo$|resetar_seguranca$)/;
+const REGEX_MOVIMENTO = /(\/set$|\/set_temperatura$|\/ativar$|\/dosar$|\/desviar$|\/teste$|\/servo\/angulo$|\/autotune$|\/manual$|resetar_seguranca$)/;
 const mqttPublicarOriginal = mqttClient.publish.bind(mqttClient);
 
 // origem de cada acionamento
@@ -2218,6 +2218,7 @@ function emergenciaAtivar(origem) {
     emergenciaGlobal = { ativa: true, desde: new Date().toISOString(), origem: quem };
     emergenciaSalvar();
     emergenciaPararServo();
+    mqttPublicarOriginal('selagem2/autotune', '0');
     emergenciaPublicarEstado();
     emergenciaAvisarTelas();
     emergenciaLogar('EMERGENCIA ATIVA (' + quem + '). O site fica travado ate alguem liberar no site ou com o cartao NFC.');
@@ -2344,6 +2345,7 @@ mqttClient.on('connect', () => {
     mqttClient.subscribe(['nfc/leitura', 'nfc/status', 'painel/botao']);
     mqttClient.subscribe(['esteira/botao']);
     mqttClient.subscribe(['separador/status', 'separador/estado']);
+    mqttClient.subscribe(['selagem2/autotune_resultado']);
     setTimeout(separadorPublicarConfig, 600);
 
     mqttClient.subscribe(Object.values(MOTORES_SELAGEM).flatMap(m => [m.topicoAtual, m.topicoSentidoAtual]).concat([MQTT_TOPIC_SELAGEM2_MOTOR_STATUS, MQTT_TOPIC_SELAGEM1_MOTOR_STATUS]));
@@ -2540,26 +2542,36 @@ mqttClient.on('message', (topic, message) => {
         }
     }
 
+    if (topic === 'selagem2/autotune_resultado') {
+        try { selagem2AutotuneResultado(JSON.parse(valor)); } catch (e) { console.error('Erro ao interpretar o resultado do autotune:', e.message); }
+    }
+
     if (topic === MQTT_TOPIC_SELAGEM2_DADOS) {
         try {
             const dados = JSON.parse(valor);
+            // quando o autotune começou
+            if (dados.autotune === 'rodando') { if (!selagem2AutotuneDesde) selagem2AutotuneDesde = Date.now(); }
+            else selagem2AutotuneDesde = null;
+            dados.autotuneDesde = selagem2AutotuneDesde;
             ultimoEstadoSelagem2 = dados;
+            selagem2Amostrar(dados);
             io.emit('atualizar_temperatura2', dados);
 
-            if (dados.seguranca !== 'ok' && dados.seguranca !== ultimaSegurancaSelagem2Avisada) {
+            const segAtual = dados.seguranca || 'ok';
+            if (segAtual !== 'ok' && segAtual !== ultimaSegurancaSelagem2Avisada) {
                 const hora = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-                const textoAlerta = dados.seguranca === 'temperatura_alta'
-                    ? `⚠️ AVISO: Temperatura da selagem 2 muito alta (${dados.temperatura}°C).`
+                const info = SELAGEM2_ALARMES[segAtual];
+                const textoAlerta = info ? `⚠️ Selagem 2: ${info.texto}${typeof dados.temperatura === 'number' ? ' (' + dados.temperatura + '°C)' : ''}.`
                     : `⚠️ AVISO: Falha na leitura do sensor da selagem 2 (usando a última leitura válida).`;
-
-                const logCritico = { hora, texto: textoAlerta, classe: 'text-red-600 font-bold', usuario: 'Sistema (Selagem 2)', tipo: 'temperatura_critica' };
+                const aviso = info && info.nivel === 'aviso';
+                const logCritico = { hora, texto: textoAlerta, classe: aviso ? 'text-amber-600 font-bold' : 'text-red-600 font-bold', usuario: 'Sistema (Selagem 2)', tipo: 'temperatura_critica' };
                 salvarLogNoArquivoDoDia(logCritico);
                 io.emit('novo_log_servidor', logCritico);
             }
-            if (dados.seguranca === 'ok' && ultimaSegurancaSelagem2Avisada && ultimaSegurancaSelagem2Avisada !== 'ok') {
+            if (segAtual === 'ok' && ultimaSegurancaSelagem2Avisada && ultimaSegurancaSelagem2Avisada !== 'ok') {
                 io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto: 'Selagem 2 voltou ao normal, aviso resolvido.', tipo: 'temperatura' });
             }
-            ultimaSegurancaSelagem2Avisada = dados.seguranca;
+            ultimaSegurancaSelagem2Avisada = segAtual;
         } catch (e) {
             console.error('Erro ao interpretar dados da selagem 2:', e.message);
         }
@@ -2699,6 +2711,12 @@ function adminObrigatorio(req, res, next) {
     if (!res.locals.isAdmin && !(res.locals.somenteLeitura && soLeitura)) {
         return res.status(403).send('Acesso negado. Esta área é restrita a administradores.');
     }
+    next();
+}
+
+// só Dono e Adm, resposta em JSON
+function adminJsonObrigatorio(req, res, next) {
+    if (!res.locals.isAdmin) return res.status(403).json({ erro: 'Somente Dono ou Administrador podem fazer isso.' });
     next();
 }
 
@@ -3756,6 +3774,113 @@ app.post('/api/separador/servo/simular', loginObrigatorio, servoControleObrigato
     io.emit('separador_evento', registro);
     servoLogar('Detecção simulada (' + (lado === 'E' ? 'esquerda' : 'direita') + ') por ' + res.locals.usuarioLogado);
     res.json({ sucesso: true, atrasoMs: atraso });
+});
+
+// selagem 2: ajuste fino
+const SELAGEM2_ALARMES = {
+    erro_sensor: { texto: 'Sensor sem leitura (aquecimento desligado)', nivel: 'erro' },
+    sobretemperatura: { texto: 'Temperatura acima do limite (desligado)', nivel: 'erro' },
+    sem_aquecimento: { texto: 'A barra não está esquentando: confira sensor, resistência e SSR (desligado)', nivel: 'erro' },
+    sensor_quente: { texto: 'Sensor muito quente (desligado)', nivel: 'erro' },
+    sensor_quente_aviso: { texto: 'Sensor esquentando (aviso)', nivel: 'aviso' },
+    temperatura_alta: { texto: 'Temperatura crítica! Selagem travada por segurança', nivel: 'erro' }
+};
+let selagem2AutotuneDesde = null;
+let selagem2AutotuneRes = null;
+const selagem2Historico = [];
+const SELAGEM2_HISTORICO_MS = 10 * 60 * 1000;
+
+// uma amostra a cada ~3 s, últimos 10 min
+function selagem2Amostrar(d) {
+    const agora = Date.now();
+    const ult = selagem2Historico[selagem2Historico.length - 1];
+    if (ult && agora - ult.t < 2800) return;
+    if (typeof d.temperatura !== 'number') return;
+    selagem2Historico.push({ t: agora, temp: d.temperatura, alvo: typeof d.setpoint === 'number' ? d.setpoint : null, pot: typeof d.potencia === 'number' ? d.potencia : null });
+    while (selagem2Historico.length && agora - selagem2Historico[0].t > SELAGEM2_HISTORICO_MS) selagem2Historico.shift();
+}
+
+function selagem2Logar(texto, tipo) {
+    console.log('🔥 ' + texto);
+    io.emit('novo_log_servidor', { hora: horaAtualCurta(), texto, tipo: tipo || 'sistema' });
+    try { salvarLogNoArquivoDoDia(`[${horaAtualCurta()}] ${texto}`); } catch (e) {}
+}
+
+function selagem2AutotuneResultado(r) {
+    selagem2AutotuneRes = Object.assign({}, r, { em: Date.now() });
+    io.emit('selagem2_autotune', selagem2AutotuneRes);
+    const f = (v, d) => (typeof v === 'number' ? v.toFixed(d) : '?');
+    if (r.estado === 'ok') selagem2Logar(`Autotune da Selagem 2 terminou: Ku ${f(r.ku, 2)}, Pu ${f(r.pu, 1)} s. Novos ganhos Kp ${f(r.kp, 2)}, Ki ${f(r.ki, 4)}, Kd ${f(r.kd, 1)}.`);
+    else selagem2Logar(`Autotune da Selagem 2 ${r.estado || 'parou'}${r.motivo ? ': ' + r.motivo : ''}.`, 'emergencia');
+}
+
+function selagem2Estado() {
+    return { online: selagem2Online, estado: ultimoEstadoSelagem2, autotune: selagem2AutotuneRes, historico: selagem2Historico, emergencia: emergenciaGlobal.ativa, alarmes: SELAGEM2_ALARMES };
+}
+
+// número dentro da faixa (erro se fora)
+function selagem2Numero(v, min, max, nome) {
+    if (v === '' || v === null || v === undefined || typeof v === 'boolean') throw new Error(nome + ' inválido.');
+    const n = Number(v);
+    if (!isFinite(n)) throw new Error(nome + ' inválido.');
+    if (n < min || n > max) throw new Error(`${nome} precisa estar entre ${min} e ${max}.`);
+    return n;
+}
+
+function selagem2Pronta(req, res, next) {
+    if (emergenciaGlobal.ativa) return res.status(423).json({ erro: 'Emergência ativa: o aquecimento está travado. Libere no botão DESBLOQUEAR.' });
+    if (!selagem2Online) return res.status(409).json({ erro: 'O ESP32 da Selagem 2 está desconectado.' });
+    next();
+}
+
+app.get('/api/selagem2/ajuste', loginObrigatorio, (req, res) => res.json(selagem2Estado()));
+
+app.post('/api/selagem2/autotune', loginObrigatorio, adminJsonObrigatorio, selagem2Pronta, (req, res) => {
+    try {
+        const b = req.body || {};
+        if (b.acao === 'cancelar') {
+            mqttClient.publish('selagem2/autotune', '0');
+            selagem2Logar('Autotune da Selagem 2 cancelado por ' + res.locals.usuarioLogado);
+            return res.json({ sucesso: true });
+        }
+        const alvo = b.alvo === undefined ? (ultimoEstadoSelagem2.setpoint >= 40 ? ultimoEstadoSelagem2.setpoint : 150) : selagem2Numero(b.alvo, 40, 240, 'Alvo');
+        const pot = b.potencia === undefined ? null : selagem2Numero(b.potencia, 30, 100, 'Potência');
+        if (selagem2AutotuneDesde) return res.status(409).json({ erro: 'O autotune já está rodando.' });
+        mqttClient.publish('selagem2/autotune', pot === null ? String(Math.round(alvo)) : Math.round(alvo) + ',' + Math.round(pot));
+        selagem2Logar(`Autotune da Selagem 2 iniciado por ${res.locals.usuarioLogado} (alvo ${Math.round(alvo)}°C${pot === null ? '' : ', potência ' + Math.round(pot) + '%'}).`);
+        res.json({ sucesso: true, alvo: Math.round(alvo) });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+});
+
+app.post('/api/selagem2/pid', loginObrigatorio, adminJsonObrigatorio, selagem2Pronta, (req, res) => {
+    try {
+        const b = req.body || {};
+        if (b.padrao) {
+            mqttClient.publish('selagem2/pid', 'padrao');
+            selagem2Logar('Ganhos PID da Selagem 2 voltaram ao padrão (por ' + res.locals.usuarioLogado + ').');
+            return res.json({ sucesso: true });
+        }
+        const kp = selagem2Numero(b.kp, 0, 100, 'Kp'), ki = selagem2Numero(b.ki, 0, 5, 'Ki'), kd = selagem2Numero(b.kd, 0, 1000, 'Kd');
+        mqttClient.publish('selagem2/pid', `${kp},${ki},${kd}`);
+        selagem2Logar(`Ganhos PID da Selagem 2 alterados por ${res.locals.usuarioLogado}: Kp ${kp}, Ki ${ki}, Kd ${kd}.`);
+        res.json({ sucesso: true });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
+});
+
+app.post('/api/selagem2/calibrar', loginObrigatorio, adminJsonObrigatorio, selagem2Pronta, (req, res) => {
+    try {
+        const b = req.body || {};
+        if (b.acao === 'zerar') {
+            mqttClient.publish('selagem2/calibrar', 'zerar');
+            selagem2Logar('Calibração da Selagem 2 zerada por ' + res.locals.usuarioLogado);
+            return res.json({ sucesso: true });
+        }
+        if (b.acao !== 'cal1' && b.acao !== 'cal2') return res.status(400).json({ erro: 'Ação inválida (use cal1, cal2 ou zerar).' });
+        const real = selagem2Numero(b.real, -20, 400, 'Temperatura real');
+        mqttClient.publish('selagem2/calibrar', `${b.acao}:${real}`);
+        selagem2Logar(`Calibração da Selagem 2 (${b.acao === 'cal1' ? 'ponto 1' : 'ponto 2'} = ${real}°C) por ${res.locals.usuarioLogado}.`);
+        res.json({ sucesso: true });
+    } catch (e) { res.status(400).json({ erro: e.message }); }
 });
 
 app.post('/api/separador/servo/ref-velocidade', loginObrigatorio, adminObrigatorio, (req, res) => {

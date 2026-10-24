@@ -1,0 +1,50 @@
+PINAGEM - SELAGEM 2 AQUECIMENTO (ESP32 DevKit V1)  -  BARRA QUENTE 150 W + SSR-25DA + GY-906
+Placa no Arduino IDE: ESP32 Dev Module   |   Bibliotecas: PubSubClient e Adafruit MLX90614 (+ BusIO)   (a biblioteca PID NAO e mais usada neste firmware)
+===================================================================================================
+
+SENSOR GY-906 (MLX90614)      ESP32
+-----------------------------------
+VIN                           3.3V
+GND                           GND
+SDA                           GPIO 21
+SCL                           GPIO 22
+
+SSR-25DA  -  lado de CONTROLE (baixa tensao, 3 a 32 V CC)
+-----------------------------------
+terminal 3 (+)                GPIO 25
+terminal 4 (-)                GND do ESP32
+Se o SSR nao ligar direito com 3,3 V (o LED dele fica fraco ou ele nao fecha), use um transistor:
+  GPIO 25 -> resistor 1 kOhm -> base do BC547/2N2222 ; emissor -> GND ; coletor -> terminal 4 (-) do SSR ; terminal 3 (+) do SSR -> 5 V (VIN)
+Teste:  no Monitor Serial digite  TESTE SSR  (liga por 3 s: o LED do SSR acende e a barra esquenta um pouco)
+
+SSR-25DA  -  lado de POTENCIA (REDE ELETRICA - perigo!)
+-----------------------------------
+tomada FASE (fio vivo) -> fusivel de 2 A -> terminal 1 do SSR
+terminal 2 do SSR      -> UM fio da resistencia (barra)
+outro fio da resistencia -> NEUTRO da tomada
+TERRA da tomada (PE)   -> estrutura metalica da maquina e carcaca da barra
+SSR comuta so a FASE. Nunca ligue/mexa com a tomada conectada. Cubra todos os terminais com tampa/isolante.
+
+RESISTENCIA (barra quente 300 x 20 mm, 150 W)  -  CONFIRA A TENSAO ANTES DE LIGAR
+-----------------------------------
+Veja a etiqueta (127 V ou 220 V) e use na MESMA tensao da tomada. Com a tomada desligada, meca a resistencia com o multimetro:
+   127 V -> cerca de 107 ohms   |   220 V -> cerca de 323 ohms   |   110 V -> cerca de 81 ohms
+Elemento de 127 V ligado em 220 V queima (uns 450 W); elemento de 220 V em 127 V esquenta pouco (uns 50 W).
+Fio de ligacao e emendas perto da barra: use silicone/fibra de vidro (aguenta mais de 200 C), nunca PVC comum.
+
+PROTECOES EXTERNAS (recomendado, independem do ESP32)
+-----------------------------------
+1) FUSIVEL TERMICO (cut-off) de uns 240 C / 10 A preso na barra e EM SERIE com a resistencia. Se tudo falhar, ele corta.
+2) Interruptor geral facil de alcancar e, se possivel, disjuntor DR. O SSR pode falhar "colado" (ligado direto): so o interruptor/fusivel termico desliga nesse caso.
+
+POSICAO DO SENSOR GY-906
+-----------------------------------
+O GY-906 mede por infravermelho. Inox POLIDO (brilhante) engana o sensor: ele le MUITO MENOS que a temperatura real.
+- Cole um pedacinho de FITA KAPTON/preta de alta temperatura (ou tinta preta fosca para alta temperatura) no ponto da barra que o sensor enxerga.
+- Deixe o sensor a uns 10 a 20 mm do ponto, apontado de frente. O campo de visao e largo (cerca de 90 graus nos modulos comuns): um tubinho de papel aluminio ao redor ajuda.
+- Mantenha o CORPO do sensor longe do calor (o firmware mostra o "corpo do sensor"; avisa em 80 C e corta em 95 C).
+- Depois de montar, faca a CALIBRACAO com um termometro de contato (veja o guia).
+
+ALIMENTACAO DO ESP32
+-----------------------------------
+5 V do regulador no pino VIN, GND comum com a fonte. Para gravar pelo USB, tire o fio de 5 V do VIN.

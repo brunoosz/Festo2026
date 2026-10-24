@@ -9,7 +9,7 @@
     "dev": "node tools/dev.js",
     "mock": "node tools/mock_mqtt.js",
     "seed": "node tools/seed_teste.js",
-    "test": "node tools/testes/etapa1.js && node tools/testes/etapa2.js && node tools/testes/etapa3.js && node tools/testes/nfc.js && node tools/testes/sobre.js && node tools/testes/lote2_etapa1.js && node tools/testes/lote3_etapa1.js && node tools/testes/lote3_etapa2.js && node tools/testes/lote3_etapa3.js && node tools/testes/topo.js && node tools/testes/alexa.js && node tools/testes/alexa_receitas.js && node tools/testes/alexa_certificado.js && node tools/testes/emergencia_ciclos.js && node tools/testes/emergencia_tela.js && node tools/testes/servo_livre.js && node tools/testes/menu_lateral.js"
+    "test": "node tools/testes/etapa1.js && node tools/testes/etapa2.js && node tools/testes/etapa3.js && node tools/testes/nfc.js && node tools/testes/sobre.js && node tools/testes/lote2_etapa1.js && node tools/testes/lote3_etapa1.js && node tools/testes/lote3_etapa2.js && node tools/testes/lote3_etapa3.js && node tools/testes/topo.js && node tools/testes/alexa.js && node tools/testes/alexa_receitas.js && node tools/testes/alexa_certificado.js && node tools/testes/emergencia_ciclos.js && node tools/testes/emergencia_tela.js && node tools/testes/servo_livre.js && node tools/testes/menu_lateral.js && node tools/testes/selagem2_ajuste.js"
   },
   "repository": {
     "type": "git",
