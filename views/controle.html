@@ -4,6 +4,8 @@
 {% block title %}Painel de Controle{% endblock %}
 
 {% block content %}
+<script src="/js/selagem2-alarmes.js"></script>
+<script src="/js/selagem2-ajuste.js"></script>
 <div class="flex flex-col gap-4 sm:gap-6">
 
     <!-- barra de status -->
@@ -62,6 +64,60 @@
     <div>
         <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Temperaturas</h3>
         <div id="grade-temperaturas" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+
+    <div>
+        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Selagem 2 · Ajuste fino</h3>
+        <div id="s2-ajuste" class="card-painel flex flex-col gap-4">
+            <p data-s2="alarme" hidden></p>
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-slate-50 rounded-lg p-2"><div class="text-[10px] font-bold text-slate-500 uppercase">Temperatura</div><div data-s2="temp" class="text-base font-black text-slate-800">--</div></div>
+                <div class="bg-slate-50 rounded-lg p-2"><div class="text-[10px] font-bold text-slate-500 uppercase">Leitura bruta</div><div data-s2="bruta" class="text-base font-black text-slate-800">--</div></div>
+                <div class="bg-slate-50 rounded-lg p-2"><div class="text-[10px] font-bold text-slate-500 uppercase">Corpo do sensor</div><div data-s2="ambiente" class="text-base font-black text-slate-800">--</div></div>
+            </div>
+            <div>
+                <div class="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase mb-1"><span>Últimos 10 min</span><span><span style="color:#dc2626">■</span> temperatura <span style="color:#64748b">■</span> alvo <span style="color:#f59e0b">■</span> potência</span></div>
+                <canvas data-s2="grafico" class="w-full rounded-lg bg-slate-50" style="height:150px" aria-label="Gráfico de temperatura, alvo e potência da Selagem 2"></canvas>
+            </div>
+            <div class="border-t border-slate-100 pt-3">
+                <h4 class="text-[11px] font-black text-slate-600 uppercase mb-2">Autotune</h4>
+                <p data-s2="autotune-estado" class="text-xs font-bold text-slate-600">Autotune: --</p>
+                <p data-s2="resultado" class="text-[11px] text-slate-500 mt-1"></p>
+                <div class="flex flex-wrap gap-2 items-end mt-2">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Alvo (°C)
+                        <input data-s2="alvo-autotune" data-s2-editar type="number" min="40" max="240" value="150" class="block mt-1 w-24 border border-slate-300 rounded bg-slate-50 text-slate-700 px-2 py-1.5 text-sm">
+                    </label>
+                    <button data-s2="btn-autotune" data-s2-editar type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-lg text-xs">Rodar autotune</button>
+                    <button data-s2="btn-cancelar" data-s2-editar type="button" class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-3 py-2 rounded-lg text-xs">Cancelar</button>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1">Faça com a barra vazia e sem plástico. Leva alguns minutos.</p>
+            </div>
+            <div class="border-t border-slate-100 pt-3">
+                <h4 class="text-[11px] font-black text-slate-600 uppercase mb-2">Ganhos PID</h4>
+                <div class="grid grid-cols-3 gap-2">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Kp<input data-s2="kp" data-s2-editar type="number" min="0" max="100" step="0.01" class="block mt-1 w-full border border-slate-300 rounded bg-slate-50 px-2 py-1.5 text-sm"></label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Ki<input data-s2="ki" data-s2-editar type="number" min="0" max="5" step="0.0001" class="block mt-1 w-full border border-slate-300 rounded bg-slate-50 px-2 py-1.5 text-sm"></label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Kd<input data-s2="kd" data-s2-editar type="number" min="0" max="1000" step="0.1" class="block mt-1 w-full border border-slate-300 rounded bg-slate-50 px-2 py-1.5 text-sm"></label>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <button data-s2="btn-pid" data-s2-editar type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-lg text-xs">Aplicar</button>
+                    <button data-s2="btn-pid-padrao" data-s2-editar type="button" class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-3 py-2 rounded-lg text-xs">Padrão</button>
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-3">
+                <h4 class="text-[11px] font-black text-slate-600 uppercase mb-2">Calibração da leitura</h4>
+                <div class="flex flex-wrap gap-2 items-end">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Temperatura real medida (°C)
+                        <input data-s2="real" data-s2-editar type="number" min="-20" max="400" step="0.1" class="block mt-1 w-32 border border-slate-300 rounded bg-slate-50 px-2 py-1.5 text-sm">
+                    </label>
+                    <button data-s2="btn-cal1" data-s2-editar type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-lg text-xs">Ponto 1</button>
+                    <button data-s2="btn-cal2" data-s2-editar type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-lg text-xs">Ponto 2</button>
+                    <button data-s2="btn-zerar" data-s2-editar type="button" class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-3 py-2 rounded-lg text-xs">Zerar</button>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1">Meça a barra com termômetro de contato. Ponto 1 e ponto 2 devem ter pelo menos 15 °C de diferença.</p>
+            </div>
+            <p class="text-[10px] text-slate-400">Somente Dono e Administrador alteram. Os demais veem os números.</p>
+        </div>
     </div>
 
     <div>
@@ -433,6 +489,12 @@
             ctrl.aviso.classList.remove('hidden');
             return;
         }
+        const alarme2 = numero === 2 ? window.Selagem2Alarmes.info(ctrl.ultimaSeguranca) : null;
+        if (alarme2 && !ctrl.checkIgnorar.checked) {
+            ctrl.aviso.innerText = (alarme2.nivel === 'aviso' ? 'AVISO: ' : 'ALARME: ') + alarme2.texto + '.';
+            ctrl.aviso.classList.remove('hidden');
+            return;
+        }
         if (ctrl.checkIgnorar.checked || ctrl.ultimaSeguranca === 'ok') {
             ctrl.aviso.classList.add('hidden');
             return;
@@ -556,9 +618,12 @@
     servoCarregar();
     const sairEmergencia = window.EmergenciaGlobal.assinar(aplicarEmergencia);
 
+    const sairAjusteS2 = window.Selagem2Ajuste.iniciar(document.getElementById('s2-ajuste'), { podeEditar: !window.__somenteLeitura && (window.__nivelUsuarioInicial || 3) <= 2 });
+
     window.__cleanupPagina = function() {
         ouvintes.forEach(([evento, funcao]) => globalSocket.off(evento, funcao));
         sairEmergencia();
+        sairAjusteS2();
         btnRecarregar.removeEventListener('click', servoCarregar);
     };
 })();

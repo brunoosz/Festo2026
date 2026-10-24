@@ -1,0 +1,19 @@
+1) Ganhos PADRAO (antes do autotune): 25 C -> 150 C
+  padrao                             ultrapassou 0.4 C | entrou em +-3 C em 170 s | erro medio (ultimos 5 min) 0.09 C | potencia 41% (oscila +-2)
+2) AUTOTUNE (rele 100%/0%) com alvo 150 C
+  estado=2 (ok) em 173 s (2.9 min) | maior temperatura da barra 154.0 C | Ku=22.67 Pu=22.5 s -> Kp=10.31 Ki=0.2082 Kd=36.8
+  continuando direto no PID apos o autotune (10 min): maior 150.4 C | erro medio dos ultimos 5 min 0.09 C
+3) PID com os ganhos do autotune: 25 C -> 150 C (e uma porta aberta aos 900 s: perda 66% maior)
+  autotune + perturbacao             ultrapassou 0.4 C | entrou em +-3 C em 113 s | erro medio (ultimos 5 min) 0.09 C | potencia 69% (oscila +-3)
+   outro alvo, 100 C, com os mesmos ganhos
+  alvo 100 C                         ultrapassou 0.4 C | entrou em +-3 C em 60 s | erro medio (ultimos 5 min) 0.09 C | potencia 25% (oscila +-3)
+4) PROTECOES
+  sensor para de responder (aquecendo): alarme=1 em 2.6 s | SSR desligado: sim
+  leitura TRAVADA em 30 C (sensor aponta para outro lugar): alarme=3 (3=sem_aquecimento) apos 86 s | temperatura REAL da barra nesse momento: 133 C
+  resistencia/SSR sem aquecer: alarme=3 (3=sem_aquecimento) apos 46 s
+  barra passando de 270 C (manual 100%): alarme=2 (2=sobretemperatura) em 38.5 s | habilitado/manual=0/0
+  corpo do sensor a 97 C: alarme=4 (4=sensor_quente)
+  teste manual de 3 s: ligou=1 e depois desligou sozinho=1 (potencia=0)
+5) CALIBRACAO
+  leitura bruta 80 = real 100 -> offset=20.0 ganho=1.00
+  e bruta 130 = real 170 -> ganho=1.400 offset=-12.00 (ok=1) | 105 bruto vira 135.0 real

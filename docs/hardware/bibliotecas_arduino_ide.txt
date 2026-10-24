@@ -10,7 +10,7 @@ BIBLIOTECAS E CONFIGURACAO DO ARDUINO IDE - FLOWPACK
 
 2) BIBLIOTECAS (Ferramentas > Gerenciar Bibliotecas)
    PubSubClient              Nick O'Leary            todos os firmwares
-   PID                       Brett Beauregard        Selagem 1 e Selagem 2 (aquecimento)
+   PID                       Brett Beauregard        Selagem 1 (a Selagem 2 v3 tem PID proprio e nao usa esta biblioteca)
    Adafruit MLX90614 Library Adafruit                Selagem 1 e Selagem 2 (aquecimento)
    Adafruit BusIO            Adafruit                (instala junto; aceite as dependencias)
    esp32cam                  yoursunny               so a camera (firmware opcional)
@@ -23,7 +23,7 @@ BIBLIOTECAS E CONFIGURACAO DO ARDUINO IDE - FLOWPACK
 4) QUAL FIRMWARE USA O QUE
    01 esteira ............ WiFi, PubSubClient, Preferences
    02 selagem 1 .......... WiFi, PubSubClient, Wire, Adafruit_MLX90614, PID_v1, Preferences
-   03 selagem 2 aquec. ... WiFi, PubSubClient, Wire, Adafruit_MLX90614, PID_v1
+   03 selagem 2 aquec. ... WiFi, PubSubClient, Wire, Adafruit_MLX90614, Preferences (v3: PID proprio)
    04 selagem 2 motor .... WiFi, PubSubClient, Preferences
    05 dispenser .......... WiFi, PubSubClient, Preferences
    06 separador (servo) .. WiFi, PubSubClient, Preferences

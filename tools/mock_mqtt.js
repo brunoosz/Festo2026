@@ -22,10 +22,11 @@ function placasDeMentira() {
     let setpoint1 = 0, setpoint2 = 0, ligada1 = false, ligada2 = false, temp1 = 25, temp2 = 25;
     let servo = { lado: 'C', fila: 0, angulos: { E: 45, C: 90, D: 135 }, angulo: 90, alvo: 90, vel: 60 };
     let voltaAoCentro = null;
+    let autotune = 'parado', pid = { kp: 10.3, ki: 0.2, kd: 36.8 };
     const pub = (t, v) => c.publish(t, typeof v === 'string' ? v : JSON.stringify(v));
 
     c.on('connect', () => {
-        c.subscribe(['esteira/velocidade/set', 'selagem/set_temperatura', 'selagem/ativar', 'selagem2/set_temperatura', 'selagem2/ativar', 'separador/teste', 'separador/config', 'separador/servo/angulo', 'separador/servo/parar', 'separador/desviar', 'nfc/resultado', 'painel/resultado']);
+        c.subscribe(['esteira/velocidade/set', 'selagem/set_temperatura', 'selagem/ativar', 'selagem2/set_temperatura', 'selagem2/ativar', 'separador/teste', 'separador/config', 'separador/servo/angulo', 'separador/servo/parar', 'separador/desviar', 'selagem2/autotune', 'selagem2/pid', 'selagem2/calibrar', 'nfc/resultado', 'painel/resultado']);
         console.log('Placas de mentira ligadas: esteira, selagem 1, selagem 2, dispenser, servo do separador, painel NFC');
         console.log('Painel NFC de mentira: digite aqui  cartao <NUMERO-HEX>  |  mais  |  menos  |  emergencia  (ex.: cartao A1B2C3D4)');
     });
@@ -43,6 +44,13 @@ function placasDeMentira() {
             servo.lado = v; servo.alvo = servo.angulos[v]; clearTimeout(voltaAoCentro);
             if (v !== 'C') voltaAoCentro = setTimeout(() => { servo.lado = 'C'; servo.alvo = servo.angulos.C; }, 1500);
         }
+        // selagem 2: ajuste fino de mentira
+        if (t === 'selagem2/autotune' && v !== '0') {
+            autotune = 'rodando';
+            setTimeout(() => { if (autotune !== 'rodando') return; autotune = 'ok'; pid = { kp: 10.31, ki: 0.2082, kd: 36.8 }; pub('selagem2/autotune_resultado', { estado: 'ok', motivo: '', ku: 22.67, pu: 22.5, ...pid }); }, 8000);
+        }
+        if (t === 'selagem2/autotune' && v === '0') autotune = 'parado';
+        if (t === 'selagem2/pid' && v !== 'padrao') { const [kp, ki, kd] = v.split(',').map(Number); pid = { kp, ki, kd }; }
         // servo livre
         if (t === 'separador/servo/angulo') {
             try { const j = JSON.parse(v); servo.alvo = j.a; servo.vel = j.v || servo.vel; servo.lado = 'M'; clearTimeout(voltaAoCentro); if (j.h > 0) voltaAoCentro = setTimeout(() => { servo.lado = 'C'; servo.alvo = servo.angulos.C; }, j.h); } catch (e) {}
@@ -68,7 +76,7 @@ function placasDeMentira() {
         pub('selagem/status_conexao', 'online');
         pub('selagem/dados', { temperatura: +temp1.toFixed(1), setpoint: setpoint1, habilitado: ligada1, seguranca: 'ok' });
         pub('selagem2/status_conexao', 'online');
-        pub('selagem2/dados', { temperatura: +temp2.toFixed(1), setpoint: setpoint2, habilitado: ligada2, seguranca: 'ok' });
+        pub('selagem2/dados', { temperatura: +temp2.toFixed(1), setpoint: setpoint2, potencia: ligada2 ? 40 : 0, habilitado: ligada2, seguranca: 'ok', autotune, bruta: +(temp2 - 1.5).toFixed(1), ambiente: 27.4, kp: pid.kp, ki: pid.ki, kd: pid.kd, manual: false });
         pub('selagem/motores/status', 'online');
         pub('selagem2/motor/status', 'online');
         pub('dispenser/status', 'online');
